@@ -72,6 +72,9 @@ pub struct App {
     botgen_count: u32,
     // Journaux
     console_cmd: String,
+    // Paramètres : client détecté dans le dossier saisi (recalculé quand le chemin change), clients trouvés à proximité
+    client_probe: Option<(String, crate::client::ClientInfo)>,
+    discovered: Option<Vec<crate::client::ClientInfo>>,
 }
 
 impl App {
@@ -127,6 +130,8 @@ impl App {
             backup_label: String::new(),
             botgen_count: 40,
             console_cmd: String::new(),
+            client_probe: None,
+            discovered: None,
         }
     }
 
@@ -336,7 +341,7 @@ impl App {
             ui.label(Layout::version());
             ui.end_row();
             ui.label("Client");
-            ui.label(format!("{} — version {}", snap.client.dir.display(), snap.client.version_string()));
+            ui.label(format!("{} — {} {}", snap.client.dir.display(), snap.client.kind_label(), snap.client.version_string()));
             ui.end_row();
             if !snap.client.missing_mpq.is_empty() {
                 ui.label("MPQ manquants");
@@ -1191,13 +1196,50 @@ impl App {
             }
         });
         ui.small(fr::SET_CLIENT_HINT);
+        // Type du client dans le dossier saisi : d'origine (WoW.exe) ou Benilla (64 bits).
+        let typed = self.settings.client_dir.trim().to_string();
+        if self.client_probe.as_ref().map(|(p, _)| p != &typed).unwrap_or(true) {
+            let dir = if typed.is_empty() { self.layout.default_client_dir() } else { std::path::PathBuf::from(&typed) };
+            self.client_probe = Some((typed.clone(), crate::client::inspect(&dir)));
+        }
+        let probe = self.client_probe.as_ref().map(|(_, i)| i.clone()).unwrap_or_default();
+        ui.horizontal_wrapped(|ui| {
+            ui.label(fr::SET_CLIENT_DETECTED);
+            let txt = if probe.kind == crate::client::ClientKind::None { probe.kind_label().to_string() } else { format!("{} — {}", probe.kind_label(), probe.version_string()) };
+            ui.label(RichText::new(txt).color(status_color(probe.is_ok(), false)).strong());
+            if probe.kind != crate::client::ClientKind::None && !probe.missing_mpq.is_empty() {
+                ui.colored_label(WARN, format!("{} {}", fr::SET_CLIENT_MISSING_MPQ, probe.missing_mpq.join(", ")));
+            }
+        });
+        if probe.is_benilla() {
+            ui.small(fr::SET_CLIENT_BENILLA_HINT);
+        }
+        ui.horizontal_wrapped(|ui| {
+            if ui.button(fr::SET_CLIENT_SCAN).on_hover_text(fr::SET_CLIENT_SCAN_HINT).clicked() || self.discovered.is_none() {
+                self.discovered = Some(crate::client::discover(&self.layout.root));
+            }
+        });
+        if let Some(found) = self.discovered.clone() {
+            for c in found.iter() {
+                let path = c.dir.to_string_lossy().into_owned();
+                let current = probe.dir == c.dir;
+                ui.horizontal(|ui| {
+                    if ui.add_enabled(!current, egui::Button::new(if current { fr::SET_CLIENT_IN_USE } else { fr::SET_CLIENT_USE })).clicked() {
+                        self.settings.client_dir = if c.dir == self.layout.default_client_dir() { String::new() } else { path.clone() };
+                    }
+                    ui.label(format!("{} — {}", c.kind_label(), c.version_string()));
+                    ui.small(&path);
+                });
+            }
+        }
         ui.add_space(6.0);
         ui.checkbox(&mut self.settings.windowed, fr::SET_WINDOWED);
         ui.small(fr::SET_WINDOWED_HINT);
-        let vf_present = self.layout.vanillafixes_dir().join("VanillaFixes.exe").is_file();
-        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.vanillafixes, fr::SET_VF)).on_hover_text(fr::SET_VF_HINT).on_disabled_hover_text(fr::SET_VF_MISSING);
+        let vf_present = self.layout.vanillafixes_dir().join("VanillaFixes.exe").is_file() && !probe.is_benilla();
+        let vf_off_hint = if probe.is_benilla() { fr::SET_VF_BENILLA } else { fr::SET_VF_MISSING };
+        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.vanillafixes, fr::SET_VF)).on_hover_text(fr::SET_VF_HINT).on_disabled_hover_text(vf_off_hint);
         ui.small(fr::SET_VF_HINT);
-        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.dxvk, fr::SET_DXVK)).on_hover_text(fr::SET_DXVK_HINT);
+        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.dxvk, fr::SET_DXVK)).on_hover_text(fr::SET_DXVK_HINT).on_disabled_hover_text(vf_off_hint);
         ui.small(fr::SET_DXVK_HINT);
         ui.add_space(4.0);
         ui.checkbox(&mut self.settings.ahbot_enabled, fr::SET_AHBOT);

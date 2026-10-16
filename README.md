@@ -91,6 +91,7 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 - **Patchs** client (`patch-X.MPQ`) : activer, désactiver, ajouter, et construire une archive MPQ depuis un dossier (patchs VanillaHD, par exemple).
 - **AddOns** : installation depuis une archive zip (Questie, pfUI, Bagnon…), activation, suppression.
 - **VanillaFixes** (fluidité) et **DXVK** (rendu Vulkan) en option.
+- **Client 64 bits Benilla** reconnu en plus du client d'origine : détection automatique (« Rechercher les clients » dans Paramètres), configuration de son `config.toml`, AddOns dans `benilla-config\AddOns`.
 
 **Protéger**
 - **Sauvegardes** vérifiées par empreinte (personnages, comptes, réglages), automatiques à chaque fermeture du jeu avec rotation, sauvegarde de sécurité avant toute restauration.
@@ -107,7 +108,7 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 | Système | Windows 10 ou 11, 64 bits |
 | Processeur, mémoire | 4 cœurs, 8 Go |
 | Espace disque | ≈ 4 Go pour HomeCraft, en plus du client |
-| Client | World of Warcraft **1.12.1 frFR** (build 5875 ou 5880), fourni par vous |
+| Client | World of Warcraft **1.12.1 frFR** (build 5875 ou 5880), fourni par vous ; ou [Benilla](https://github.com/samwhosung/benilla) (64 bits) avec les archives de ce client |
 | Réseau | aucun : tout fonctionne hors ligne |
 
 ## Installation et premier démarrage

@@ -873,7 +873,7 @@ impl Orchestrator {
         self.log(format!(
             "vérification : composants {}, client {} ({}), MPQ manquants : {}",
             if all { "OK" } else { "INCOMPLETS" },
-            if info.exe_present { info.version_string() } else { "absent".into() },
+            if info.exe_present { format!("{} {}", info.kind_label(), info.version_string()) } else { "absent".into() },
             info.dir.display(),
             info.missing_mpq.len()
         ));
@@ -1273,23 +1273,28 @@ impl Orchestrator {
         let dir = self.client_dir();
         let info = client::inspect(&dir);
         if !info.is_ok() {
-            self.fail("client", format!("client non valide dans {} (attendu 1.12.1.5875)", dir.display()));
+            self.fail("client", format!("client non valide dans {} (attendu : WoW.exe 1.12.1.5875 ou client Benilla, avec les archives de Data)", dir.display()));
             return;
         }
-        if let Err(e) = client::configure(&dir, self.settings.windowed) {
+        if let Err(e) = client::configure(&info, self.settings.windowed) {
             self.fail("configuration du client", e);
             return;
         }
-        let via_vf = match client::apply_vanillafixes(&dir, &self.layout.vanillafixes_dir(), self.settings.vanillafixes, self.settings.dxvk) {
-            Ok(v) => v,
-            Err(e) => {
-                self.log(format!("VanillaFixes/DXVK : {e} — lancement direct de WoW.exe"));
-                false
+        // VanillaFixes et DXVK ne concernent que WoW.exe (32 bits, Direct3D 9) : Benilla a son propre rendu (wgpu).
+        let via_vf = if info.is_benilla() {
+            false
+        } else {
+            match client::apply_vanillafixes(&dir, &self.layout.vanillafixes_dir(), self.settings.vanillafixes, self.settings.dxvk) {
+                Ok(v) => v,
+                Err(e) => {
+                    self.log(format!("VanillaFixes/DXVK : {e} — lancement direct de WoW.exe"));
+                    false
+                }
             }
         };
-        match client::launch(&dir, via_vf) {
+        match client::launch(&info, via_vf) {
             Ok(child) => {
-                self.log(if via_vf { "jeu lancé via VanillaFixes" } else { "jeu lancé" });
+                self.log(if via_vf { "jeu lancé via VanillaFixes".to_string() } else { format!("jeu lancé : {} ({})", info.exe_name, info.kind_label()) });
                 self.game = Some(child);
                 self.set(State::Playing, fr::MSG_PLAYING, 1.0);
             }

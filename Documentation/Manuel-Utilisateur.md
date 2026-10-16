@@ -60,7 +60,7 @@ HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« V
 | Processeur | 4 cœurs conseillés (le serveur, la base et le jeu tournent en même temps) |
 | Mémoire | 8 Go (16 Go confortable) |
 | Espace disque | environ 4 Go pour HomeCraft (base de données + données extraites) **en plus** du client (≈ 5 Go, plus vos patchs HD éventuels) |
-| Client | World of Warcraft **1.12.1**, version **française** (frFR), build 5875 ou 5880 |
+| Client | World of Warcraft **1.12.1**, version **française** (frFR), build 5875 ou 5880 ; ou **Benilla** (client libre 64 bits) utilisant les archives de ce client |
 | Droits | un dossier où vous pouvez écrire (pas `C:\Program Files`, pas un CD) |
 | Réseau | aucun : tout fonctionne hors ligne |
 
@@ -323,7 +323,14 @@ Si le jeu est en cours, une sauvegarde force d'abord l'enregistrement des person
 
 Cliquez **Enregistrer** après vos modifications ; les réglages liés au serveur s'appliquent au prochain démarrage de celui-ci.
 
-**Dossier du client WoW 1.12.1** : vide = `Client\` de l'installation ; sinon « Parcourir… » pour désigner le dossier contenant `WoW.exe`. Le client n'est jamais téléchargé.
+**Dossier du client WoW 1.12.1** : vide = `Client\` de l'installation ; sinon « Parcourir… » pour désigner le dossier du client. Le client n'est jamais téléchargé.
+
+**Client détecté** : sous le dossier, le launcher indique le type de client reconnu. Deux sont pris en charge :
+
+- le **client d'origine** : `WoW.exe` 1.12.1 (32 bits) et ses archives dans `Data\` ;
+- **Benilla** : client libre réécrit en Rust (64 bits, licences MIT et Apache 2.0), avec un exécutable à la racine (`benilla.exe`, ou renommé, par exemple `HomeCraft.exe`), les douze archives 1.12.1 dans `Data\` et son dossier d'état `benilla-config\`. Le launcher règle alors `benilla-config\config.toml` (royaume local, fenêtré ou plein écran sans bordure, taille de fenêtre), installe les AddOns dans `benilla-config\AddOns` et désactive VanillaFixes et DXVK, inutiles avec Benilla. Le jeu est en français si les archives viennent d'un client frFR. Ne mettez pas dans son `Data\` de patchs chiffrés (patch-3, 4 ou 5 de certains repacks) : Benilla ne sait pas les lire.
+
+« **Rechercher les clients** » liste les clients valides trouvés dans `Client\` et dans les dossiers voisins de l'installation (par exemple sur le Bureau) ; « **Utiliser** » en sélectionne un, puis Enregistrer. Vos personnages sont sur le serveur : ce sont les mêmes quel que soit le client utilisé.
 
 **Jeu en mode fenêtré** (recommandé) : changez le mode **ici**, pas dans les options vidéo du jeu. Le launcher borne aussi la résolution à votre écran : un client 1.12.1 en fenêtré à la taille exacte de l'écran affiche un écran noir, le launcher l'évite.
 

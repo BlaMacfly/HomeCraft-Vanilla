@@ -16,7 +16,12 @@ pub struct AddonEntry {
     pub has_toc: bool,
 }
 
+/// Dossier des AddOns : `Interface\AddOns` pour le client d'origine, `benilla-config\AddOns` pour Benilla.
 pub fn addons_dir(client_dir: &Path) -> PathBuf {
+    let benilla = client_dir.join(crate::client::BENILLA_HOME);
+    if benilla.is_dir() && !client_dir.join("WoW.exe").is_file() {
+        return benilla.join("AddOns");
+    }
     client_dir.join("Interface").join("AddOns")
 }
 

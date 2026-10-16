@@ -1,5 +1,12 @@
 # Journal des versions
 
+## 0.9.1 — 17 octobre 2026
+
+- **Client Benilla 64 bits pris en charge** en plus du client d'origine : reconnaissance d'un exécutable Benilla (`benilla.exe` ou renommé) à côté de `benilla-config\` et des douze archives 1.12.1 (`base.MPQ` non exigé), configuration de `benilla-config\config.toml` (`realmList`, `realmName`, `gxWindow`, `gxResolution`, le reste du fichier conservé), lancement direct, AddOns dans `benilla-config\AddOns`, VanillaFixes et DXVK désactivés pour ce client.
+- Paramètres : type du client détecté sous le dossier, bouton « Rechercher les clients » (`Client` et dossiers voisins de l'installation) avec « Utiliser ».
+- Accueil et journal : type du client affiché.
+- Tests unitaires du module client (fusion du `config.toml`, détection, dossier réel si présent).
+
 ## 0.9.0 — 16 octobre 2026 (version candidate)
 
 Première publication. Tout ce qui suit est couvert par les tests automatisés de `Tests/` (tous réussis).

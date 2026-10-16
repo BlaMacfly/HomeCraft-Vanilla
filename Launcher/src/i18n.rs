@@ -130,7 +130,18 @@ pub mod fr {
 
     // Paramètres
     pub const SET_CLIENT_DIR: &str = "Dossier du client WoW 1.12.1";
-    pub const SET_CLIENT_HINT: &str = "Vide = dossier Client/ de l'installation. Le client n'est jamais téléchargé : fournissez le vôtre.";
+    pub const SET_CLIENT_HINT: &str = "Vide = dossier Client/ de l'installation. Deux clients sont reconnus : le client d'origine (WoW.exe 1.12.1, 32 bits) et Benilla (client libre réécrit en Rust, 64 bits). Le client n'est jamais téléchargé : fournissez le vôtre.";
+    pub const SET_CLIENT_DETECTED: &str = "Client détecté :";
+    pub const SET_CLIENT_MISSING_MPQ: &str = "archives manquantes dans Data :";
+    pub const SET_CLIENT_BENILLA_HINT: &str = r"Benilla : le launcher règle benilla-config\config.toml (royaume 127.0.0.1, fenêtré ou plein écran sans bordure, taille de fenêtre) ; les AddOns vont dans benilla-config\AddOns. VanillaFixes et DXVK ne servent pas (rendu natif 64 bits). Le jeu est en français si les MPQ de Data viennent d'un client frFR. N'y mettez pas de patchs chiffrés (patch-3/4/5 de certains repacks) : Benilla ne sait pas les lire.";
+    pub const SET_CLIENT_SCAN: &str = "Rechercher les clients";
+    pub const SET_CLIENT_SCAN_HINT: &str = r"Cherche un client valide dans Client\ et dans les dossiers voisins de l'installation (par exemple sur le Bureau).";
+    pub const SET_CLIENT_USE: &str = "Utiliser";
+    pub const SET_CLIENT_IN_USE: &str = "Utilisé";
+    pub const SET_VF_BENILLA: &str = "Sans objet avec Benilla : il a son propre rendu 64 bits (Vulkan / Direct3D 12).";
+    pub const CLIENT_KIND_ORIGINAL: &str = "Client d'origine (WoW.exe)";
+    pub const CLIENT_KIND_BENILLA: &str = "Benilla";
+    pub const CLIENT_KIND_NONE: &str = "aucun client reconnu";
     pub const SET_WINDOWED: &str = "Jeu en mode fenêtré (recommandé : changez le mode ici plutôt que dans les options du jeu)";
     pub const SET_WINDOWED_HINT: &str = "Le launcher borne aussi la résolution à votre écran : un client 1.12.1 en fenêtré 1920x1080 sur un écran 1920x1080 affiche un écran noir.";
     pub const BTN_KILL_GAME: &str = "FERMER LE JEU";
@@ -276,7 +287,7 @@ pub mod fr {
     pub const PATCH_LOOSE_NOTE: &str = "Les fichiers libres placés dans Data (ex. Data/Spell.dbc) sont aussi lus par le client, en priorité sur les archives ; ils ne sont pas gérés ici.";
 
     // AddOns
-    pub const ADDON_TITLE: &str = "AddOns du client (Interface\\AddOns)";
+    pub const ADDON_TITLE: &str = "AddOns du client (Interface\\AddOns, ou benilla-config\\AddOns avec Benilla)";
     pub const ADDON_INTRO: &str = "Installez vos AddOns 1.12.1 (Questie, pfUI, Bagnon…) depuis leur archive zip : le launcher reconnaît le ou les dossiers d'AddOn (fichier Nom.toc) et les place au bon endroit, même si l'archive vient de GitHub (dossier « Nom-master »). Désactiver renomme le dossier en .off ; l'activation finale par personnage se fait dans le jeu, bouton AddOns de l'écran de sélection. Aucun AddOn n'est fourni ni téléchargé.";
     pub const ADDON_ADD: &str = "Ajouter un AddOn (zip)…";
     pub const ADDON_OPEN_DIR: &str = "Ouvrir le dossier AddOns";
