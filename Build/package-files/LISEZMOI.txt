@@ -78,6 +78,11 @@ Bouton « VÉRIFIER LES FICHIERS » du launcher (compare chaque fichier à Build
 ou, dans PowerShell, depuis le dossier copié :
   Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($_ -split '  ',2)[1] })
 
+AIDE ET COMMUNAUTÉ
+------------------
+Questions, retours et entraide : serveur Discord https://discord.gg/M34APTbZ8R
+Projet : https://github.com/BlaMacfly/HomeCraft-Vanilla
+
 Un CD ou un DVD n'est pas un support de conservation éternel : gardez aussi la version
 numérique de référence sur un disque et vérifiez les empreintes de temps en temps.
 

@@ -13,7 +13,13 @@
   <a href="https://github.com/BlaMacfly/HomeCraft-Vanilla/releases">Télécharger la dernière version</a> ·
   <a href="Documentation/Manuel-Utilisateur.md">Manuel d'utilisation</a> ·
   <a href="Documentation/">Documentation technique</a> ·
-  <a href="LICENCE.txt">Licence</a>
+  <a href="LICENCE.txt">Licence</a> ·
+  <a href="https://discord.gg/M34APTbZ8R">Discord</a>
+</p>
+
+<p align="center">
+  <a href="https://discord.gg/M34APTbZ8R"><img src="https://img.shields.io/badge/Discord-rejoindre%20le%20serveur-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://github.com/BlaMacfly/HomeCraft-Vanilla/releases"><img src="https://img.shields.io/github/v/release/BlaMacfly/HomeCraft-Vanilla?include_prereleases&label=version" alt="Version"></a>
 </p>
 
 > **English summary.** HomeCraft Edition Vanilla is a self-contained, offline, single-player package for World of Warcraft 1.12.1 (Vanilla): a local VMaNGOS server with built-in PartyBots companions, a portable MariaDB database, a stocked auction house and a one-button Rust launcher that configures everything. The game client is **not** included and never will be: you need your own 1.12.1 client (French locale). Interface, documentation and launcher are in French. Source-available under a proprietary licence (personal use; viewing and forking on GitHub allowed; no redistribution of modified or compiled versions).
@@ -33,6 +39,7 @@
 - [Tests](#tests)
 - [Architecture](#architecture)
 - [Documentation](#documentation)
+- [Communauté et aide](#communauté-et-aide)
 - [Licence et mentions légales](#licence-et-mentions-légales)
 
 ## Présentation
@@ -202,6 +209,10 @@ Détails dans `Documentation/04-Launcher-Exigences.md` et `Launcher/README.md`.
 | [08 — Patchs graphiques](Documentation/08-Patchs-Graphiques.md) | VanillaHD, constructeur MPQ, limites côté serveur |
 | [09 — Localisation](Documentation/09-Localisation-Inventaire.md) | couverture française mesurée |
 | [10 — Validation finale](Documentation/10-Validation-Finale.md) | critères, résultats, réserves |
+
+## Communauté et aide
+
+Questions, retours, aide à l'installation : rejoignez le serveur Discord **[discord.gg/M34APTbZ8R](https://discord.gg/M34APTbZ8R)**. Pour une demande d'aide, joignez le diagnostic exporté depuis l'onglet Sauvegardes du launcher.
 
 ## Licence et mentions légales
 

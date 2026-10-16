@@ -417,7 +417,7 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **Le launcher ne se ferme pas tout de suite** : il arrête proprement le serveur et la base (jusqu'à une minute si beaucoup de personnages). Ne tuez pas le processus : la base pourrait devoir se réparer au démarrage suivant (ce qu'elle sait faire, mais c'est plus long).
 
-Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diagnostic).
+Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diagnostic). Entraide et questions : serveur Discord https://discord.gg/M34APTbZ8R
 
 ## 20. Questions fréquentes
 
