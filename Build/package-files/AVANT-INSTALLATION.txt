@@ -1,0 +1,28 @@
+﻿Avant d'installer HomeCraft Edition Vanilla, trois choses à savoir.
+
+1. LE JEU N'EST PAS FOURNI
+   HomeCraft contient un serveur de jeu local et son programme de pilotage, pas le jeu.
+   Il vous faut votre propre client World of Warcraft 1.12.1 en version française
+   (un dossier contenant WoW.exe et le dossier Data). L'assistant vous demandera où il
+   se trouve ; vous pourrez aussi l'indiquer plus tard dans Paramètres, ou le copier
+   dans le sous-dossier Client de l'installation.
+
+2. CHOISISSEZ UN DOSSIER OÙ VOUS POUVEZ ÉCRIRE
+   HomeCraft écrit sa base de données et les données extraites de votre client dans
+   son propre dossier (environ 4 Go). Le dossier proposé, C:\Jeux\HomeCraft Edition
+   Vanilla, convient. Évitez C:\Program Files et les dossiers synchronisés en nuage
+   (OneDrive, Google Drive) : la base de données y fonctionne mal.
+
+3. AVERTISSEMENT « ÉDITEUR INCONNU »
+   Le programme est signé avec un certificat personnel, non reconnu par Microsoft.
+   Au premier lancement, Windows SmartScreen peut afficher « Windows a protégé votre
+   ordinateur » : cliquez sur « Informations complémentaires » puis « Exécuter quand
+   même ». Certains antivirus signalent à tort les lanceurs de jeu : ajoutez alors le
+   dossier d'installation à leurs exclusions.
+
+Le premier démarrage prépare la base et extrait les données du client : comptez deux à
+cinq minutes, une seule fois. Le manuel complet est dans Documentation\Manuel-Utilisateur.md
+et dans le menu Démarrer.
+
+HomeCraft est une création indépendante, sans lien avec Blizzard Entertainment.
+Tout fonctionne hors ligne, sur votre ordinateur uniquement.

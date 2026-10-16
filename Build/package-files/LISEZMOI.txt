@@ -1,0 +1,98 @@
+HOMECRAFT EDITION VANILLA — version portable
+=============================================
+
+Édition personnelle de World of Warcraft 1.12.1 jouable en solo, avec des compagnons
+contrôlés par l'ordinateur (PartyBots), un hôtel des ventes approvisionné et une interface
+en français. Serveur local automatisé : aucun terminal, aucune compilation, aucun port à ouvrir.
+
+CE QUE CONTIENT CE SUPPORT
+--------------------------
+- HomeCraft Edition Vanilla.exe : le launcher (un seul fichier, signé).
+- Server\ : serveur VMaNGOS (realmd, mangosd, extracteurs), MariaDB portable, données du monde.
+- Tools\HeidiSQL\ : explorateur de base de données externe (bouton dans le launcher).
+- Documentation\ : audit, construction, tests.
+- LICENCES\ : licences de chaque composant et sources (GPL).
+- SHA256SUMS.txt et Build\files-manifest.json : empreintes de tous les fichiers (vérification de la copie).
+
+CE QU'IL NE CONTIENT PAS (et ne contiendra jamais)
+--------------------------------------------------
+Le client World of Warcraft 1.12.1 (build 5875), version française. Il appartient à Blizzard
+Entertainment et n'est pas redistribué. Vous devez fournir le vôtre : un dossier contenant
+WoW.exe et le dossier Data (base.MPQ, dbc.MPQ, patch.MPQ, patch-2.MPQ, etc.).
+
+INSTALLATION
+------------
+1. Copiez tout le contenu du support dans un dossier de votre disque dur, par exemple
+   C:\Jeux\HomeCraft Edition Vanilla\  (le launcher le propose lui-même si vous l'ouvrez
+   depuis le CD : bouton « Installer sur ce PC… »).
+   Prévoyez environ 4 Go d'espace libre (base de données + données extraites du client).
+2. Placez votre client 1.12.1 frFR dans le sous-dossier Client\ du dossier copié,
+   ou indiquez son emplacement dans PARAMÈTRES > Dossier du client.
+3. Ouvrez « HomeCraft Edition Vanilla.exe » et cliquez sur JOUER.
+   Le premier démarrage prépare la base de données et extrait les données de votre client
+   (quelques minutes, une seule fois). Les suivants prennent quelques secondes.
+4. Au premier lancement du jeu, créez votre compte dans l'onglet « Comptes » du launcher
+   (niveau GM 6 pour pouvoir invoquer des compagnons), puis connectez-vous dans le jeu.
+
+Windows peut afficher « Éditeur inconnu » au premier lancement : le launcher est signé avec
+un certificat auto-signé (voir Documentation\04-Launcher-Exigences.md).
+
+JOUER EN SOLO
+-------------
+Dans le jeu, tapez dans le chat :
+  .partybot add tank      .partybot add healer      .partybot add dps
+  .partybot cometome   .partybot pause   .partybot unpause   .partybot remove (bot sélectionné)
+L'onglet « PlayerBots » du launcher rappelle toutes les commandes, règle les compagnons et permet de
+générer des personnages bots qui peuplent Hurlevent, Forgefer et Orgrimmar.
+Hôtel des ventes : approvisionné automatiquement pour la faction de votre dernier personnage.
+Onglet « Monde » : expérience, butin, difficulté, règles du royaume, etc. (valeurs Vanilla par défaut).
+Onglet « Patchs » : vos propres archives patch-X.MPQ (graphismes HD, etc.), activables à volonté.
+Paramètres : mode fenêtré (recommandé), VanillaFixes (fluidité) et DXVK (rendu Vulkan) en option.
+
+TEXTES EN FRANÇAIS
+------------------
+Les textes du jeu viennent de la base VMaNGOS (traductions officielles 1.12 frFR). Les quelques
+quêtes, dialogues et noms de créatures qui n'y avaient pas de version française ont été complétés
+par HomeCraft (Server\Database\custom\locales_*_homecraft.sql) : ces compléments ne sont PAS des
+textes officiels de Blizzard. Les textes officiels existants ne sont jamais modifiés.
+
+EN CAS D'ÉCRAN NOIR OU DE JEU FIGÉ
+----------------------------------
+Bouton « FERMER LE JEU » du launcher (ou Alt+F4). Choisissez fenêtré / plein écran dans Paramètres
+plutôt que dans les options vidéo du jeu : le launcher adapte la résolution à votre écran.
+
+SAUVEGARDES
+-----------
+Onglet « Sauvegardes » du launcher : archives horodatées dans UserData\Sauvegardes, vérifiées
+par empreinte, restauration avec confirmation et sauvegarde de sécurité automatique.
+Une sauvegarde automatique est faite à chaque fermeture du jeu (les 10 dernières sont conservées,
+réglable dans Paramètres). Paramètres propose aussi « Réimporter la base monde » (après une mise à
+jour du serveur, sans perdre les personnages) et la génération des cartes de déplacement (mmaps),
+lancée automatiquement en arrière-plan au premier démarrage : les compagnons se déplacent mieux en
+donjon une fois qu'elles sont prêtes (état affiché sur l'accueil).
+Le dossier UserData\ contient vos personnages : conservez-le lors d'une réinstallation.
+
+VÉRIFIER LA COPIE
+-----------------
+Bouton « VÉRIFIER LES FICHIERS » du launcher (compare chaque fichier à Build\files-manifest.json),
+ou, dans PowerShell, depuis le dossier copié :
+  Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($_ -split '  ',2)[1] })
+
+Un CD ou un DVD n'est pas un support de conservation éternel : gardez aussi la version
+numérique de référence sur un disque et vérifiez les empreintes de temps en temps.
+
+MANUEL
+------
+Le manuel d'utilisation complet est dans Documentation\Manuel-Utilisateur.md (texte lisible
+avec le Bloc-notes ou tout éditeur ; Markdown).
+
+LICENCES
+--------
+HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments de base de données,
+nom et logo) : licence d'utilisation propriétaire, voir LICENCE.txt. Usage personnel autorisé ;
+reproduction, diffusion et modification interdites.
+Composants tiers, régis par leurs propres licences : VMaNGOS (GPL-2.0), MariaDB (GPL-2.0),
+HeidiSQL (GPL-2.0), VanillaFixes (MIT), DXVK (zlib), bibliothèques Rust (MIT/Apache-2.0…).
+Détail et liens vers les sources exactes : LICENCES\SOURCES.md.
+World of Warcraft est une marque de Blizzard Entertainment, Inc. ; HomeCraft est une création
+indépendante, sans lien avec Blizzard.

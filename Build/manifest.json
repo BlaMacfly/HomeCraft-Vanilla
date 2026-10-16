@@ -1,0 +1,109 @@
+﻿{
+    "$schema_note":  "Manifeste des composants gérés par le projet. Les sha256 vides sont remplis par Get-Components.ps1 lors du premier téléchargement, puis figés : toute différence ultérieure est une erreur.",
+    "version":  "0.1.0",
+    "updated":  "2026-10-15",
+    "components":  [
+                       {
+                           "id":  "vmangos-core-windows",
+                           "description":  "VMaNGOS, build de développement Windows x64 (realmd, mangosd, extracteurs, libmySQL.dll, libeay32.dll)",
+                           "source":  "https://github.com/vmangos/core",
+                           "license":  "GPL-2.0",
+                           "commit":  "53d24d5",
+                           "released":  "2026-10-07",
+                           "url":  "https://github.com/vmangos/core/releases/download/latest/dev-windows-amd64-53d24d5.zip",
+                           "file":  "dev-windows-amd64-53d24d5.zip",
+                           "expected_size":  5805632,
+                           "sha256":  "068bc79dc9e08fd62351acb3b798b26c6c7c3c29e5b81ad056f10f9f75cd9e34",
+                           "install_to":  "Server/vmangos"
+                       },
+                       {
+                           "id":  "vmangos-db-mysql",
+                           "description":  "VMaNGOS, snapshot de base de données MySQL (mangos, characters, logon, logs + migrations)",
+                           "source":  "https://github.com/vmangos/core",
+                           "license":  "GPL-2.0 (à confirmer dans l\u0027archive)",
+                           "commit":  "4641790",
+                           "released":  "2026-09-28",
+                           "url":  "https://github.com/vmangos/core/releases/download/db_latest/db-4641790.zip",
+                           "file":  "db-4641790.zip",
+                           "expected_size":  30511447,
+                           "sha256":  "9e178f1d70363e92a7b8c259000102dc9739333d79ca00c99ea32dd1fb43e904",
+                           "install_to":  "Server/Database/sql"
+                       },
+                       {
+                           "id":  "mariadb-server-windows",
+                           "description":  "MariaDB Community Server 11.8.9 LTS, archive ZIP Windows x64 (sans installeur), utilisée en mode portable sur 127.0.0.1",
+                           "source":  "https://mariadb.org/download/",
+                           "license":  "GPL-2.0",
+                           "commit":  "11.8.9",
+                           "released":  "2026-08-22",
+                           "url":  "https://archive.mariadb.org/mariadb-11.8.9/winx64-packages/mariadb-11.8.9-winx64.zip",
+                           "file":  "mariadb-11.8.9-winx64.zip",
+                           "expected_size":  97016251,
+                           "sha256":  "830c46727d9278eae212ae3eca44eeb9e71b2a68704e95f344a64fba7b1963f5",
+                           "install_to":  "Server/Database/mariadb"
+                       },
+                       {
+                           "id":  "heidisql-portable",
+                           "description":  "HeidiSQL 12.21 portable 64 bits, lancé par le bouton « Ouvrir dans HeidiSQL » du launcher (processus séparé). SHA-256 relevé sur heidisql.com/download.php. Paramètres : heidisql.exe -h=\"127.0.0.1\" -P=3315 -u=mangos -p=\u003cmdp\u003e -db=characters;realmd;mangos;logs ; mode portable via portable_settings.txt.",
+                           "source":  "https://github.com/HeidiSQL/HeidiSQL",
+                           "license":  "GPL-2.0 (joindre LICENSE et le lien vers les sources de la version exacte)",
+                           "commit":  "v12.21",
+                           "released":  "2026-08-03",
+                           "url":  "https://github.com/HeidiSQL/HeidiSQL/releases/download/v12.21/HeidiSQL_12.21_64_Portable.zip",
+                           "file":  "HeidiSQL_12.21_64_Portable.zip",
+                           "expected_size":  0,
+                           "sha256":  "fecb76a69e29a53ea05b1d57fc2f7b7aaed5b8f889556c6eca545e2a800df1ab",
+                           "install_to":  "Tools/HeidiSQL"
+                       },
+                       {
+                           "id":  "vanillafixes",
+                           "description":  "VanillaFixes 1.5.3 (correctif saccades/animations du client 1.12.1, MIT) avec DXVK 2.6.1 (D3D9 -\u003e Vulkan, zlib). Option du launcher ; fichiers copiés dans le dossier du client au lancement si l\u0027option est active.",
+                           "source":  "https://github.com/hannesmann/vanillafixes",
+                           "license":  "MIT (VanillaFixes), zlib (DXVK)",
+                           "commit":  "v1.5.3",
+                           "released":  "2025-05-11",
+                           "url":  "https://github.com/hannesmann/vanillafixes/releases/download/v1.5.3/vanillafixes-1.5.3-dxvk.zip",
+                           "file":  "vanillafixes-1.5.3-dxvk.zip",
+                           "expected_size":  1695100,
+                           "sha256":  "a02a238fdefc9eb5f70a3c85c0c803d6b8667f951f531f3ad37b44f83fdb4b17",
+                           "install_to":  "Tools/VanillaFixes"
+                       },
+                       {
+                           "id":  "innosetup",
+                           "description":  "Inno Setup 6.7.3, outil de construction de l\u0027installateur Windows (Build/New-Installer.ps1). Outil de développement : installé dans Tools/InnoSetup sur le poste de construction (innosetup-6.7.3.exe /VERYSILENT /DIR=...), jamais redistribué dans le package.",
+                           "source":  "https://github.com/jrsoftware/issrc",
+                           "license":  "Inno Setup License (libre, redistribution des installateurs produits sans restriction)",
+                           "commit":  "is-6_7_3",
+                           "released":  "2026-05-26",
+                           "url":  "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe",
+                           "file":  "innosetup-6.7.3.exe",
+                           "expected_size":  10592232,
+                           "sha256":  "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732",
+                           "install_to":  "Tools/InnoSetup"
+                       }
+                   ],
+    "user_provided":  [
+                          {
+                              "id":  "wow-client-frfr-1.12.1",
+                              "description":  "Client World of Warcraft 1.12.1 (build 5875) frFR fourni par l\u0027utilisateur. Jamais téléchargé ni redistribué par le projet.",
+                              "expected_exe":  "WoW.exe",
+                              "expected_build":  5875,
+                              "note_layout":  "En 1.12.1 il n\u0027y a pas de sous-dossier de locale : les MPQ (dbc.MPQ, interface.MPQ, speech.MPQ...) sont eux-mêmes en frFR. Détection de la langue : WTF/Config.wtf (SET locale \"frFR\") ou contenu des DBC.",
+                              "expected_data_files":  [
+                                                          "Data/base.MPQ",
+                                                          "Data/dbc.MPQ",
+                                                          "Data/fonts.MPQ",
+                                                          "Data/interface.MPQ",
+                                                          "Data/misc.MPQ",
+                                                          "Data/model.MPQ",
+                                                          "Data/patch.MPQ",
+                                                          "Data/patch-2.MPQ",
+                                                          "Data/sound.MPQ",
+                                                          "Data/speech.MPQ",
+                                                          "Data/terrain.MPQ",
+                                                          "Data/texture.MPQ",
+                                                          "Data/wmo.MPQ"
+                                                      ]
+                          }
+                      ]
+}
