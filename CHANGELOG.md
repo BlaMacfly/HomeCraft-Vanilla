@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.2 — 17 octobre 2026
+
+- Correctif : premier démarrage avec un client Benilla sans `base.MPQ`. VMapExtractor (VMaNGOS) ouvre cette archive et plantait (code 0xC0000005) sans elle. Le launcher vérifie désormais les archives d'extraction ; s'il en manque, il lit celles d'un client d'origine complet trouvé près de l'installation (sans rien copier), sinon il indique clairement l'archive à ajouter. `base.MPQ` peut rester dans le `Data\` de Benilla, qui ne la monte jamais.
+
 ## 0.9.1 — 17 octobre 2026
 
 - **Client Benilla 64 bits pris en charge** en plus du client d'origine : reconnaissance d'un exécutable Benilla (`benilla.exe` ou renommé) à côté de `benilla-config\` et des douze archives 1.12.1 (`base.MPQ` non exigé), configuration de `benilla-config\config.toml` (`realmList`, `realmName`, `gxWindow`, `gxResolution`, le reste du fichier conservé), lancement direct, AddOns dans `benilla-config\AddOns`, VanillaFixes et DXVK désactivés pour ce client.

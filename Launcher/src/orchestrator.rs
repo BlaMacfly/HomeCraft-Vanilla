@@ -1037,9 +1037,13 @@ impl Orchestrator {
                 if !info.is_ok() {
                     return Err(format!("données du client absentes et client non valide dans {}", info.dir.display()));
                 }
+                let source = client::extraction_source(&info, &self.layout.root)?;
+                if source != info.dir {
+                    self.log(format!("extraction : archives lues dans {} (il manque {} au client choisi)", source.display(), client::extraction_missing(&info.dir).join(", ")));
+                }
                 self.shared.lock().unwrap().progress = 0.5;
                 let shared = self.shared.clone();
-                repair::extract(&self.layout, &info.dir, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_EXTRACT))?;
+                repair::extract(&self.layout, &source, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_EXTRACT))?;
                 notes.push("données du client ré-extraites".into());
             }
             Ok(())
@@ -1212,9 +1216,16 @@ impl Orchestrator {
             if !info.is_ok() {
                 return self.fail_ret("données du client", fr::MSG_CLIENT_NEEDED.into());
             }
+            let source = match client::extraction_source(&info, &self.layout.root) {
+                Ok(s) => s,
+                Err(e) => return self.fail_ret("donnÃ©es du client", e),
+            };
+            if source != info.dir {
+                self.log(format!("extraction : archives lues dans {} (il manque {} au client choisi)", source.display(), client::extraction_missing(&info.dir).join(", ")));
+            }
             self.set(State::Initializing, fr::MSG_FIRST_EXTRACT, 0.45);
             let shared = self.shared.clone();
-            if let Err(e) = repair::extract(&self.layout, &info.dir, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_FIRST_EXTRACT)) {
+            if let Err(e) = repair::extract(&self.layout, &source, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_FIRST_EXTRACT)) {
                 self.drain_server_logs();
                 return self.fail_ret("extraction", e);
             }

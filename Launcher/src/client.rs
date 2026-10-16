@@ -23,6 +23,9 @@ pub const BENILLA_MPQ: &[&str] = &[
     "dbc.MPQ", "fonts.MPQ", "interface.MPQ", "misc.MPQ", "model.MPQ", "patch.MPQ", "patch-2.MPQ",
     "sound.MPQ", "speech.MPQ", "terrain.MPQ", "texture.MPQ", "wmo.MPQ",
 ];
+/// Archives ouvertes par les extracteurs VMaNGOS (MapExtractor, VMapExtractor). `base.MPQ` en fait partie :
+/// sans elle VMapExtractor plante (0xC0000005) au milieu des modèles WMO. Benilla, lui, ne la monte jamais.
+pub const EXTRACTION_MPQ: &[&str] = &["base.MPQ", "dbc.MPQ", "misc.MPQ", "model.MPQ", "terrain.MPQ", "texture.MPQ", "wmo.MPQ", "patch.MPQ", "patch-2.MPQ"];
 /// Dossier d'état de Benilla, à côté de son exécutable.
 pub const BENILLA_HOME: &str = "benilla-config";
 /// Exécutables d'un client d'origine ou déposés par le launcher : jamais pris pour Benilla.
@@ -204,6 +207,25 @@ pub fn discover(root: &Path) -> Vec<ClientInfo> {
     out.sort_by(|a, b| a.dir.cmp(&b.dir));
     out.dedup_by(|a, b| a.dir == b.dir);
     out
+}
+
+/// Archives d'extraction absentes du `Data\` d'un client.
+pub fn extraction_missing(dir: &Path) -> Vec<String> {
+    EXTRACTION_MPQ.iter().filter(|m| !dir.join("Data").join(m).is_file()).map(|m| m.to_string()).collect()
+}
+
+/// Dossier client à utiliser pour extraire les données du serveur : le client choisi s'il a toutes les archives
+/// d'extraction, sinon un autre client complet trouvé près de l'installation (lecture seule, rien n'est copié).
+/// Erreur explicite sinon.
+pub fn extraction_source(selected: &ClientInfo, root: &Path) -> Result<PathBuf, String> {
+    let missing = extraction_missing(&selected.dir);
+    if missing.is_empty() {
+        return Ok(selected.dir.clone());
+    }
+    if let Some(other) = discover(root).into_iter().find(|c| c.dir != selected.dir && extraction_missing(&c.dir).is_empty()) {
+        return Ok(other.dir);
+    }
+    Err(format!("{} {} ({}). {}", crate::i18n::fr::EXTRACT_MISSING, missing.join(", "), selected.dir.join("Data").display(), crate::i18n::fr::EXTRACT_MISSING_HINT))
 }
 
 /// Taille de l'écran principal (pixels).
@@ -476,6 +498,29 @@ mod tests {
         std::fs::create_dir_all(tmp.join("Data")).unwrap();
         std::fs::write(tmp.join("Setup.exe"), b"MZ").unwrap();
         assert_eq!(inspect(&tmp).kind, ClientKind::None);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn benilla_without_base_mpq_needs_another_source_for_extraction() {
+        let tmp = std::env::temp_dir().join(format!("hc-extract-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let root = tmp.join("HomeCraft");
+        let benilla = tmp.join("Benilla");
+        std::fs::create_dir_all(root.join("Server")).unwrap();
+        std::fs::create_dir_all(benilla.join("Data")).unwrap();
+        std::fs::create_dir_all(benilla.join(BENILLA_HOME)).unwrap();
+        std::fs::write(benilla.join("HomeCraft.exe"), b"MZ").unwrap();
+        for m in BENILLA_MPQ {
+            std::fs::write(benilla.join("Data").join(m), b"").unwrap();
+        }
+        let info = inspect(&benilla);
+        assert!(info.is_ok());
+        assert_eq!(extraction_missing(&benilla), vec!["base.MPQ".to_string()]);
+        let err = extraction_source(&info, &root).unwrap_err();
+        assert!(err.contains("base.MPQ"), "{err}");
+        std::fs::write(benilla.join("Data").join("base.MPQ"), b"").unwrap();
+        assert_eq!(extraction_source(&info, &root).unwrap(), benilla);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 

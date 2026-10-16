@@ -133,12 +133,14 @@ pub mod fr {
     pub const SET_CLIENT_HINT: &str = "Vide = dossier Client/ de l'installation. Deux clients sont reconnus : le client d'origine (WoW.exe 1.12.1, 32 bits) et Benilla (client libre réécrit en Rust, 64 bits). Le client n'est jamais téléchargé : fournissez le vôtre.";
     pub const SET_CLIENT_DETECTED: &str = "Client détecté :";
     pub const SET_CLIENT_MISSING_MPQ: &str = "archives manquantes dans Data :";
-    pub const SET_CLIENT_BENILLA_HINT: &str = r"Benilla : le launcher règle benilla-config\config.toml (royaume 127.0.0.1, fenêtré ou plein écran sans bordure, taille de fenêtre) ; les AddOns vont dans benilla-config\AddOns. VanillaFixes et DXVK ne servent pas (rendu natif 64 bits). Le jeu est en français si les MPQ de Data viennent d'un client frFR. N'y mettez pas de patchs chiffrés (patch-3/4/5 de certains repacks) : Benilla ne sait pas les lire.";
+    pub const SET_CLIENT_BENILLA_HINT: &str = r"Benilla : le launcher règle benilla-config\config.toml (royaume 127.0.0.1, fenêtré ou plein écran sans bordure, taille de fenêtre) ; les AddOns vont dans benilla-config\AddOns. VanillaFixes et DXVK ne servent pas (rendu natif 64 bits). Le jeu est en français si les MPQ de Data viennent d'un client frFR. N'y mettez pas de patchs chiffrés (patch-3/4/5 de certains repacks) : Benilla ne sait pas les lire. Pour la première installation, les extracteurs du serveur ont besoin de base.MPQ (que Benilla ignore) : laissez-la dans Data, ou gardez un client d'origine à côté de HomeCraft.";
     pub const SET_CLIENT_SCAN: &str = "Rechercher les clients";
     pub const SET_CLIENT_SCAN_HINT: &str = r"Cherche un client valide dans Client\ et dans les dossiers voisins de l'installation (par exemple sur le Bureau).";
     pub const SET_CLIENT_USE: &str = "Utiliser";
     pub const SET_CLIENT_IN_USE: &str = "Utilisé";
     pub const SET_VF_BENILLA: &str = "Sans objet avec Benilla : il a son propre rendu 64 bits (Vulkan / Direct3D 12).";
+    pub const EXTRACT_MISSING: &str = "Extraction des données du serveur impossible : il manque";
+    pub const EXTRACT_MISSING_HINT: &str = "Les extracteurs du serveur ont besoin de ces archives du client d'origine (Benilla, lui, n'en a pas besoin). Copiez-les depuis votre client 1.12.1 dans ce dossier Data, puis cliquez sur JOUER ou RÉPARER : elles ne gênent pas Benilla.";
     pub const CLIENT_KIND_ORIGINAL: &str = "Client d'origine (WoW.exe)";
     pub const CLIENT_KIND_BENILLA: &str = "Benilla";
     pub const CLIENT_KIND_NONE: &str = "aucun client reconnu";

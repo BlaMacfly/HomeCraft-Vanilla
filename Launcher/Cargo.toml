@@ -1,6 +1,6 @@
 [package]
 name = "vanilla-solo-launcher"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2024"
 license-file = "../LICENCE.txt"
 description = "HomeCraft Edition Vanilla — launcher du serveur local World of Warcraft 1.12.1 solo"
