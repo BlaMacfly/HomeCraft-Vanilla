@@ -1218,7 +1218,7 @@ impl Orchestrator {
             }
             let source = match client::extraction_source(&info, &self.layout.root) {
                 Ok(s) => s,
-                Err(e) => return self.fail_ret("donnÃ©es du client", e),
+                Err(e) => return self.fail_ret("données du client", e),
             };
             if source != info.dir {
                 self.log(format!("extraction : archives lues dans {} (il manque {} au client choisi)", source.display(), client::extraction_missing(&info.dir).join(", ")));
