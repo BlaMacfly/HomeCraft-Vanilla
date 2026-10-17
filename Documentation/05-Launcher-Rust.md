@@ -107,6 +107,6 @@ indépendamment, avec un raccourci vers le fichier de configuration de chacun.
 Option de documentation `--screenshots <dossier>` : le launcher parcourt neuf onglets, attend un état stable, capture
 chacun par `ViewportCommand::Screenshot` d'egui et l'enregistre en `launcher-<onglet>.png`, puis se ferme. Captures
 du README dans `Documentation/images/` (1000 × 720), refaites le 2026-10-17 à 14:57 avec `--start` : trois services
-l'utilisateur tournait : pas d'authserver ni de worldserver), depuis une jonction temporaire `C:\HomeCraft-WoTLK` pour
+en service, 40 bots en ligne (la visite attend 45 s après « prêt »), launcher BC fermé ; depuis une jonction temporaire `C:\HomeCraft-WoTLK` pour
 ne pas afficher le chemin du profil Windows. Corrigé au passage : la colonne « Module » de l'onglet Modules était
 réduite au minimum par egui (descriptions coupées mot à mot) ; largeur désormais fixée.
