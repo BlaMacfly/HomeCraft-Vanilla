@@ -240,6 +240,10 @@ Cet onglet règle les compagnons et les bots de peuplement. Les réglages sont *
 
 Les autres réglages (nombre minimal / maximal de bots, intervalle de renouvellement) sont modifiables ensuite.
 
+**Combien de bots ?** Générer beaucoup de personnages bots ne coûte rien : seuls les bots **connectés** consomment des ressources. Au démarrage, le serveur connecte d'un coup le « nombre minimal », puis toutes les minutes il en ajoute ou en retire un pour rester entre le minimum et le maximum. Mesure sur ce projet : 1 023 bots connectés occupent environ 1,1 Go de mémoire et un cœur de processeur. Après une génération, le launcher règle donc au plus 300 bots connectés (minimum 150) et rend les bots visibles dans `/qui` ; montez ces valeurs dans PlayerBots si votre PC le permet.
+
+**Où sont-ils ?** Chaque bot est placé à sa connexion dans sa capitale : le **quartier commerçant de Hurlevent** (humains et elfes de la nuit, dans un rayon d'environ 50 m), **Forgefer** (nains et gnomes) ou **Orgrimmar** (orcs, morts-vivants, taurens et trolls, dans toute la ville). Vous ne les croiserez ni dans les zones de départ ni à Darnassus, aux Pitons-du-Tonnerre ou à Fossoyeuse. Ils flânent, certains errent au hasard ; ils ne combattent pas et ne répondent pas aux messages.
+
 **Champs de bataille (BattleBot)** : à l'inscription à un champ de bataille, des bots complètent les deux camps pour qu'il démarre.
 
 **Général** : temps de réaction des bots (plus court = plus réactifs), **« Bots visibles dans /qui »** (désactivé par défaut : les bots de peuplement sont alors comptés par le launcher dans « Personnages en ligne » mais n'apparaissent pas dans la liste `/qui` du jeu ; cochez pour les y voir, enregistrez, redémarrez le serveur), enregistrement de la progression des personnages chargés avec `.partybot load`, informations de débogage.
@@ -408,7 +412,7 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **Les compagnons restent bloqués ou traversent les murs** : les cartes de déplacement ne sont pas encore générées ou pas encore prises en compte (redémarrez le serveur une fois l'accueil passé à « générées »). En attendant : `.partybot cometome`.
 
-**Aucun bot de peuplement en ville** : aucun personnage bot n'a été généré (PlayerBots > Personnages bots), ou le serveur n'a pas été redémarré depuis, ou les bots se connectent encore (quelques minutes).
+**Aucun bot de peuplement en ville** : dans l'ordre, vérifiez que (1) des personnages bots ont été générés (PlayerBots > Personnages bots), (2) le serveur a été **redémarré** depuis la génération, (3) vous êtes au bon endroit : quartier commerçant de Hurlevent, Forgefer ou Orgrimmar (pas dans une zone de départ), (4) « Activer les bots de peuplement » est coché avec un nombre minimal supérieur à 0 (PlayerBots), et (5) dans le jeu, `.bot info` (compte niveau 6) indique des bots en ligne. Si vous les cherchez avec `/qui`, cochez « Bots visibles dans /qui ». Le compteur « Personnages en ligne » de l'accueil inclut les bots : s'il est élevé, ils sont bien connectés.
 
 **Le launcher annonce N personnages en ligne mais `/qui` n'affiche personne** : les bots de peuplement sont cachés de la liste `/qui` par défaut. PlayerBots > Général > « Bots visibles dans /qui », Enregistrer, puis redémarrez le serveur. Rappel : `/qui` ne montre que votre faction, et les bots sont de toute façon visibles physiquement dans les capitales.
 

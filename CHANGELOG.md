@@ -1,5 +1,11 @@
 # Journal des versions
 
+## 0.9.3 — 18 octobre 2026
+
+- Bots de peuplement : après une génération, le launcher règle au plus 300 bots connectés (minimum la moitié) au lieu du total généré, et active « Bots visibles dans /qui ». Mesure : avec 2 600 personnages bots, l'ancien réglage (minimum 1 300) faisait connecter plus de 1 000 bots d'un coup (1,1 Go pour le serveur, un cœur de processeur), invisibles dans `/qui`.
+- Réglages « Nombre minimal / maximal de bots connectés » : limite relevée de 500 à 5 000, aide détaillée (connexion au démarrage, coût mesuré).
+- Manuel : où se trouvent les bots (quartier commerçant de Hurlevent, Forgefer, Orgrimmar), combien en connecter, dépannage pas à pas.
+- Nouveau document `Documentation/Commandes-GM.md` : commandes MJ et administrateur utiles en solo (en français) et liste complète des 756 commandes du serveur avec leur niveau, extraite du code de VMaNGOS (`Build/doc-tools/`).
 ## 0.9.2 — 17 octobre 2026
 
 - Correctif : premier démarrage avec un client Benilla sans `base.MPQ`. VMapExtractor (VMaNGOS) ouvre cette archive et plantait (code 0xC0000005) sans elle. Le launcher vérifie désormais les archives d'extraction ; s'il en manque, il lit celles d'un client d'origine complet trouvé près de l'installation (sans rien copier), sinon il indique clairement l'archive à ajouter. `base.MPQ` peut rester dans le `Data\` de Benilla, qui ne la monte jamais.

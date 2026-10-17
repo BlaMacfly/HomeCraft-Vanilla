@@ -257,7 +257,7 @@ pub mod fr {
     pub const BOTGEN_PROGRESS: &str = "Création des personnages bots…";
     pub const BOTGEN_DONE: &str = "personnages bots créés";
     pub const BOTGEN_FAIL: &str = "Génération impossible";
-    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, minimum = moitié, maximum = total) ; ils prennent effet au prochain démarrage du serveur.";
+    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, au plus 300 bots connectés à la fois, minimum = la moitié, bots visibles dans /qui) ; ils prennent effet au prochain démarrage du serveur. Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
 
     // Patchs client
     pub const TAB_PATCHES: &str = "Patchs";
