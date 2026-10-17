@@ -50,6 +50,8 @@ pub struct App {
     settings_notice: Option<String>,
     closing: bool,
     quit_at: Option<std::time::Instant>,
+    /// Visite de captures (--screenshots) : dossier, index de l'onglet, échéance de la prochaine étape, capture demandée
+    shots: Option<(PathBuf, usize, std::time::Instant, bool)>,
     pending: Option<Pending>,
     show_report: bool,
     // Comptes
@@ -76,7 +78,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>, layout: Layout, settings: Settings, shared: Arc<Mutex<Snapshot>>, tx: Sender<Command>, quit_after: Option<u64>, start_tab: Option<String>) -> App {
+    pub fn new(cc: &eframe::CreationContext<'_>, layout: Layout, settings: Settings, shared: Arc<Mutex<Snapshot>>, tx: Sender<Command>, quit_after: Option<u64>, start_tab: Option<String>, shots_dir: Option<PathBuf>) -> App {
         let tab = match start_tab.as_deref() {
             Some("accounts") => Tab::Accounts,
             Some("bots") => Tab::Bots,
@@ -109,6 +111,7 @@ impl App {
             settings_notice: None,
             closing: false,
             quit_at: quit_after.map(|s| std::time::Instant::now() + std::time::Duration::from_secs(s)),
+            shots: shots_dir.map(|d| (d, 0, std::time::Instant::now() + std::time::Duration::from_secs(6), false)),
             pending: None,
             show_report: false,
             acc_user: String::new(),
@@ -157,6 +160,71 @@ fn open_text_file(path: &std::path::Path) {
 const WARN: Color32 = Color32::from_rgb(230, 180, 60);
 const ERR: Color32 = Color32::from_rgb(230, 110, 110);
 
+/// Onglets capturés par `--screenshots` (documentation, README), avec le nom du fichier PNG.
+const SHOT_TABS: &[(Tab, &str)] = &[
+    (Tab::Home, "launcher-home"),
+    (Tab::Accounts, "launcher-accounts"),
+    (Tab::Bots, "launcher-bots"),
+    (Tab::Modules, "launcher-modules"),
+    (Tab::World, "launcher-world"),
+    (Tab::Patches, "launcher-patches"),
+    (Tab::Database, "launcher-database"),
+    (Tab::Backups, "launcher-backups"),
+    (Tab::Settings, "launcher-settings"),
+];
+
+impl App {
+    /// `--screenshots <dossier>` : parcourt les onglets et enregistre une capture PNG de chacun, puis ferme. Avec
+    /// `--start`, la visite attend que les services soient prêts. Outil de documentation uniquement.
+    fn screenshot_tour(&mut self, ctx: &egui::Context, snap: &Snapshot) {
+        let Some((dir, idx, next, requested)) = self.shots.as_mut() else { return };
+        ctx.request_repaint_after(std::time::Duration::from_millis(200));
+        // Réponse à une capture demandée : enregistrement, puis onglet suivant.
+        let image = ctx.input(|i| {
+            i.raw.events.iter().find_map(|e| match e {
+                egui::Event::Screenshot { image, .. } => Some(image.clone()),
+                _ => None,
+            })
+        });
+        if let Some(img) = image {
+            if *requested {
+                let name = SHOT_TABS[*idx].1;
+                let [w, h] = img.size;
+                let rgba: Vec<u8> = img.pixels.iter().flat_map(|c| c.to_srgba_unmultiplied()).collect();
+                let _ = std::fs::create_dir_all(&*dir);
+                if let Some(buf) = image::RgbaImage::from_raw(w as u32, h as u32, rgba) {
+                    let _ = buf.save(dir.join(format!("{name}.png")));
+                }
+                *requested = false;
+                *idx += 1;
+                *next = std::time::Instant::now() + std::time::Duration::from_millis(2500);
+                if *idx >= SHOT_TABS.len() {
+                    self.shots = None;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    return;
+                }
+                self.tab = SHOT_TABS[*idx].0;
+            }
+            return;
+        }
+        if *requested || std::time::Instant::now() < *next {
+            return;
+        }
+        // Attente d'un état stable : services prêts si l'orchestrateur démarre, ou au repos sinon.
+        if snap.state.is_busy() {
+            *next = std::time::Instant::now() + std::time::Duration::from_secs(1);
+            return;
+        }
+        if self.tab != SHOT_TABS[*idx].0 {
+            self.tab = SHOT_TABS[*idx].0;
+            *next = std::time::Instant::now() + std::time::Duration::from_millis(2500);
+            return;
+        }
+        *requested = true;
+        ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
+    }
+}
+
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(std::time::Duration::from_millis(500));
@@ -166,6 +234,7 @@ impl eframe::App for App {
             self.show_report = true;
         }
 
+        self.screenshot_tour(ctx, &snap);
         if let Some(t) = self.quit_at {
             if std::time::Instant::now() >= t && !self.closing {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -688,6 +757,8 @@ impl App {
                 ui.end_row();
                 for m in &snap.modules {
                     ui.vertical(|ui| {
+                        // Largeur fixe : sans elle, egui réduit la colonne au minimum et coupe chaque mot.
+                        ui.set_width((ui.available_width() - 260.0).clamp(320.0, 620.0));
                         ui.label(RichText::new(m.label).strong());
                         ui.add(egui::Label::new(RichText::new(m.description).small()).wrap());
                         ui.small(RichText::new(m.id).weak());

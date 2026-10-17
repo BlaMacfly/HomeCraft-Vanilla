@@ -16,8 +16,8 @@ pour AzerothCore (fork Sylvania + mod-playerbots), MySQL 8.4.9 et le double clie
 - Visuels : `Build/New-LauncherImages.ps1` a produit `Launcher/assets/logo-512.png` / `logo-256.png` (logo détouré par
   diffusion depuis les coins), `homecraft.ico` (7 tailles) et `fond.jpg` (1659 × 948, taverne). Le fond est peint sur
   le calque d'arrière-plan avec son rapport d'aspect ; le logo est dans la barre de titre et l'icône de fenêtre.
-- `LICENCE.txt` à la racine : licence propriétaire HomeCraft de l'édition Vanilla, adaptée (AzerothCore AGPL v3,
-  mod-playerbots GPL v2, MySQL Community GPL v2, HermesProxy GPL v3, client 3.3.5a ou 3.4.3).
+- `LICENCE.txt` à la racine : licence propriétaire HomeCraft de l'édition Vanilla, adaptée (AzerothCore GPL v2,
+  mod-playerbots AGPL v3, MySQL Community GPL v2, HermesProxy GPL v3, client 3.3.5a ou 3.4.3).
 
 ## 2. Ce qui a changé par rapport à l'édition Vanilla (par module)
 
@@ -101,3 +101,12 @@ indépendamment, avec un raccourci vers le fichier de configuration de chacun.
   dossier du module, ex. `mod-junk-to-gold`) ; `--tab modules`. Vérifié le 2026-10-16 sur `mod-junk-to-gold` (1 → 0
   → 1) et `mod-ale` (true → false → modèle), launcher relancé 8 s sur l'onglet sans erreur. La bascule depuis la case
   de l'interface n'a pas été cliquée à la souris (même code que `--do`).
+
+## 7. Captures d'écran du README (2026-10-17)
+
+Option de documentation `--screenshots <dossier>` : le launcher parcourt neuf onglets, attend un état stable, capture
+chacun par `ViewportCommand::Screenshot` d'egui et l'enregistre en `launcher-<onglet>.png`, puis se ferme. Captures
+du README dans `Documentation/images/` (1000 × 720), faites base WoTLK seule en service (le launcher BC de
+l'utilisateur tournait : pas d'authserver ni de worldserver), depuis une jonction temporaire `C:\HomeCraft-WoTLK` pour
+ne pas afficher le chemin du profil Windows. Corrigé au passage : la colonne « Module » de l'onglet Modules était
+réduite au minimum par egui (descriptions coupées mot à mot) ; largeur désormais fixée.

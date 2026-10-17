@@ -39,7 +39,7 @@ auteurs inclus dans le dossier livré pour permettre le fonctionnement du
 Logiciel. Ils ne font PAS partie du Logiciel au sens du présent contrat et
 restent régis exclusivement par leurs licences propres, reproduites dans le
 dossier LICENCES et détaillées dans LICENCES\SOURCES.md. Il s'agit notamment :
-  - du serveur AzerothCore (fork SylvaniaCore-WoTLK) et de ses outils (licence GNU AGPL version 3) et du module mod-playerbots (licence GNU GPL version 2) ;
+  - du serveur AzerothCore (fork SylvaniaCore-WoTLK) et de ses outils (licence GNU GPL version 2) et du module mod-playerbots (licence GNU AGPL version 3) ;
   - du serveur de base de données MySQL Community (licence GNU GPL version 2) ;
   - de HeidiSQL (licence GNU GPL version 2) ;
   - de HermesProxy (licence GNU GPL version 3), lorsqu'il est

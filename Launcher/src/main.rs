@@ -28,6 +28,8 @@ fn main() -> eframe::Result {
     let auto_start = args.iter().any(|a| a == "--start");
     let quit_after = args.iter().position(|a| a == "--quit-after").and_then(|i| args.get(i + 1)).and_then(|v| v.parse::<u64>().ok());
     let start_tab = args.iter().position(|a| a == "--tab").and_then(|i| args.get(i + 1)).cloned();
+    // --screenshots <dossier> : capture de chaque onglet (documentation), puis fermeture.
+    let shots_dir = args.iter().position(|a| a == "--screenshots").and_then(|i| args.get(i + 1)).map(std::path::PathBuf::from);
     // --play : comme le bouton JOUER (services puis jeu). Prioritaire sur --start.
     if args.iter().any(|a| a == "--play") {
         let _ = tx.send(orchestrator::Command::Play);
@@ -79,7 +81,7 @@ fn main() -> eframe::Result {
     let result = eframe::run_native(
         i18n::fr::WINDOW_TITLE,
         options,
-        Box::new(move |cc| Ok(Box::new(ui::App::new(cc, layout, settings, shared, tx, quit_after, start_tab)))),
+        Box::new(move |cc| Ok(Box::new(ui::App::new(cc, layout, settings, shared, tx, quit_after, start_tab, shots_dir)))),
     );
     // Fermeture : l'orchestrateur arrête les services qu'il a démarrés.
     let _ = tx_exit.send(orchestrator::Command::Shutdown);
