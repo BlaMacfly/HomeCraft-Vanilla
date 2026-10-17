@@ -49,7 +49,7 @@ Compilation du cœur : `Build/Build-Core.ps1` dans un terminal interactif ; il c
 (→ le clone) dans `C:\hc\b`, obligatoire à cause de la longueur des lignes de commande MSVC avec 24 modules.
 
 ## Dépôt Git (depuis le 2026-10-17)
-Ce dossier est la branche **`WoTLK`** du dépôt **public** `BlaMacfly/HomeCraft-Vanilla` (branches `main` = Vanilla,
+Ce dossier est la branche **`HomeCraft-WoTLK`** du dépôt **public** `BlaMacfly/HomeCraft-Vanilla` (branches `main` = Vanilla,
 `HomeCraft-BC`). Ne versionner que les sources : le `.gitignore` exclut contenu Blizzard, `UserData/`, binaires
 compilés et tiers (`Server/acore`, MySQL, `Tools/HeidiSQL`, `Tools/Keira3`), dumps, `Build/src`. Avant chaque push,
 vérifier l'absence de secret (mots de passe, clés, adresses du VPS de production) dans `git diff --cached`.
