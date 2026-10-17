@@ -1,0 +1,97 @@
+HOMECRAFT EDITION BC — version portable
+========================================
+
+Édition personnelle de World of Warcraft: The Burning Crusade 2.4.3 jouable en solo, avec des
+compagnons et des bots qui peuplent le monde (PlayerBots), un hôtel des ventes approvisionné et
+une interface en français. Serveur local automatisé : aucun terminal, aucune compilation, aucun
+port ouvert vers l'extérieur (tout fonctionne sur 127.0.0.1).
+
+CE QUE CONTIENT CE DOSSIER
+--------------------------
+- HomeCraft Edition BC.exe : le launcher (un seul fichier, signé).
+- Server\ : serveur CMaNGOS mangos-tbc (realmd, mangosd, extracteurs, module PlayerBots, AHBot),
+  MariaDB portable, base de contenu TBC-DB, compléments HomeCraft (Server\Database\custom).
+- Tools\HeidiSQL\ : explorateur de base de données externe (bouton dans le launcher).
+- Documentation\ : audit, construction, adaptation du launcher, localisation française.
+- LICENCES\ : licences de chaque composant et sources (GPL).
+- SHA256SUMS.txt et Build\files-manifest.json : empreintes de tous les fichiers.
+
+CE QU'IL NE CONTIENT PAS (et ne contiendra jamais)
+--------------------------------------------------
+Le client World of Warcraft 2.4.3 (build 8606), version française. Il appartient à Blizzard
+Entertainment et n'est pas redistribué. Vous devez fournir le vôtre : un dossier contenant
+WoW.exe, Data\ (common.MPQ, expansion.MPQ, patch.MPQ, patch-2.MPQ) et Data\frFR\.
+
+INSTALLATION
+------------
+1. Copiez tout le dossier sur votre disque dur, par exemple C:\Jeux\HomeCraft Edition BC\.
+   Prévoyez environ 8 Go libres (base de données, données extraites du client, cartes de
+   déplacement) en plus du client.
+2. Placez votre client 2.4.3 frFR dans le sous-dossier Client\ du dossier copié, ou indiquez
+   son emplacement dans PARAMÈTRES > Dossier du client.
+3. Ouvrez « HomeCraft Edition BC.exe » et cliquez sur JOUER.
+   LE PREMIER DÉMARRAGE EST LONG (une seule fois, de 30 minutes à 1 heure selon le PC) :
+   - préparation de la base de données (une minute) ;
+   - extraction des données de votre client (quelques minutes) ;
+   - génération des cartes de déplacement « mmaps » (environ 15 minutes sur un processeur
+     8 cœurs ; obligatoires pour ce serveur) ;
+   - première initialisation des PlayerBots (environ 10 minutes : le serveur prépare
+     l'équipement des bots). Ne fermez pas le launcher pendant cette étape.
+   Les démarrages suivants prennent moins d'une minute.
+4. Créez votre compte dans l'onglet « Comptes » du launcher (il reçoit automatiquement
+   l'extension The Burning Crusade), puis connectez-vous dans le jeu.
+
+Windows peut afficher « Éditeur inconnu » au premier lancement : le launcher est signé avec
+un certificat auto-signé.
+
+JOUER EN SOLO
+-------------
+Dans le jeu, tapez dans le chat :
+  .bot group          crée 4 compagnons (tank, soigneur, DPS) à votre niveau dans votre groupe
+  .bot create level=70 class=priest race=bloodelf   un compagnon précis
+  /w <nom du bot> help   toutes les commandes comprises par un bot
+Des bots aléatoires (50 par défaut) vivent dans le monde : ils quêtent, font les champs de
+bataille et acceptent vos invitations de groupe. L'onglet « PlayerBots » du launcher règle
+leur nombre et rappelle les commandes.
+Hôtel des ventes : approvisionné automatiquement (Alliance, Horde et neutres).
+Onglet « Monde » : expérience, butin, difficulté, instances, arènes, factions…
+Onglet « Patchs » : vos propres archives patch-X.MPQ et patch-frFR-X.MPQ.
+
+TEXTES EN FRANÇAIS
+------------------
+Interface, sorts et zones viennent de votre client français. Quêtes, créatures, objets et
+dialogues viennent de TBC-DB ; les textes qui n'y avaient pas de version française ont été
+complétés à partir des traductions de VMaNGOS et d'AzerothCore
+(Server\Database\custom\50_homecraft_frFR.sql). Une partie des textes de fin de quête, des
+accueils de PNJ et des messages des bots reste en anglais (détail :
+Documentation\09-Localisation-Inventaire.md).
+
+PATCHS DE SERVEURS PRIVÉS
+-------------------------
+Si votre client vient d'un serveur privé, il peut contenir des archives non officielles
+(par exemple Data\frFR\patch-frFR-3.MPQ). Le serveur HomeCraft ne les utilise jamais. Si des
+sorts ou des objets s'affichent bizarrement dans le jeu, désactivez-les dans l'onglet Patchs.
+
+SAUVEGARDES
+-----------
+Onglet « Sauvegardes » : archives horodatées dans UserData\Sauvegardes, vérifiées par
+empreinte, restauration avec confirmation et sauvegarde de sécurité automatique. Une
+sauvegarde automatique est faite à chaque fermeture du jeu.
+Le dossier UserData\ contient vos personnages : conservez-le lors d'une réinstallation.
+
+VÉRIFIER LA COPIE
+-----------------
+Bouton « VÉRIFIER LES FICHIERS » du launcher, ou dans PowerShell, depuis le dossier copié :
+  Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($_ -split '  ',2)[1] })
+
+LICENCES
+--------
+HomeCraft Edition BC (launcher, scripts, documentation, nom et logo) : licence d'utilisation
+propriétaire, voir LICENCE.txt. Usage personnel autorisé ; reproduction, diffusion et
+modification interdites.
+Composants tiers, régis par leurs propres licences : CMaNGOS mangos-tbc et module PlayerBots
+(GPL-2.0), TBC-DB (GPL-3.0), MariaDB (GPL-2.0), HeidiSQL (GPL-2.0), compléments de traduction
+dérivés de VMaNGOS et d'AzerothCore (GPL-2.0), bibliothèques Rust (MIT/Apache-2.0…).
+Détail et liens vers les sources exactes : LICENCES\SOURCES.md.
+World of Warcraft et The Burning Crusade sont des marques de Blizzard Entertainment, Inc. ;
+HomeCraft est une création indépendante, sans lien avec Blizzard.

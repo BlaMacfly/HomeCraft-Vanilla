@@ -1,0 +1,106 @@
+﻿{
+    "$schema_note":  "Manifeste des composants gérés par le projet HomeCraft Edition BC. Les sha256 vides sont remplis par Get-Components.ps1 -Pin lors du premier téléchargement, puis figés : toute différence ultérieure est une erreur. Aucun téléchargement sans accord de l\u0027utilisateur.",
+    "version":  "0.1.0",
+    "updated":  "2026-10-16",
+    "components":  [
+                       {
+                           "id":  "mangos-tbc-windows",
+                           "description":  "CMaNGOS mangos-tbc, build Windows x64 quotidien « with-all » (BUILD_EXTRACTORS + BUILD_PLAYERBOTS + BUILD_AHBOT + BUILD_RECASTDEMOMOD), RelWithDebInfo, VS 2022, Boost 1.87 ; dossier bin/x64_RelWithDebInfo archivé par le workflow windows-release.yml. Contient realmd.exe, mangosd.exe, extracteurs (ad, vmap_extractor, vmap_assembler, MoveMapGen) et DLL (à vérifier au premier téléchargement : listing).",
+                           "source":  "https://github.com/cmangos/mangos-tbc",
+                           "license":  "GPL-2.0",
+                           "commit":  "15b6ddb4ec9e443d49f4e438af73782ce5c16491",
+                           "released":  "2026-10-10",
+                           "url":  "https://github.com/cmangos/mangos-tbc/releases/download/latest/mangos-tbc-with-all-15b6ddb4.zip",
+                           "file":  "mangos-tbc-with-all-15b6ddb4.zip",
+                           "expected_size":  86344468,
+                           "sha256":  "ff1f26c71c2d6f93ec36b2a5d1255a9cd771db4c5d16965c02a8b676e372207f",
+                           "install_to":  "Server/mangos-tbc"
+                       },
+                       {
+                           "id":  "mangos-tbc-source",
+                           "description":  "Sources exactes de mangos-tbc au commit du build Windows (sql/base/*.sql, sql/create, sql/updates, src/mangosd/mangosd.conf.dist.in, src/realmd/realmd.conf.dist.in, src/game/AuctionHouseBot/ahbot.conf.dist.in, contrib/extractor_scripts/ExtractResources.sh, LICENSE). Obligation GPL : jointes au package.",
+                           "source":  "https://github.com/cmangos/mangos-tbc",
+                           "license":  "GPL-2.0",
+                           "commit":  "15b6ddb4ec9e443d49f4e438af73782ce5c16491",
+                           "released":  "2026-10-10",
+                           "url":  "https://github.com/cmangos/mangos-tbc/archive/15b6ddb4ec9e443d49f4e438af73782ce5c16491.zip",
+                           "file":  "mangos-tbc-src-15b6ddb4.zip",
+                           "expected_size":  0,
+                           "sha256":  "1e6482bcc905a1182bd812bab731ba56dc1252b178a2f126d18ad1270ac7bb9a",
+                           "install_to":  "Build/tmp/mangos-tbc-src"
+                       },
+                       {
+                           "id":  "cmangos-playerbots-source",
+                           "description":  "Module PlayerBots officiel CMaNGOS (ike3/celguar) : sql/characters/tbc, sql/world/tbc, playerbot/aiplayerbot-tbc.conf.dist (noms exacts à vérifier au premier téléchargement). Le code est déjà compilé dans le build Windows « with-all » ; seuls le SQL, le .conf.dist et la licence sont utilisés ici.",
+                           "source":  "https://github.com/cmangos/playerbots",
+                           "license":  "GPL-2.0 (à confirmer : fichier de licence du dépôt)",
+                           "commit":  "81fea4cdcd0c1d3c2ae05dd39b1693cef1a75a2b",
+                           "released":  "2026-10-16",
+                           "url":  "https://github.com/cmangos/playerbots/archive/81fea4cdcd0c1d3c2ae05dd39b1693cef1a75a2b.zip",
+                           "file":  "cmangos-playerbots-81fea4cd.zip",
+                           "expected_size":  0,
+                           "sha256":  "b2658ec0e425cca1c5a8e9663046e03879f9d40c405ba2edfd697755a986cae1",
+                           "install_to":  "Build/tmp/playerbots-src"
+                       },
+                       {
+                           "id":  "tbc-db",
+                           "description":  "TBC-DB : base de contenu monde (tbcmangos) + bases realmd/characters/logs, archive « tbc-all-db.zip » de la release quotidienne (contenu exact à vérifier au premier téléchargement : dumps SQL et/ou script InstallFullDB.sh + updates).",
+                           "source":  "https://github.com/cmangos/tbc-db",
+                           "license":  "GPL-3.0",
+                           "commit":  "87af76a0e12cbd0a29d5ccc2be56f52c2b0b199f",
+                           "released":  "2026-10-16",
+                           "url":  "https://github.com/cmangos/tbc-db/releases/download/latest/tbc-all-db.zip",
+                           "file":  "tbc-all-db-87af76a.zip",
+                           "expected_size":  65628423,
+                           "sha256":  "2fdd87439ac9c060769a768244a4c1032d9f4747268eafc0b9d58697af9da278",
+                           "install_to":  "Server/Database/sql"
+                       },
+                       {
+                           "id":  "mariadb-server-windows",
+                           "description":  "MariaDB Community Server 11.8.9 LTS, archive ZIP Windows x64 (sans installeur), mode portable sur 127.0.0.1:3317. Déjà présente dans HomeCraft\\Build\\downloads (Vanilla) : copier plutôt que retélécharger.",
+                           "source":  "https://mariadb.org/download/",
+                           "license":  "GPL-2.0",
+                           "commit":  "11.8.9",
+                           "released":  "2026-08-22",
+                           "url":  "https://archive.mariadb.org/mariadb-11.8.9/winx64-packages/mariadb-11.8.9-winx64.zip",
+                           "file":  "mariadb-11.8.9-winx64.zip",
+                           "expected_size":  97016251,
+                           "sha256":  "830c46727d9278eae212ae3eca44eeb9e71b2a68704e95f344a64fba7b1963f5",
+                           "install_to":  "Server/Database/mariadb"
+                       },
+                       {
+                           "id":  "heidisql-portable",
+                           "description":  "HeidiSQL 12.21 portable 64 bits, bouton « Ouvrir dans HeidiSQL » (heidisql.exe -h=127.0.0.1 -P=3317 -u=… -p=… -db=tbccharacters;tbcrealmd;tbcmangos;tbclogs). Déjà présent dans HomeCraft\\Build\\downloads (Vanilla).",
+                           "source":  "https://github.com/HeidiSQL/HeidiSQL",
+                           "license":  "GPL-2.0",
+                           "commit":  "v12.21",
+                           "released":  "2026-08-03",
+                           "url":  "https://github.com/HeidiSQL/HeidiSQL/releases/download/v12.21/HeidiSQL_12.21_64_Portable.zip",
+                           "file":  "HeidiSQL_12.21_64_Portable.zip",
+                           "expected_size":  29789003,
+                           "sha256":  "fecb76a69e29a53ea05b1d57fc2f7b7aaed5b8f889556c6eca545e2a800df1ab",
+                           "install_to":  "Tools/HeidiSQL"
+                       }
+                   ],
+    "user_provided":  [
+                          {
+                              "id":  "wow-client-frfr-2.4.3",
+                              "description":  "Client World of Warcraft 2.4.3 (build 8606) frFR fourni par l\u0027utilisateur. Jamais téléchargé ni redistribué par le projet.",
+                              "expected_exe":  "WoW.exe",
+                              "expected_build":  8606,
+                              "note_layout":  "En 2.4.3 les fichiers de langue sont dans Data\\frFR\\ (locale, expansion-locale, patch-frFR, speech) et realmlist.wtf est dans Data\\frFR\\realmlist.wtf. Liste exacte des MPQ à relever sur le client de l\u0027utilisateur.",
+                              "expected_data_files":  [
+                                                          "Data/common.MPQ",
+                                                          "Data/expansion.MPQ",
+                                                          "Data/patch.MPQ",
+                                                          "Data/patch-2.MPQ",
+                                                          "Data/frFR/locale-frFR.MPQ",
+                                                          "Data/frFR/expansion-locale-frFR.MPQ",
+                                                          "Data/frFR/patch-frFR.MPQ",
+                                                          "Data/frFR/patch-frFR-2.MPQ",
+                                                          "Data/frFR/speech-frFR.MPQ",
+                                                          "Data/frFR/expansion-speech-frFR.MPQ"
+                                                      ]
+                          }
+                      ]
+}

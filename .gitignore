@@ -1,0 +1,27 @@
+# ---- Jamais versionné : contenu Blizzard et données personnelles
+/Client/
+/Server/Data/
+/UserData/
+/Logs/
+
+# ---- Composants tiers téléchargés par Build/Get-Components.ps1 (manifest.json fait foi)
+/Build/downloads/
+/Server/mangos-tbc/
+/Server/Database/mariadb/
+/Server/Database/sql/
+/Tools/HeidiSQL/
+
+# ---- Généré
+/Server/Config/*.conf
+/Server/Config/my.ini
+/Server/Config/*.conf.dist
+/Build/package/
+/Build/tmp/
+/Build/files-manifest.json
+/Launcher/target/
+/HomeCraft Edition BC.exe
+*.orig
+
+# ---- Divers
+Thumbs.db
+desktop.ini
