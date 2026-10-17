@@ -1,4 +1,13 @@
-# HomeCraft Edition BC
+<p align="center">
+  <img src="Documentation/images/logo.png" alt="HomeCraft Edition BC" width="200">
+</p>
+
+<h1 align="center">HomeCraft Edition BC</h1>
+
+<p align="center">
+  <strong>World of Warcraft: The Burning Crusade 2.4.3 en solo, hors ligne, en français.</strong><br>
+  Un serveur local automatisé, des compagnons et des bots contrôlés par l'ordinateur, un launcher à un seul bouton.
+</p>
 
 Édition personnelle de **World of Warcraft: The Burning Crusade 2.4.3** (client build 8606, frFR) jouable en solo,
 avec un launcher Windows écrit en Rust qui démarre et surveille tout le serveur local : MariaDB portable, serveur
