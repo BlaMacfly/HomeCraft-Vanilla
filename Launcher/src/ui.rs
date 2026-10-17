@@ -52,6 +52,8 @@ pub struct App {
     quit_at: Option<std::time::Instant>,
     /// Visite de captures (--screenshots) : dossier, index de l'onglet, échéance de la prochaine étape, capture demandée
     shots: Option<(PathBuf, usize, std::time::Instant, bool)>,
+    /// Délai d'attente des bots déjà accordé (visite avec --start)
+    shots_settled: bool,
     pending: Option<Pending>,
     show_report: bool,
     // Comptes
@@ -112,6 +114,7 @@ impl App {
             closing: false,
             quit_at: quit_after.map(|s| std::time::Instant::now() + std::time::Duration::from_secs(s)),
             shots: shots_dir.map(|d| (d, 0, std::time::Instant::now() + std::time::Duration::from_secs(6), false)),
+            shots_settled: false,
             pending: None,
             show_report: false,
             acc_user: String::new(),
@@ -215,6 +218,15 @@ impl App {
             *next = std::time::Instant::now() + std::time::Duration::from_secs(1);
             return;
         }
+        // Services tout juste prêts : laisser 45 s aux bots pour se connecter avant la première capture.
+        if *idx == 0 && snap.state.services_up() && !self.shots_settled {
+            self.shots_settled = true;
+            if let Some((_, _, next, _)) = self.shots.as_mut() {
+                *next = std::time::Instant::now() + std::time::Duration::from_secs(45);
+            }
+            return;
+        }
+        let Some((_, idx, next, requested)) = self.shots.as_mut() else { return };
         if self.tab != SHOT_TABS[*idx].0 {
             self.tab = SHOT_TABS[*idx].0;
             *next = std::time::Instant::now() + std::time::Duration::from_millis(2500);
