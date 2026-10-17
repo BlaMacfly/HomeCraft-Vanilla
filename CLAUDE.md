@@ -48,7 +48,13 @@ mod-playerbots = références, historiques complets) ; jamais dans le package.
 Compilation du cœur : `Build/Build-Core.ps1` dans un terminal interactif ; il compile via la jonction **`C:\hc`**
 (→ le clone) dans `C:\hc\b`, obligatoire à cause de la longueur des lignes de commande MSVC avec 24 modules.
 
-## Règles (héritées de l'édition Vanilla)
+## Dépôt Git (depuis le 2026-10-17)
+Ce dossier est la branche **`WoTLK`** du dépôt **public** `BlaMacfly/HomeCraft-Vanilla` (branches `main` = Vanilla,
+`HomeCraft-BC`). Ne versionner que les sources : le `.gitignore` exclut contenu Blizzard, `UserData/`, binaires
+compilés et tiers (`Server/acore`, MySQL, `Tools/HeidiSQL`, `Tools/Keira3`), dumps, `Build/src`. Avant chaque push,
+vérifier l'absence de secret (mots de passe, clés, adresses du VPS de production) dans `git diff --cached`.
+
+&
 - `Client/` (miroir du client 3.3.5a frFR de l'utilisateur, wowdecomp x64 ; MPQ = liens physiques, ne jamais les modifier en place) et `Server/Data/` (dbc/maps/vmaps/mmaps extraits) : **jamais redistribués, jamais archivés**.
 - `UserData/` (base MariaDB, identifiants) : ne jamais supprimer ni ré-importer sans sauvegarde et accord explicite.
 - Composants externes uniquement via `Build/manifest.json` (URL, commit, SHA-256 figés).
