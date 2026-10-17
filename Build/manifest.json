@@ -1,0 +1,23 @@
+{
+    "$schema_note": "Manifeste des composants externes de HomeCraft Edition WoTLK (règle du projet : URL, commit, SHA-256 figés). Toute différence ultérieure d'empreinte est une erreur.",
+    "version": "0.1.0",
+    "updated": "2026-10-17",
+    "components": [
+        {
+            "id": "keira3-windows",
+            "description": "Keira3, éditeur de la base monde AzerothCore (Electron), compilé localement depuis la balise v3.10.5 : le binaire officiel publié sous ce nom a été reconstruit le 2026-06-19 depuis master et attend creature.id (schéma AzerothCore postérieur au 2026-06-16), incompatible avec le fork Sylvania (creature.id1/id2/id3). Voir Documentation/07-Keira3.md.",
+            "source": "https://github.com/azerothcore/Keira3",
+            "license": "AGPL-3.0",
+            "tag": "v3.10.5",
+            "commit": "c5c01ddb689a0a0ba075c7dd5cf410d46545c72f",
+            "released": "2026-05-10",
+            "build": "npm ci puis npm run electron:windows dans un checkout de la balise (Node 24.20.0, npm 11.19.0) ; le dossier release/win-unpacked est installé tel quel (l'étape « portable » d'electron-builder échoue sans droit de créer des liens symboliques, sans incidence).",
+            "install_to": "Tools/Keira3",
+            "files": {
+                "Keira3.exe": "67ed3f51623b07803a3b201be72d15586d1b16b70e5e6b8a8f8c144e3471049e",
+                "resources/app.asar": "77da087c02aa668ea0180b647e461342a0d008a40697fd5db0912ec3f5afb987"
+            },
+            "size_unpacked_mb": 384
+        }
+    ]
+}

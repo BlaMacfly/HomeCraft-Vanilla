@@ -1,0 +1,1668 @@
+diff --git a/.github/README.md b/.github/README.md
+index add26ce5233..c2e9b7d1ba0 100644
+--- a/.github/README.md
++++ b/.github/README.md
+@@ -83,7 +83,8 @@ You can check the [authors](https://github.com/azerothcore/azerothcore-wotlk/blo
+ 
+ ## License
+ 
+-- The AzerothCore source code is released under the [GNU GPL v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
++- The new AzerothCore source components are released under the [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.en.html)
++- The old sources based on MaNGOS/TrinityCore are released under the [GNU GPL v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+ 
+ It's important to note that AzerothCore is not an official Blizzard Entertainment product, and it is not affiliated with or endorsed by World of Warcraft or Blizzard Entertainment. AzerothCore does not in any case sponsor nor support illegal public servers. If you use this project to run an illegal public server and not for testing and learning it is your own personal choice.
+ 
+diff --git a/.github/workflows/codestyle.yml b/.github/workflows/codestyle.yml
+index 89938cf49d5..ac474fbb646 100644
+--- a/.github/workflows/codestyle.yml
++++ b/.github/workflows/codestyle.yml
+@@ -21,7 +21,7 @@ jobs:
+   triage:
+     runs-on: ubuntu-latest
+     name: C++
+-    if: github.repository == 'azerothcore/azerothcore-wotlk' && !github.event.pull_request.draft
++    if: github.repository == 'mod-playerbots/azerothcore-wotlk' && !github.event.pull_request.draft
+     steps:
+       - uses: actions/checkout@v7
+       - name: Setup python
+diff --git a/.github/workflows/core-build-nopch.yml b/.github/workflows/core-build-nopch.yml
+index aff307ba315..60bb13597d2 100644
+--- a/.github/workflows/core-build-nopch.yml
++++ b/.github/workflows/core-build-nopch.yml
+@@ -3,6 +3,7 @@ on:
+   push:
+     branches:
+       - 'master'
++      - 'test-staging'
+   pull_request:
+     types:
+       - opened
+@@ -73,7 +74,7 @@ jobs:
+               CXX: clang++-21
+     runs-on: ${{ matrix.os }}
+     name: ${{ matrix.os }}-${{ matrix.compiler.CC }}-nopch
+-    if: github.repository == 'azerothcore/azerothcore-wotlk' && !github.event.pull_request.draft
++    if: github.repository == 'mod-playerbots/azerothcore-wotlk' && !github.event.pull_request.draft
+     steps:
+       - uses: actions/checkout@v7
+       - uses: ./.github/actions/linux-build
+@@ -81,6 +82,7 @@ jobs:
+           CC: ${{ matrix.compiler.CC }}
+           CXX: ${{ matrix.compiler.CXX }}
+           pch: false
++          modules: true  # optional: include module compilation if desired
+ 
+   e2e:
+     name: e2e ${{ inputs.scope || 'full' }}
+diff --git a/.github/workflows/core-build-pch.yml b/.github/workflows/core-build-pch.yml
+index 763248a5f88..55f75e24523 100644
+--- a/.github/workflows/core-build-pch.yml
++++ b/.github/workflows/core-build-pch.yml
+@@ -3,6 +3,7 @@ on:
+   push:
+     branches:
+       - 'master'
++      - 'test-staging'
+   pull_request:
+     types:
+       - opened
+@@ -42,7 +43,7 @@ jobs:
+               CXX: clang++-21
+     runs-on: ${{ matrix.os }}
+     name: ${{ matrix.os }}-${{ matrix.compiler.CC }}-pch
+-    if: github.repository == 'azerothcore/azerothcore-wotlk' && !github.event.pull_request.draft
++    if: github.repository == 'mod-playerbots/azerothcore-wotlk' && !github.event.pull_request.draft
+     steps:
+       - uses: actions/checkout@v7
+       - uses: ./.github/actions/linux-build
+@@ -50,3 +51,4 @@ jobs:
+           CC: ${{ matrix.compiler.CC }}
+           CXX: ${{ matrix.compiler.CXX }}
+           pch: true
++          modules: true   # optional: include modules in PCH build
+diff --git a/.github/workflows/core-build-playerbots.yml b/.github/workflows/core-build-playerbots.yml
+new file mode 100644
+index 00000000000..8498ed05c83
+--- /dev/null
++++ b/.github/workflows/core-build-playerbots.yml
+@@ -0,0 +1,66 @@
++# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
++# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
++name: ubuntu-build
++
++on:
++  push:
++    branches: [ "Playerbot", "test-staging" ]
++  pull_request:
++    branches: [ "Playerbot", "test-staging" ]
++
++jobs:
++  build:
++    strategy:
++      fail-fast: false
++      matrix:
++        include:
++          - os: ubuntu-22.04
++            c_compiler: clang
++            cpp_compiler: clang++
++            build_type: Release
++          - os: ubuntu-22.04
++            c_compiler: gcc
++            cpp_compiler: g++
++            build_type: Release
++          - os: ubuntu-24.04
++            c_compiler: gcc
++            cpp_compiler: g++
++            build_type: Release
++    runs-on: ${{ matrix.os }}
++    name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}
++
++    steps:
++      - name: Checkout AzerothCore
++        uses: actions/checkout@v3
++
++      - name: Set reusable strings
++        id: strings
++        shell: bash
++        run: |
++          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
++
++      - name: Checkout Playerbot Module
++        uses: actions/checkout@v3
++        with:
++          repository: mod-playerbots/mod-playerbots
++          # Map AC branch → PB branch
++          ref: ${{ github.ref_name == 'Playerbot' && 'master' || 'test-staging' }}
++          path: modules/mod-playerbots
++
++      - name: Install Requirements
++        run: |
++          sudo apt-get update
++          sudo apt-get install -y git cmake make gcc g++ clang \
++            libmysqlclient-dev libssl-dev libbz2-dev \
++            libreadline-dev libncurses-dev mysql-server libboost-all-dev
++
++      - name: Configure CMake
++        run: |
++          cmake -B ${{ steps.strings.outputs.build-output-dir }} \
++            -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} \
++            -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} \
++            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
++            -S ${{ github.workspace }}
++
++      - name: Build
++        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+diff --git a/.github/workflows/core-build.yml b/.github/workflows/core-build.yml
+new file mode 100644
+index 00000000000..944db6b455c
+--- /dev/null
++++ b/.github/workflows/core-build.yml
+@@ -0,0 +1,99 @@
++# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
++# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
++name: ubuntu-build
++
++on:
++  push:
++    branches: [ "Playerbot", "test-staging" ]
++  pull_request:
++    branches: [ "Playerbot", "test-staging" ]
++
++jobs:
++  build:
++    strategy:
++      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
++      fail-fast: false
++      matrix:
++        # the result of the matrix will be the combination of all attributes, so we get os*compiler builds
++        include:
++          - os: ubuntu-22.04
++            c_compiler: clang
++            cpp_compiler: clang++
++            build_type: Release
++          - os: ubuntu-22.04
++            c_compiler: gcc
++            cpp_compiler: g++
++            build_type: Release
++          - os: ubuntu-24.04
++            c_compiler: gcc
++            cpp_compiler: g++
++            build_type: Release
++            
++    runs-on: ${{ matrix.os }}
++    name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}
++
++    steps:
++    - name: Checkout AzerothCore
++      uses: actions/checkout@v3
++
++    - name: Set reusable strings
++      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
++      id: strings
++      shell: bash
++      run: |
++        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
++        
++    # - name: Clone Playerbot Module
++    #   run: git clone --depth=1 --branch=master https://github.com/mod-playerbots/mod-playerbots.git modules/mod-playerbots
++
++    # - name: Checkout Playerbot Module
++    #   uses: actions/checkout@v3
++    #   with:
++    #     repository: 'mod-playerbots/mod-playerbots'
++    #     path: 'modules/mod-playerbots'
++    
++    - name: Install Requirements
++      run: sudo apt-get update && sudo apt-get install git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
++      
++    # - name: Cache
++    #   uses: actions/cache@v3
++    #   with:
++    #     path: var/ccache
++    #     key: ccache:${{ matrix.os }}:${{ matrix.compiler }}:${{ matrix.modules }}-modules:${{ github.ref }}:${{ github.sha }}
++    #     restore-keys: |
++    #       ccache:${{ matrix.os }}:${{ matrix.compiler }}:${{ matrix.modules }}-modules:${{ github.ref }}
++    #       ccache:${{ matrix.os }}:${{ matrix.compiler }}:${{ matrix.modules }}-modules
++            
++    # - name: Configure OS
++    #   run: source ./acore.sh install-deps
++    #   env:
++    #     CONTINUOUS_INTEGRATION: true
++        
++    # - name: Create conf/config.sh
++    #   run: source ./apps/ci/ci-conf-core.sh
++      
++    # - name: Process pending sql
++    #   run: bash bin/acore-db-pendings
++      
++    # - name: Build
++    #   run: source ./apps/ci/ci-compile.sh
++        
++    - name: Configure CMake
++      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
++      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
++      run: >
++        cmake -B ${{ steps.strings.outputs.build-output-dir }}
++        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
++        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
++        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
++        -S ${{ github.workspace }}
++
++    - name: Build
++      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
++      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
++
++    # - name: Test
++    #   working-directory: ${{ steps.strings.outputs.build-output-dir }}
++    #   # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
++    #   # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
++    #   run: ctest --build-config ${{ matrix.build_type }}
+diff --git a/.github/workflows/core_modules_build.yml b/.github/workflows/core_modules_build.yml
+index c81f72006e3..854c9c97026 100644
+--- a/.github/workflows/core_modules_build.yml
++++ b/.github/workflows/core_modules_build.yml
+@@ -3,6 +3,7 @@ on:
+   push:
+     branches:
+       - 'master'
++      - 'test-staging'
+   pull_request:
+     types:
+       - opened
+@@ -48,7 +49,7 @@ jobs:
+               CXX: clang++-18
+     runs-on: ${{ matrix.os }}
+     name: ${{ matrix.os }}-${{ matrix.compiler.CC }}-nopch-modules
+-    if: github.repository == 'azerothcore/azerothcore-wotlk' && !github.event.pull_request.draft
++    if: github.repository == 'mod-playerbots/azerothcore-wotlk' && !github.event.pull_request.draft
+     steps:
+       - uses: actions/checkout@v7
+         # This script installs a general list of modules to compile with
+diff --git a/.github/workflows/dashboard-ci.yml b/.github/workflows/dashboard-ci.yml
+index 13ef2d63cf1..d1af3fb9816 100644
+--- a/.github/workflows/dashboard-ci.yml
++++ b/.github/workflows/dashboard-ci.yml
+@@ -8,6 +8,7 @@ on:
+   push:
+     branches:
+       - 'master'
++      - 'test-staging'
+   pull_request:
+     types:
+       - opened
+diff --git a/.github/workflows/docker_build.yml b/.github/workflows/docker_build.yml
+index aa67ff903dc..e04dd2fbfa2 100644
+--- a/.github/workflows/docker_build.yml
++++ b/.github/workflows/docker_build.yml
+@@ -24,13 +24,13 @@ env:
+   COMPOSE_DOCKER_CLI_BUILD: 1
+   DOCKER_BUILDKIT: 1
+   RUNNING_ON_PRIMARY_BRANCH: |
+-    ${{ (github.repository == 'azerothcore/azerothcore-wotlk' && github.ref_name == 'master') && 'true' || 'false' }}
++    ${{ (github.repository == 'mod-playerbots/azerothcore-wotlk' && github.ref_name == 'master') && 'true' || 'false' }}
+ 
+ jobs:
+   build-containers:
+     runs-on: "ubuntu-latest"
+     if: |
+-      github.repository == 'azerothcore/azerothcore-wotlk'
++      github.repository == 'mod-playerbots/azerothcore-wotlk'
+       && !github.event.pull_request.draft
+       && (github.ref_name == 'master' || contains(github.event.pull_request.labels.*.name, 'run-build') || github.event.label.name == 'run-build')
+     steps:
+diff --git a/.github/workflows/import_pending.yml b/.github/workflows/import_pending.yml
+index 82ef5d77151..0c306917b62 100644
+--- a/.github/workflows/import_pending.yml
++++ b/.github/workflows/import_pending.yml
+@@ -3,47 +3,41 @@ on:
+   push:
+     branches:
+       - master
++      - test-staging   # add this if you want pending SQL imported on this branch too
+ 
+ jobs:
+   import-pending:
+     strategy:
+       fail-fast: false
+     runs-on: ubuntu-24.04
+-    permissions: write-all
++    permissions:
++      contents: write  # 'write-all' is not a valid permission, should specify what is needed
+     if: github.repository == 'azerothcore/azerothcore-wotlk' && !github.event.pull_request.draft
+     steps:
+       - uses: actions/checkout@v7
+         with:
+           persist-credentials: false
+-          # If we're fetching all the history in a later step it makes sense to
+-          # pre-load it now
+           fetch-depth: 0
+           ref: ${{ github.ref_name }}
+ 
+       - uses: denoland/setup-deno@v1
+         with:
+-          # Specifies latest 1.x
+           deno-version: "~1.0"
+ 
+       - name: Import and commit pending sql
+         run: |
+           git config --local user.email "github-actions[bot]@users.noreply.github.com"
+           git config --local user.name "github-actions[bot]"
+-          # Get the latest changes from git
+           git pull --rebase origin "${{ github.ref_name }}"
+           bash bin/acore-db-pendings
+           deno run --allow-all --unstable apps/ci/ci-pending-changelogs.ts
+           git add -A .
+           git commit -am "chore(DB): import pending files" -m "Referenced commit(s): ${GITHUB_SHA}" || true
+         env:
+-          # Noting that the branch name can only be master, as per the event
+-          # triggering this action
+           BRANCH: ${{ github.ref_name }}
+ 
+       - name: Push changes
+         uses: ad-m/github-push-action@master
+         with:
+           github_token: ${{ secrets.AC_GITHUB_TOKEN }}
+-          # Noting that the branch name can only be master, as per the event
+-          # triggering this action
+           branch: ${{ github.ref_name }}
+diff --git a/.github/workflows/macos_build.yml b/.github/workflows/macos_build.yml
+index 702c2d2081f..f38c01b99d1 100644
+--- a/.github/workflows/macos_build.yml
++++ b/.github/workflows/macos_build.yml
+@@ -2,11 +2,12 @@ name: macos-build
+ on:
+   push:
+     branches:
+-      - 'master'
++      - "Playerbot"
++      - "test-staging"
+   pull_request:
+-    types:
+-      - labeled
+-      - synchronize
++    branches:
++      - "Playerbot"
++      - "test-staging"
+ 
+ concurrency:
+   # One concurrency group per workflow + ref (matches the other build workflows).
+@@ -27,12 +28,17 @@ jobs:
+           - macos-14
+     runs-on: ${{ matrix.os }}
+     name: ${{ matrix.os }}
+-    if: |
+-      github.repository == 'azerothcore/azerothcore-wotlk'
+-      && !github.event.pull_request.draft
+-      && (github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'run-build') || github.event.label.name == 'run-build')
+     steps:
+-      - uses: actions/checkout@v7
++      - name: Checkout AzerothCore
++        uses: actions/checkout@v7
++
++      - name: Checkout Playerbot Module
++        uses: actions/checkout@v7
++        with:
++          repository: mod-playerbots/mod-playerbots
++          ref: ${{ github.ref_name == 'Playerbot' && 'master' || 'test-staging' }}
++          path: modules/mod-playerbots
++
+       - name: Cache
+         uses: actions/cache@v6
+         with:
+@@ -49,8 +55,10 @@ jobs:
+       - name: Install latest bash
+         run: brew install bash
+       - name: Configure OS
++        shell: bash
+         run: source ./acore.sh install-deps
+       - name: Build
++        shell: bash
+         run: source ./apps/ci/mac/ci-compile.sh
+       - name: ccache stats
+         shell: bash
+diff --git a/.github/workflows/tools_build.yml b/.github/workflows/tools_build.yml
+index 6fc84922d93..cf1ca6a2c31 100644
+--- a/.github/workflows/tools_build.yml
++++ b/.github/workflows/tools_build.yml
+@@ -33,9 +33,11 @@ jobs:
+     runs-on: ${{ matrix.os }}
+     name: ${{ matrix.os }}-${{ matrix.compiler.CC }}
+     if: |
+-      github.repository == 'azerothcore/azerothcore-wotlk'
+-      && !github.event.pull_request.draft
+-      && (github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'run-build') || github.event.label.name == 'run-build')
++      github.repository == 'mod-playerbots/azerothcore-wotlk' && !github.event.pull_request.draft
++      && (
++        contains(github.event.pull_request.labels.*.name, 'run-build')
++        || github.event.label.name == 'run-build'
++      )
+     steps:
+       - uses: actions/checkout@v7
+       - uses: ./.github/actions/linux-build
+diff --git a/.github/workflows/windows_build.yml b/.github/workflows/windows_build.yml
+index 5e3b592b271..3a8736e09f7 100644
+--- a/.github/workflows/windows_build.yml
++++ b/.github/workflows/windows_build.yml
+@@ -1,12 +1,9 @@
+ name: windows-build
+ on:
+   push:
+-    branches:
+-      - 'master'
++    branches: [ "Playerbot", "test-staging" ]
+   pull_request:
+-    types:
+-      - labeled
+-      - synchronize
++    branches: [ "Playerbot", "test-staging" ]
+ 
+ concurrency:
+   # One concurrency group per workflow + ref.
+@@ -30,12 +27,17 @@ jobs:
+     name: ${{ matrix.os }}
+     env:
+       BOOST_ROOT: C:\local\boost_1_87_0
+-    if: |
+-      github.repository == 'azerothcore/azerothcore-wotlk'
+-      && !github.event.pull_request.draft
+-      && (github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'run-build') || github.event.label.name == 'run-build')
+     steps:
+-      - uses: actions/checkout@v7
++      - name: Checkout AzerothCore
++        uses: actions/checkout@v7
++
++      - name: Checkout Playerbot Module
++        uses: actions/checkout@v7
++        with:
++          repository: mod-playerbots/mod-playerbots
++          ref: ${{ github.ref_name == 'Playerbot' && 'master' || 'test-staging' }}
++          path: modules/mod-playerbots
++
+       - name: ccache
+         uses: hendrikmuhs/ccache-action@v1.2.13
+       # Cache the fetched Boost + MySQL client so we don't re-download ~350 MB
+diff --git a/.gitignore b/.gitignore
+index 8f26a9e16d2..06eb154e92b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -74,6 +74,8 @@ CLAUDE.local.md
+ #
+ /.settings/
+ /.externalToolBuilders/*
++/.vs
++/out
+ # exclude in all levels
+ nbproject/
+ .sync.ffs_db
+@@ -132,3 +134,6 @@ e2e/local/**
+ !e2e/local/README.md
+ e2e/go.work
+ e2e/go.work.sum
++
++.cache
++compile_commands.json
+diff --git a/apps/ci/mac/ci-compile.sh b/apps/ci/mac/ci-compile.sh
+index 79507bc9f3c..10dfbc4b64e 100755
+--- a/apps/ci/mac/ci-compile.sh
++++ b/apps/ci/mac/ci-compile.sh
+@@ -22,8 +22,7 @@ if [ ! -d "$mysql_include_path" ]; then
+ fi
+ 
+ time cmake ../../../ \
+--DTOOLS=1 \
+--DBUILD_TESTING=1 \
++-DTOOLS_BUILD=all \
+ -DSCRIPTS=static \
+ -DCMAKE_BUILD_TYPE=Release \
+ -DMYSQL_ADD_INCLUDE_PATH=$mysql_include_path \
+@@ -33,9 +32,6 @@ time cmake ../../../ \
+ -DOPENSSL_INCLUDE_DIR="$OPENSSL_ROOT_DIR/include" \
+ -DOPENSSL_SSL_LIBRARIES="$OPENSSL_ROOT_DIR/lib/libssl.dylib" \
+ -DOPENSSL_CRYPTO_LIBRARIES="$OPENSSL_ROOT_DIR/lib/libcrypto.dylib" \
+--DWITH_WARNINGS=1 \
+--DCMAKE_C_FLAGS="-Werror" \
+--DCMAKE_CXX_FLAGS="-Werror" \
+ -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+ -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+ -DUSE_SCRIPTPCH=0 \
+diff --git a/doc/changelog/master.md b/doc/changelog/master.md
+index 59b9f7bb9bd..3cd001b8d55 100644
+--- a/doc/changelog/master.md
++++ b/doc/changelog/master.md
+@@ -414,7 +414,7 @@ minimal-dynamic - builds commands and spells dynamically. Now don't support
+ - Example loader script for modules:
+ ```cpp
+ /*
+- * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>
++ * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE
+  */
+ 
+ // From SC
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 4c6525df0eb..f14f6dac879 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -75,6 +75,7 @@ services:
+       AC_LOGIN_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_auth"
+       AC_WORLD_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_world"
+       AC_CHARACTER_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_characters"
++      AC_PLAYERBOTS_DATABASE_INFO: "ac-database;3306;root;${DOCKER_DB_ROOT_PASSWORD:-password};acore_playerbots"
+     ports:
+       - ${DOCKER_WORLD_EXTERNAL_PORT:-8085}:8085
+       - ${DOCKER_SOAP_EXTERNAL_PORT:-7878}:7878
+diff --git a/modules/CMakeLists.txt b/modules/CMakeLists.txt
+index fd36c5068a3..a4b8c14c6cb 100644
+--- a/modules/CMakeLists.txt
++++ b/modules/CMakeLists.txt
+@@ -37,6 +37,7 @@ set("AC_MODULE_LIST" "")
+ set("AC_SCRIPTS_LIST" "")
+ set(MOD_ALE_FOUND 0)
+ set(MOD_ALE_PATH "")
++set(MOD_PLAYERBOTS_FOUND 0)
+ 
+ foreach(include ${AC_ADD_SCRIPTS_INCLUDE})
+   set("AC_SCRIPTS_INCLUDES" "#include \"${include}\"\n${AC_SCRIPTS_INCLUDES}")
+@@ -81,6 +82,16 @@ foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
+     ConfigureALEModule(${SOURCE_MODULE})
+   endif()
+ 
++  if (SOURCE_MODULE MATCHES "mod-playerbots")
++    set(MOD_PLAYERBOTS_FOUND 1)
++    target_compile_options(database
++      PRIVATE
++        -DMOD_PLAYERBOTS)
++    target_compile_options(game-interface
++      INTERFACE
++        -DMOD_PLAYERBOTS)
++  endif()
++
+   # Build the Graph values
+   if(${MODULE_MODULE_VARIABLE} MATCHES "dynamic")
+     GetProjectNameOfModuleName(${SOURCE_MODULE} MODULE_SOURCE_PROJECT_NAME)
+@@ -289,6 +300,7 @@ endif()
+ target_link_libraries(modules
+   PRIVATE
+     acore-core-interface
++    mysql
+   PUBLIC
+     game-interface)
+ 
+@@ -363,6 +375,12 @@ target_compile_options(modules
+   INTERFACE
+     -DCONFIG_FILE_LIST=$<1:"${CONFIG_LIST}">)
+ 
++if (MOD_PLAYERBOTS_FOUND)
++    target_compile_options(modules
++            PRIVATE
++            -DMOD_PLAYERBOTS)
++endif()
++
+ if (MOD_ALE_FOUND)
+   if (APPLE)
+     target_compile_definitions(modules
+diff --git a/src/common/Collision/Maps/MapDefines.h b/src/common/Collision/Maps/MapDefines.h
+index 6cdb313e2c5..f23e35e79df 100644
+--- a/src/common/Collision/Maps/MapDefines.h
++++ b/src/common/Collision/Maps/MapDefines.h
+@@ -87,15 +87,15 @@ static_assert(sizeof(MmapTileHeader) == (sizeof(MmapTileHeader::mmapMagic) +
+ 
+ enum NavTerrain
+ {
+-    NAV_EMPTY   = 0x00,
+-    NAV_GROUND  = 0x01,
+-    NAV_MAGMA   = 0x02,
+-    NAV_SLIME   = 0x04,
+-    NAV_WATER   = 0x08,
+-    NAV_UNUSED1 = 0x10,
+-    NAV_UNUSED2 = 0x20,
+-    NAV_UNUSED3 = 0x40,
+-    NAV_UNUSED4 = 0x80
++    NAV_EMPTY        = 0x00,
++    NAV_GROUND       = 0x01,
++    NAV_MAGMA        = 0x02,
++    NAV_SLIME        = 0x04,
++    NAV_WATER        = 0x08,
++    NAV_GROUND_STEEP = 0x10,
++    NAV_UNUSED2      = 0x20,
++    NAV_UNUSED3      = 0x40,
++    NAV_UNUSED4      = 0x80
+                   // we only have 8 bits
+ };
+ 
+diff --git a/src/server/apps/worldserver/worldserver.conf.dist b/src/server/apps/worldserver/worldserver.conf.dist
+index e1ad3744bf5..a2a3cc4c2e9 100644
+--- a/src/server/apps/worldserver/worldserver.conf.dist
++++ b/src/server/apps/worldserver/worldserver.conf.dist
+@@ -676,6 +676,7 @@ ChatLog.Enable = 0
+ 
+ Appender.Console=1,4,0,"1 9 3 6 5 8"
+ Appender.Server=2,5,0,Server.log,w
++Appender.Playerbots=2,5,0,Playerbots.log,w
+ # Appender.GM=2,5,15,gm_%s.log
+ Appender.Errors=2,2,0,Errors.log,w
+ # Appender.DB=3,5,0
+@@ -709,6 +710,7 @@ Logger.sql=4,Console Server
+ Logger.time.update=4,Console Server
+ Logger.module=4,Console Server
+ Logger.spells.scripts=2,Console Errors
++Logger.playerbots=5,Console Playerbots
+ # Logger.achievement=4,Console Server
+ # Logger.addon=4,Console Server
+ # Logger.auctionHouse=4,Console Server
+diff --git a/src/server/database/Database/DatabaseWorkerPool.cpp b/src/server/database/Database/DatabaseWorkerPool.cpp
+index c57a65b97ed..63b8ac9fe0a 100644
+--- a/src/server/database/Database/DatabaseWorkerPool.cpp
++++ b/src/server/database/Database/DatabaseWorkerPool.cpp
+@@ -41,16 +41,6 @@
+ #include <sstream>
+ #endif
+ 
+-class PingOperation : public SQLOperation
+-{
+-    //! Operation for idle delaythreads
+-    bool Execute() override
+-    {
+-        m_conn->Ping();
+-        return true;
+-    }
+-};
+-
+ template <class T>
+ DatabaseWorkerPool<T>::DatabaseWorkerPool() :
+     _queue(new ProducerConsumerQueue<SQLOperation*>()),
+diff --git a/src/server/database/Database/ModuleDatabasePool.cpp b/src/server/database/Database/ModuleDatabasePool.cpp
+index 9d71e78d865..8a6ad0e8b40 100644
+--- a/src/server/database/Database/ModuleDatabasePool.cpp
++++ b/src/server/database/Database/ModuleDatabasePool.cpp
+@@ -16,33 +16,67 @@
+  */
+ 
+ #include "ModuleDatabasePool.h"
++#include "AdhocStatement.h"
+ #include "Errors.h"
+ #include "Log.h"
+ #include "MySQLConnection.h"
+ #include "MySQLPreparedStatement.h"
++#include "PCQueue.h"
++#include "QueryCallback.h"
++#include "QueryHolder.h"
+ #include "QueryResult.h"
++#include "SQLOperation.h"
+ #include "Transaction.h"
+ #include <errmsg.h>
+ #include <limits>
+ #include <mysqld_error.h>
++#include <string>
+ #include <thread>
+ 
+-ModuleDatabasePool::ModuleDatabasePool()
+-    : _connectionInfo(""), _synchThreads(0)
++#ifdef ACORE_DEBUG
++#include <boost/stacktrace.hpp>
++#include <sstream>
++
++namespace
++{
++    //! Not a member: MSVC rejects a thread_local with dll interface.
++    thread_local bool _warnSyncQueries = false;
++}
++#endif
++
++ModuleDatabasePool::ModuleDatabasePool() :
++    _connectionInfo(""),
++    _queue(std::make_unique<ProducerConsumerQueue<SQLOperation*>>()),
++    _asyncThreads(0),
++    _synchThreads(0)
+ {
+ }
+ 
+ ModuleDatabasePool::~ModuleDatabasePool()
+ {
+     Close();
++
++    _queue->Cancel();
+ }
+ 
+ void ModuleDatabasePool::SetConnectionInfo(std::string_view infoString, uint8 synchThreads)
++{
++    SetConnectionInfo(infoString, 0, synchThreads);
++}
++
++void ModuleDatabasePool::SetConnectionInfo(std::string_view infoString, uint8 asyncThreads, uint8 synchThreads)
+ {
+     _connectionInfo = MySQLConnectionInfo(infoString);
++    _asyncThreads = asyncThreads;
+     _synchThreads = synchThreads;
+ }
+ 
++MySQLConnection* ModuleDatabasePool::CreateConnection(ProducerConsumerQueue<SQLOperation*>* /*queue*/,
++    MySQLConnectionInfo& /*connInfo*/)
++{
++    return nullptr;
++}
++
+ uint32 ModuleDatabasePool::Open()
+ {
+     if (!_synchThreads)
+@@ -52,21 +86,80 @@ uint32 ModuleDatabasePool::Open()
+         return CR_UNKNOWN_ERROR;
+     }
+ 
+-    Close();
++    LOG_INFO("sql.driver", "Opening DatabasePool '{}'. Asynchronous connections: {}, synchronous connections: {}.",
++        _connectionInfo.database, _asyncThreads, _synchThreads);
++
++    _queue->Cancel();
++    _connections[IDX_ASYNC].clear();
++    _connections[IDX_SYNCH].clear();
++    _preparedStatementSize.clear();
++    _queue->Reset();
++
++    if (uint32 error = OpenConnections(IDX_ASYNC, _asyncThreads))
++    {
++        Close();
++        return error;
++    }
++
++    if (uint32 error = OpenConnections(IDX_SYNCH, _synchThreads))
++    {
++        Close();
++        return error;
++    }
++
++    return 0;
++}
+ 
+-    for (uint8 i = 0; i < _synchThreads; ++i)
++uint32 ModuleDatabasePool::OpenConnections(InternalIndex type, uint8 numConnections)
++{
++    for (uint8 i = 0; i < numConnections; ++i)
+     {
+-        auto conn = std::unique_ptr<MySQLConnection>(CreateConnection(_connectionInfo));
++        std::unique_ptr<MySQLConnection> conn(type == IDX_ASYNC ? CreateConnection(_queue.get(), _connectionInfo)
++            : CreateConnection(_connectionInfo));
++
++        if (!conn)
++        {
++            if (type == IDX_ASYNC)
++            {
++                LOG_ERROR("sql.driver", "ModuleDatabasePool: database `{}` was configured with {} asynchronous "
++                    "connections, but the module does not override the queue-taking CreateConnection overload.",
++                    _connectionInfo.database, numConnections);
++            }
++            else
++            {
++                LOG_ERROR("sql.driver", "ModuleDatabasePool: CreateConnection returned no synchronous connection "
++                    "for database `{}`.", _connectionInfo.database);
++            }
++
++            _queue->Cancel();
++            _connections[type].clear();
++            return CR_UNKNOWN_ERROR;
++        }
++
++        if (type == IDX_ASYNC && conn->m_queue != _queue.get())
++        {
++            LOG_ERROR("sql.driver", "ModuleDatabasePool: async queries for database `{}` cannot run. No queue was "
++                "set on the asynchronous connection: pass `queue` to the connection's constructor in the module's "
++                "CreateConnection(queue, connInfo) override.", _connectionInfo.database);
++
++            _queue->Cancel();
++            _connections[type].clear();
++            return CR_UNKNOWN_ERROR;
++        }
++
+         uint32 result = conn->Open();
+         if (result != 0)
+         {
+-            LOG_ERROR("sql.driver", "ModuleDatabasePool: could not open connection {}/{} to database `{}`, error {}",
+-                i + 1, _synchThreads, _connectionInfo.database, result);
+-            Close();
++            LOG_ERROR("sql.driver", "ModuleDatabasePool: could not open {} connection {}/{} to database `{}`, error {}",
++                type == IDX_ASYNC ? "asynchronous" : "synchronous", i + 1, numConnections,
++                _connectionInfo.database, result);
++
++            _queue->Cancel();
++            _connections[type].clear();
+             return result;
+         }
+ 
+-        _connections.push_back(std::move(conn));
++        _connections[type].push_back(std::move(conn));
+     }
+ 
+     return 0;
+@@ -74,31 +167,63 @@ uint32 ModuleDatabasePool::Open()
+ 
+ bool ModuleDatabasePool::PrepareStatements()
+ {
+-    for (auto const& conn : _connections)
++    for (auto const& connections : _connections)
+     {
+-        conn->LockIfReady();
+-        if (!conn->PrepareStatements())
++        for (auto const& conn : connections)
+         {
++            conn->LockIfReady();
++            if (!conn->PrepareStatements())
++            {
++                conn->Unlock();
++                Close();
++                return false;
++            }
++
+             conn->Unlock();
+-            Close();
+-            return false;
+-        }
+ 
+-        conn->Unlock();
++            std::size_t const preparedSize = conn->m_stmts.size();
++            if (_preparedStatementSize.size() < preparedSize)
++                _preparedStatementSize.resize(preparedSize);
++
++            for (std::size_t i = 0; i < preparedSize; ++i)
++            {
++                if (_preparedStatementSize[i] > 0)
++                    continue;
++
++                if (MySQLPreparedStatement* stmt = conn->m_stmts[i].get())
++                {
++                    uint32 const paramCount = stmt->GetParameterCount();
++
++                    // Only uint8 indices are supported.
++                    ASSERT(paramCount < std::numeric_limits<uint8>::max());
++
++                    _preparedStatementSize[i] = static_cast<uint8>(paramCount);
++                }
++            }
++        }
+     }
+ 
+-    if (!_connections.empty())
++    //! Without async connections every statement runs on a synchronous one, so CONNECTION_ASYNC-only ones fail.
++    if (_connections[IDX_ASYNC].empty() && !_connections[IDX_SYNCH].empty())
+     {
+-        MySQLConnection const* conn = _connections.front().get();
+-        _preparedStatementSize.assign(conn->m_stmts.size(), 0);
++        MySQLConnection const* conn = _connections[IDX_SYNCH].front().get();
++        std::string missing;
++
+         for (std::size_t i = 0; i < conn->m_stmts.size(); ++i)
+         {
+-            if (MySQLPreparedStatement* stmt = conn->m_stmts[i].get())
+-            {
+-                uint32 const paramCount = stmt->GetParameterCount();
+-                ASSERT(paramCount < std::numeric_limits<uint8>::max());
+-                _preparedStatementSize[i] = static_cast<uint8>(paramCount);
+-            }
++            if (conn->m_stmts[i])
++                continue;
++
++            if (!missing.empty())
++                missing += ", ";
++
++            missing += std::to_string(i);
++        }
++
++        if (!missing.empty())
++        {
++            LOG_ERROR("sql.driver", "DatabasePool '{}' has no asynchronous connections, statements [{}] are not "
++                "prepared on the synchronous ones. Flag them CONNECTION_BOTH.", _connectionInfo.database, missing);
+         }
+     }
+ 
+@@ -107,16 +232,37 @@ bool ModuleDatabasePool::PrepareStatements()
+ 
+ void ModuleDatabasePool::Close()
+ {
+-    _connections.clear();
++    _queue->Shutdown();
++
++    _connections[IDX_ASYNC].clear();
++    _connections[IDX_SYNCH].clear();
+ 
+     _preparedStatementSize.clear();
+ }
+ 
+ void ModuleDatabasePool::Execute(std::string_view sql)
+ {
+-    // Synchronous for now - kept separate from DirectExecute so async execution
+-    // can be added later without touching callers.
+-    DirectExecute(sql);
++    if (sql.empty())
++        return;
++
++    if (_connections[IDX_ASYNC].empty())
++    {
++        DirectExecute(sql);
++        return;
++    }
++
++    Enqueue(new BasicStatementTask(sql));
++}
++
++void ModuleDatabasePool::Execute(PreparedStatementBase* stmt)
++{
++    if (_connections[IDX_ASYNC].empty())
++    {
++        DirectExecute(stmt);
++        return;
++    }
++
++    Enqueue(new PreparedStatementTask(stmt));
+ }
+ 
+ void ModuleDatabasePool::DirectExecute(std::string_view sql)
+@@ -124,7 +270,7 @@ void ModuleDatabasePool::DirectExecute(std::string_view sql)
+     if (sql.empty())
+         return;
+ 
+-    if (_connections.empty())
++    if (_connections[IDX_SYNCH].empty())
+         return;
+ 
+     MySQLConnection* conn = GetFreeConnection();
+@@ -132,9 +278,24 @@ void ModuleDatabasePool::DirectExecute(std::string_view sql)
+     conn->Unlock();
+ }
+ 
++void ModuleDatabasePool::DirectExecute(PreparedStatementBase* stmt)
++{
++    if (_connections[IDX_SYNCH].empty())
++    {
++        delete stmt;
++        return;
++    }
++
++    MySQLConnection* conn = GetFreeConnection();
++    conn->Execute(stmt);
++    conn->Unlock();
++
++    delete stmt;
++}
++
+ QueryResult ModuleDatabasePool::Query(std::string_view sql)
+ {
+-    if (_connections.empty())
++    if (_connections[IDX_SYNCH].empty())
+         return QueryResult(nullptr);
+ 
+     MySQLConnection* conn = GetFreeConnection();
+@@ -152,24 +313,9 @@ QueryResult ModuleDatabasePool::Query(std::string_view sql)
+     return QueryResult(result);
+ }
+ 
+-void ModuleDatabasePool::Execute(PreparedStatementBase* stmt)
+-{
+-    if (_connections.empty())
+-    {
+-        delete stmt;
+-        return;
+-    }
+-
+-    MySQLConnection* conn = GetFreeConnection();
+-    conn->Execute(stmt);
+-    conn->Unlock();
+-
+-    delete stmt;
+-}
+-
+ PreparedQueryResult ModuleDatabasePool::Query(PreparedStatementBase* stmt)
+ {
+-    if (_connections.empty())
++    if (_connections[IDX_SYNCH].empty())
+     {
+         delete stmt;
+         return PreparedQueryResult(nullptr);
+@@ -191,24 +337,144 @@ PreparedQueryResult ModuleDatabasePool::Query(PreparedStatementBase* stmt)
+     return PreparedQueryResult(result);
+ }
+ 
++QueryCallback ModuleDatabasePool::AsyncQuery(std::string_view sql)
++{
++    if (_connections[IDX_ASYNC].empty())
++    {
++        QueryResultPromise result;
++        result.set_value(Query(sql));
++        return QueryCallback(result.get_future());
++    }
++
++    BasicStatementTask* task = new BasicStatementTask(sql, true);
++    QueryResultFuture result = task->GetFuture();
++    Enqueue(task);
++    return QueryCallback(std::move(result));
++}
++
++QueryCallback ModuleDatabasePool::AsyncQuery(PreparedStatementBase* stmt)
++{
++    if (_connections[IDX_ASYNC].empty())
++    {
++        PreparedQueryResultPromise result;
++        result.set_value(Query(stmt));
++        return QueryCallback(result.get_future());
++    }
++
++    PreparedStatementTask* task = new PreparedStatementTask(stmt, true);
++    PreparedQueryResultFuture result = task->GetFuture();
++    Enqueue(task);
++    return QueryCallback(std::move(result));
++}
++
++SQLQueryHolderCallback ModuleDatabasePool::DelayQueryHolder(std::shared_ptr<SQLQueryHolderBase> holder)
++{
++    if (!_connections[IDX_ASYNC].empty())
++    {
++        SQLQueryHolderTask* task = new SQLQueryHolderTask(holder);
++        QueryResultHolderFuture result = task->GetFuture();
++        Enqueue(task);
++        return { std::move(holder), std::move(result) };
++    }
++
++    if (!_connections[IDX_SYNCH].empty())
++    {
++        SQLQueryHolderTask task(holder);
++        QueryResultHolderFuture result = task.GetFuture();
++
++        MySQLConnection* conn = GetFreeConnection();
++        task.SetConnection(conn);
++        task.Execute();
++        conn->Unlock();
++
++        return { std::move(holder), std::move(result) };
++    }
++
++    QueryResultHolderPromise result;
++    result.set_value();
++    return { std::move(holder), result.get_future() };
++}
++
+ uint8 ModuleDatabasePool::GetPreparedStatementParamCount(uint32 index) const
+ {
+     return index < _preparedStatementSize.size() ? _preparedStatementSize[index] : 0;
+ }
+ 
+-void ModuleDatabasePool::DirectCommitTransaction(std::shared_ptr<TransactionBase> transaction)
++void ModuleDatabasePool::CommitTransaction(std::shared_ptr<TransactionBase> transaction)
+ {
+-    if (_connections.empty())
++#ifdef ACORE_DEBUG
++    switch (transaction->GetSize())
++    {
++    case 0:
++        LOG_DEBUG("sql.driver", "Transaction contains 0 queries. Not executing.");
++        return;
++    case 1:
++        LOG_DEBUG("sql.driver",
++            "Warning: Transaction only holds 1 query, consider removing Transaction context in code.");
++        break;
++    default:
++        break;
++    }
++#endif
++    if (_connections[IDX_ASYNC].empty())
++    {
++        DirectCommitTransaction(transaction);
+         return;
++    }
++
++    Enqueue(new TransactionTask(transaction));
++}
++
++TransactionCallback ModuleDatabasePool::AsyncCommitTransaction(std::shared_ptr<TransactionBase> transaction)
++{
++#ifdef ACORE_DEBUG
++    switch (transaction->GetSize())
++    {
++    case 0:
++        LOG_DEBUG("sql.driver", "Transaction contains 0 queries. Not executing.");
++        break;
++    case 1:
++        LOG_DEBUG("sql.driver",
++            "Warning: Transaction only holds 1 query, consider removing Transaction context in code.");
++        break;
++    default:
++        break;
++    }
++#endif
++
++    if (_connections[IDX_ASYNC].empty())
++    {
++        TransactionPromise result;
++        result.set_value(TryDirectCommitTransaction(transaction));
++        return TransactionCallback(result.get_future());
++    }
++
++    TransactionWithResultTask* task = new TransactionWithResultTask(transaction);
++    TransactionFuture result = task->GetFuture();
++    Enqueue(task);
++    return TransactionCallback(std::move(result));
++}
++
++void ModuleDatabasePool::DirectCommitTransaction(std::shared_ptr<TransactionBase> transaction)
++{
++    TryDirectCommitTransaction(transaction);
++}
++
++bool ModuleDatabasePool::TryDirectCommitTransaction(std::shared_ptr<TransactionBase> transaction)
++{
++    if (_connections[IDX_SYNCH].empty())
++        return false;
+ 
+     MySQLConnection* conn = GetFreeConnection();
+     int errorCode = conn->ExecuteTransaction(transaction);
+     if (!errorCode)
+     {
+         conn->Unlock();
+-        return;
++        return true;
+     }
+ 
++    bool committed = false;
++
+     //! Handle MySQL Errno 1213 without extending deadlock to the core itself
+     if (errorCode == ER_LOCK_DEADLOCK)
+     {
+@@ -216,18 +482,21 @@ void ModuleDatabasePool::DirectCommitTransaction(std::shared_ptr<TransactionBase
+         for (uint8 i = 0; i < loopBreaker; ++i)
+         {
+             if (!conn->ExecuteTransaction(transaction))
++            {
++                committed = true;
+                 break;
++            }
+         }
+     }
+ 
+     transaction->Cleanup();
+     conn->Unlock();
++    return committed;
+ }
+ 
+ void ModuleDatabasePool::KeepAlive()
+ {
+-    //! Ping connections that are not busy; a locked connection is in use and alive.
+-    for (auto const& conn : _connections)
++    for (auto const& conn : _connections[IDX_SYNCH])
+     {
+         if (conn->LockIfReady())
+         {
+@@ -235,18 +504,49 @@ void ModuleDatabasePool::KeepAlive()
+             conn->Unlock();
+         }
+     }
++
++    auto const count = _connections[IDX_ASYNC].size();
++
++    for (std::size_t i = 0; i < count; ++i)
++        Enqueue(new PingOperation);
++}
++
++std::size_t ModuleDatabasePool::QueueSize() const
++{
++    return _queue->Size();
++}
++
++void ModuleDatabasePool::WarnAboutSyncQueries([[maybe_unused]] bool warn)
++{
++#ifdef ACORE_DEBUG
++    _warnSyncQueries = warn;
++#endif
++}
++
++void ModuleDatabasePool::Enqueue(SQLOperation* op)
++{
++    _queue->Push(op);
+ }
+ 
+ MySQLConnection* ModuleDatabasePool::GetFreeConnection()
+ {
++#ifdef ACORE_DEBUG
++    if (_warnSyncQueries)
++    {
++        std::ostringstream ss;
++        ss << boost::stacktrace::stacktrace();
++        LOG_WARN("sql.performances", "Sync query at:\n{}", ss.str());
++    }
++#endif
++
+     uint8 i = 0;
+-    auto const num_cons = _connections.size();
++    auto const num_cons = _connections[IDX_SYNCH].size();
+     MySQLConnection* connection = nullptr;
+ 
+     //! Block forever until a connection is free
+     for (;;)
+     {
+-        connection = _connections[++i % num_cons].get();
++        connection = _connections[IDX_SYNCH][++i % num_cons].get();
+         //! Must be matched with connection->Unlock() or you will get deadlocks
+         if (connection->LockIfReady())
+             break;
+diff --git a/src/server/database/Database/ModuleDatabasePool.h b/src/server/database/Database/ModuleDatabasePool.h
+index ba0bb168e22..4182b9b2526 100644
+--- a/src/server/database/Database/ModuleDatabasePool.h
++++ b/src/server/database/Database/ModuleDatabasePool.h
+@@ -24,35 +24,45 @@
+ #include "MySQLConnection.h"
+ #include "PreparedStatement.h"
+ #include "StringFormat.h"
++#include <array>
+ #include <memory>
+ #include <string_view>
+ #include <vector>
+ 
++template <typename T>
++class ProducerConsumerQueue;
++
++class SQLOperation;
+ class TransactionBase;
+ 
+-// Base class for module-owned database pools. A module derives from this,
+-// implements CreateConnection with its own MySQLConnection subclass (carrying
+-// the module's prepared statements), and gets open/execute/query plus DBUpdater
+-// compatibility without any core-side registration.
+-//
+-// Connections are synchronous; asynchronous execution can be added in a
+-// follow-up without changing this interface. DoPrepareStatements must mark every
+-// statement CONNECTION_SYNCH: a CONNECTION_ASYNC one is skipped on these
+-// connections and asserts on first use.
++// Base class for module-owned database pools, with the DatabaseWorkerPool API.
++// Flag each prepared statement by the calls that use it:
++//   CONNECTION_ASYNC  - Execute, CommitTransaction, AsyncQuery, AsyncCommitTransaction, DelayQueryHolder
++//   CONNECTION_SYNCH  - Query and the Direct* calls
++//   CONNECTION_BOTH   - both groups
++// If the pool may run with 0 async connections, every call runs synchronously: use CONNECTION_BOTH, never
++// CONNECTION_ASYNC. A statement missing from the connection it runs on asserts on first use.
+ class AC_DATABASE_API ModuleDatabasePool : public DatabaseUpdatePool
+ {
++private:
++    enum InternalIndex
++    {
++        IDX_ASYNC,
++        IDX_SYNCH,
++        IDX_SIZE
++    };
++
+ public:
+     ModuleDatabasePool();
+     virtual ~ModuleDatabasePool();
+ 
+     void SetConnectionInfo(std::string_view infoString, uint8 synchThreads);
+ 
+-    //! Opens the configured number of synchronous connections.
+-    //! Returns 0 on success, or the MySQL error code of the first failed connection.
++    void SetConnectionInfo(std::string_view infoString, uint8 asyncThreads, uint8 synchThreads);
++
+     uint32 Open();
+ 
+-    //! Prepares the connection statements. Call after the schema exists
+-    //! (post create/populate/update), mirroring DatabaseLoader's ordering.
++    //! Call once the schema is up to date.
+     bool PrepareStatements();
+ 
+     void Close();
+@@ -62,7 +72,6 @@ class AC_DATABASE_API ModuleDatabasePool : public DatabaseUpdatePool
+     QueryResult Query(std::string_view sql) override;
+     MySQLConnectionInfo const* GetConnectionInfo() const override;
+ 
+-    //! Format variants, mirroring DatabaseWorkerPool.
+     template<typename... Args>
+     void Execute(std::string_view sql, Args&&... args)
+     {
+@@ -90,32 +99,47 @@ class AC_DATABASE_API ModuleDatabasePool : public DatabaseUpdatePool
+         return Query(std::string_view(Acore::StringFormat(sql, std::forward<Args>(args)...)));
+     }
+ 
+-    //! Prepared statements. The index space is defined by the module's connection
+-    //! class (DoPrepareStatements); parameter counts are recorded by PrepareStatements(),
+-    //! so building one before that call yields a zero-parameter statement.
+-    //! Both calls consume (delete) the statement, mirroring DatabaseWorkerPool.
++    //! These take ownership of the statement and delete it.
+     void Execute(PreparedStatementBase* stmt);
++    void DirectExecute(PreparedStatementBase* stmt);
+     PreparedQueryResult Query(PreparedStatementBase* stmt);
+ 
+-    //! Parameter count for a prepared statement index, for constructing typed
+-    //! PreparedStatement<T> objects module-side.
++    QueryCallback AsyncQuery(std::string_view sql);
++    QueryCallback AsyncQuery(PreparedStatementBase* stmt);
++
++    SQLQueryHolderCallback DelayQueryHolder(std::shared_ptr<SQLQueryHolderBase> holder);
++
++    //! Returns 0 until PrepareStatements() has run.
+     [[nodiscard]] uint8 GetPreparedStatementParamCount(uint32 index) const;
+ 
+-    //! Synchronously commits the transaction on a free connection.
++    void CommitTransaction(std::shared_ptr<TransactionBase> transaction);
++    TransactionCallback AsyncCommitTransaction(std::shared_ptr<TransactionBase> transaction);
+     void DirectCommitTransaction(std::shared_ptr<TransactionBase> transaction);
+ 
+-    //! Pings every idle connection to keep them alive.
+     void KeepAlive();
++    [[nodiscard]] std::size_t QueueSize() const;
++
++    void WarnAboutSyncQueries(bool warn);
+ 
+ protected:
+     virtual MySQLConnection* CreateConnection(MySQLConnectionInfo& connInfo) = 0;
+ 
++    virtual MySQLConnection* CreateConnection(ProducerConsumerQueue<SQLOperation*>* queue,
++        MySQLConnectionInfo& connInfo);
++
+ private:
++    uint32 OpenConnections(InternalIndex type, uint8 numConnections);
++
++    void Enqueue(SQLOperation* op);
++    bool TryDirectCommitTransaction(std::shared_ptr<TransactionBase> transaction);
++
+     MySQLConnection* GetFreeConnection();
+ 
+     MySQLConnectionInfo _connectionInfo;
+-    std::vector<std::unique_ptr<MySQLConnection>> _connections;
++    std::unique_ptr<ProducerConsumerQueue<SQLOperation*>> _queue;
++    std::array<std::vector<std::unique_ptr<MySQLConnection>>, IDX_SIZE> _connections;
+     std::vector<uint8> _preparedStatementSize;
++    uint8 _asyncThreads;
+     uint8 _synchThreads;
+ };
+ 
+diff --git a/src/server/database/Database/MySQLConnection.cpp b/src/server/database/Database/MySQLConnection.cpp
+index b62d0ed82fc..e6ed20fa810 100644
+--- a/src/server/database/Database/MySQLConnection.cpp
++++ b/src/server/database/Database/MySQLConnection.cpp
+@@ -22,6 +22,7 @@
+ #include "MySQLPreparedStatement.h"
+ #include "PreparedStatement.h"
+ #include "QueryResult.h"
++#include "SQLOperation.h"
+ #include "StringConvert.h"
+ #include "Timer.h"
+ #include "Tokenize.h"
+@@ -463,6 +464,12 @@ void MySQLConnection::Ping()
+     mysql_ping(m_Mysql);
+ }
+ 
++bool PingOperation::Execute()
++{
++    m_conn->Ping();
++    return true;
++}
++
+ uint32 MySQLConnection::GetLastError()
+ {
+     return mysql_errno(m_Mysql);
+diff --git a/src/server/database/Database/SQLOperation.h b/src/server/database/Database/SQLOperation.h
+index 06739076c5e..1a02faf0a73 100644
+--- a/src/server/database/Database/SQLOperation.h
++++ b/src/server/database/Database/SQLOperation.h
+@@ -60,4 +60,10 @@ class AC_DATABASE_API SQLOperation
+     SQLOperation& operator=(SQLOperation const& right) = delete;
+ };
+ 
++//- Keeps an idle asynchronous connection alive
++class PingOperation : public SQLOperation
++{
++    bool Execute() override;
++};
++
+ #endif
+diff --git a/src/server/game/Entities/Unit/Unit.cpp b/src/server/game/Entities/Unit/Unit.cpp
+index 58da7ed4970..b038ca93740 100644
+--- a/src/server/game/Entities/Unit/Unit.cpp
++++ b/src/server/game/Entities/Unit/Unit.cpp
+@@ -7030,7 +7030,6 @@ ReputationRank Unit::GetFactionReactionTo(FactionTemplateEntry const* factionTem
+         return REP_FRIENDLY;
+     if (factionTemplateEntry->factionFlags & FACTION_TEMPLATE_FLAG_HATES_ALL_EXCEPT_FRIENDS)
+         return REP_HOSTILE;
+-
+     // neutral by default
+     return REP_NEUTRAL;
+ }
+diff --git a/src/server/game/Movement/MovementGenerators/PathGenerator.cpp b/src/server/game/Movement/MovementGenerators/PathGenerator.cpp
+index fddbb29d740..76afe3335cc 100644
+--- a/src/server/game/Movement/MovementGenerators/PathGenerator.cpp
++++ b/src/server/game/Movement/MovementGenerators/PathGenerator.cpp
+@@ -23,6 +23,8 @@
+ #include "MMapMgr.h"
+ #include "Map.h"
+ #include "Metric.h"
++#include "Player.h"
++#include "WorldSession.h"
+ 
+ // Blades Edge Arena Ropes normalization
+ namespace
+@@ -750,12 +752,13 @@ void PathGenerator::CreateFilter()
+ {
+     uint16 includeFlags = 0;
+     uint16 excludeFlags = 0;
++    bool isHeadless = false;
+ 
+     if (_source->IsCreature())
+     {
+         Creature* creature = (Creature*)_source;
+         if (creature->CanWalk())
+-            includeFlags |= NAV_GROUND;          // walk
++            includeFlags |= (NAV_GROUND | NAV_GROUND_STEEP);
+ 
+         // creatures don't take environmental damage
+         if (creature->CanEnterWater())
+@@ -763,13 +766,32 @@ void PathGenerator::CreateFilter()
+     }
+     else // assume Player
+     {
+-        // perfect support not possible, just stay 'safe'
+-        includeFlags |= (NAV_GROUND | NAV_WATER | NAV_MAGMA);
++        // Bots navigate with a stricter filter: include ground + water but exclude lava/slime and
++        // NAV_GROUND_STEEP (the 50-60deg slopes the extractor tags via modAlmostUnwalkableTriangles), so
++        // they keep off steep mountainsides and follow gentle ground/roads. Real players are unchanged and
++        // may still path across steep terrain.
++        Player const* player = _source->ToPlayer();
++        if (player && player->GetSession() && player->GetSession()->IsHeadless())
++        {
++            includeFlags |= (NAV_GROUND | NAV_WATER);
++            excludeFlags |= (NAV_MAGMA | NAV_SLIME | NAV_GROUND_STEEP);
++            isHeadless = true;
++        }
++        else
++        {
++            // perfect support not possible, just stay 'safe'
++            includeFlags |= (NAV_GROUND | NAV_GROUND_STEEP | NAV_WATER | NAV_MAGMA);
++        }
+     }
+ 
+     _filter.setIncludeFlags(includeFlags);
+     _filter.setExcludeFlags(excludeFlags);
+ 
++    // Bots bias their routes away from deep water (swim only when necessary). poly.area == poly.flags ==
++    // NavTerrain, so NAV_WATER doubles as the water area index. Real players and creatures assign no cost.
++    if (isHeadless)
++        _filter.setAreaCost(NAV_WATER, 20.0f);
++
+     UpdateFilter();
+ }
+ 
+diff --git a/src/server/game/Movement/MovementGenerators/PathGenerator.h b/src/server/game/Movement/MovementGenerators/PathGenerator.h
+index 56b55d2f960..a2390152bee 100644
+--- a/src/server/game/Movement/MovementGenerators/PathGenerator.h
++++ b/src/server/game/Movement/MovementGenerators/PathGenerator.h
+@@ -32,8 +32,16 @@ class WorldObject;
+ // 74*4.0f=296y number_of_points*interval = max_path_len
+ // this is way more than actual evade range
+ // I think we can safely cut those down even more
++#ifdef MOD_PLAYERBOTS
++// Bots travel long-distance to quests; the default 74-poly cap forces
++// repeated re-pathfinding mid-route and produces partial paths short of
++// the destination. 148 covers most quest movements end-to-end.
++#define MAX_PATH_LENGTH         148
++#define MAX_POINT_PATH_LENGTH   148
++#else
+ #define MAX_PATH_LENGTH         74
+ #define MAX_POINT_PATH_LENGTH   74
++#endif
+ 
+ #define SMOOTH_PATH_STEP_SIZE   4.0f
+ #define SMOOTH_PATH_SLOP        0.3f
+@@ -81,6 +89,16 @@ class PathGenerator
+         void SetUseStraightPath(bool useStraightPath) { _useStraightPath = useStraightPath; }
+         void SetPathLengthLimit(float distance) { _pointPathLimit = std::min<uint32>(uint32(distance/SMOOTH_PATH_STEP_SIZE), MAX_POINT_PATH_LENGTH); }
+         void SetUseRaycast(bool useRaycast) { _useRaycast = useRaycast; }
++        // Adjust per-terrain Detour traversal cost on the active query
++        // filter. Persists across CalculatePath calls until overwritten.
++        void SetNavTerrainCost(NavTerrain terrain, float cost)
++        {
++            _filter.setAreaCost(static_cast<uint8>(terrain), cost);
++        }
++        // Replace the active filter's exclude bitmask. Caller may pass
++        // a single NavTerrain or an OR'd combination (NavTerrain values
++        // implicitly convert through uint16).
++        void SetExcludeFlags(uint16 flags) { _filter.setExcludeFlags(flags); }
+ 
+         // result getters
+         [[nodiscard]] G3D::Vector3 const& GetStartPosition() const { return _startPosition; }
+diff --git a/src/server/game/Server/WorldSession.h b/src/server/game/Server/WorldSession.h
+index 886f5ad9d96..7b42adca8f4 100644
+--- a/src/server/game/Server/WorldSession.h
++++ b/src/server/game/Server/WorldSession.h
+@@ -30,8 +30,8 @@
+ #include "DatabaseEnv.h"
+ #include "Duration.h"
+ #include "GossipDef.h"
+-#include "Packet.h"
+ #include "QueryHolder.h"
++#include "Packet.h"
+ #include "SharedDefines.h"
+ #include "World.h"
+ #include <map>
+diff --git a/src/tools/mmaps_generator/Config.cpp b/src/tools/mmaps_generator/Config.cpp
+index 6411758ff2c..44f2e8f8b3a 100644
+--- a/src/tools/mmaps_generator/Config.cpp
++++ b/src/tools/mmaps_generator/Config.cpp
+@@ -142,7 +142,11 @@ namespace MMAP
+         config.vertexPerTileEdge = vertexPerTile;
+         config.baseUnitDim = ComputeBaseUnitDim(vertexPerMap);
+         config.tilesPerMapEdge = vertexPerMap / vertexPerTile;
+-        config.maxSimplificationError = _global.maxSimplificationError;
++        config.maxSimplificationError = resolveFloat(
++            [](TileOverride const* t) { return t->maxSimplificationError; },
++            [](MapOverride const* m) { return m->maxSimplificationError; },
++            _global.maxSimplificationError
++        );
+         config.cellSizeHorizontal = config.baseUnitDim;
+         config.cellSizeVertical = config.baseUnitDim;
+ 
+@@ -242,6 +246,8 @@ namespace MMAP
+                     override.cellSizeHorizontal = mapNode["cellSizeHorizontal"].get_value<float>();
+                 if (mapNode.contains("cellSizeVertical"))
+                     override.cellSizeVertical = mapNode["cellSizeVertical"].get_value<float>();
++                if (mapNode.contains("maxSimplificationError"))
++                    override.maxSimplificationError = mapNode["maxSimplificationError"].get_value<float>();
+ 
+                 // Tile overrides
+                 if (mapNode.contains("tilesOverrides"))
+@@ -268,6 +274,8 @@ namespace MMAP
+                             tileOverride.walkableHeight = tileNode["walkableHeight"].get_value<int>();
+                         if (tileNode.contains("walkableClimb"))
+                             tileOverride.walkableClimb = tileNode["walkableClimb"].get_value<int>();
++                        if (tileNode.contains("maxSimplificationError"))
++                            tileOverride.maxSimplificationError = tileNode["maxSimplificationError"].get_value<float>();
+ 
+                         override.tileOverrides[{tileX, tileY}] = std::move(tileOverride);
+                     }
+diff --git a/src/tools/mmaps_generator/Config.h b/src/tools/mmaps_generator/Config.h
+index a6e7f9db3d2..52a40677278 100644
+--- a/src/tools/mmaps_generator/Config.h
++++ b/src/tools/mmaps_generator/Config.h
+@@ -88,6 +88,7 @@ namespace MMAP
+             std::optional<int> walkableRadius;
+             std::optional<int> walkableHeight;
+             std::optional<int> walkableClimb;
++            std::optional<float> maxSimplificationError;
+         };
+ 
+         struct MapOverride {
+@@ -97,6 +98,7 @@ namespace MMAP
+             std::optional<int> walkableClimb;
+             std::optional<int> vertexPerMapEdge;
+             std::optional<int> vertexPerTileEdge;
++            std::optional<float> maxSimplificationError;
+ 
+             // The width/depth of each cell in the XZ-plane grid used for voxelization. [Units: world units]
+             // A smaller value increases navmesh resolution but also memory and CPU usage.
+diff --git a/src/tools/mmaps_generator/MapBuilder.cpp b/src/tools/mmaps_generator/MapBuilder.cpp
+index 2c1a0aed613..ab82cd6e296 100644
+--- a/src/tools/mmaps_generator/MapBuilder.cpp
++++ b/src/tools/mmaps_generator/MapBuilder.cpp
+@@ -30,6 +30,33 @@
+ 
+ namespace MMAP
+ {
++    static void modAlmostUnwalkableTriangles(float const playerSlopeAngle,
++                                             float const* verts, int /*nv*/,
++                                             int const* tris, int nt,
++                                             unsigned char* areas)
++    {
++        float const walkableThr = std::cos(playerSlopeAngle / 180.0f * static_cast<float>(M_PI));
++
++        float norm[3];
++
++        for (int i = 0; i < nt; ++i)
++        {
++            if (areas[i] == RC_NULL_AREA)
++                continue;
++
++            int const* tri = &tris[i * 3];
++
++            float e0[3], e1[3];
++            rcVsub(e0, &verts[tri[1] * 3], &verts[tri[0] * 3]);
++            rcVsub(e1, &verts[tri[2] * 3], &verts[tri[0] * 3]);
++            rcVcross(norm, e0, e1);
++            rcVnormalize(norm);
++
++            if (norm[1] <= walkableThr)
++                areas[i] = NAV_GROUND_STEEP;
++        }
++    }
++
+     TileBuilder::TileBuilder(MapBuilder* mapBuilder, bool skipLiquid, bool debugOutput) :
+             m_debugOutput(debugOutput),
+             m_mapBuilder(mapBuilder),
+@@ -658,6 +685,8 @@ namespace MMAP
+                 unsigned char* triFlags = new unsigned char[tTriCount];
+                 memset(triFlags, NAV_GROUND, tTriCount * sizeof(unsigned char));
+                 rcClearUnwalkableTriangles(m_rcContext, tileCfg.walkableSlopeAngle, tVerts, tVertCount, tTris, tTriCount, triFlags);
++                // mod_playerbots (bots should not attempt to use paths that includes slopes beyound 50 degrees)
++                modAlmostUnwalkableTriangles(50.0f, tVerts, tVertCount, tTris, tTriCount, triFlags);
+                 rcRasterizeTriangles(m_rcContext, tVerts, tVertCount, tTris, triFlags, tTriCount, *tile.solid, config.walkableClimb);
+                 delete[] triFlags;
+ 
+diff --git a/src/tools/mmaps_generator/mmaps-config.yaml b/src/tools/mmaps_generator/mmaps-config.yaml
+index 49187c5b9ae..e6d82ebb8e8 100644
+--- a/src/tools/mmaps_generator/mmaps-config.yaml
++++ b/src/tools/mmaps_generator/mmaps-config.yaml
+@@ -65,7 +65,7 @@ mmapsConfig:
+     #
+     # Vanilla WotLK uses 6, which allows creatures to "jump" over fences.
+     # Classic WotLK uses 4, which forces creatures to walk around fences.
+-    walkableClimb: 6
++    walkableClimb: 4
+ 
+     # Minimum distance (in cell units) around walkable surfaces.
+     # Helps prevent NPCs from clipping into walls and narrow gaps.
+@@ -77,14 +77,14 @@ mmapsConfig:
+     verticesPerMapEdge: 2000
+ 
+     # Number of vertices along one edge of each tile chunk.
+-    # Must divide (vertexPerMapEdge - 1) evenly for seamless tiles.
++    # Must divide (verticesPerMapEdge - 1) evenly for seamless tiles.
+     # A higher vertex count per tile means fewer total tiles,
+     # reducing runtime work to load, unload, and manage tiles.
+     verticesPerTileEdge: 80
+ 
+     # Tolerance for how much a polygon can deviate from the original geometry when simplified.
+     # Higher values produce simpler (faster) meshes but can reduce accuracy.
+-    maxSimplificationError: 1.8
++    maxSimplificationError: 0.8
+ 
+     # You can override any global parameter for a specific map by specifying its map ID.
+     # Inside each map override, you can also override parameters per individual tile,

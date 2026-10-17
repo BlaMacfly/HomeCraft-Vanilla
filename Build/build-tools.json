@@ -1,0 +1,63 @@
+{
+    "$schema_note": "Outils du poste de BUILD (jamais livrés dans le package). Versions calées sur l'intégration continue Windows d'AzerothCore (.github/workflows/windows_build.yml, lu le 2026-10-16) : Boost 1.87.0, MySQL 8.4.9 (zip), OpenSSL 3.x complet. Les empreintes sont celles vérifiées à l'installation du 2026-10-16.",
+    "updated": "2026-10-16",
+    "tools": [
+        {
+            "id": "git",
+            "version": "2.55.0.5",
+            "source": "winget Git.Git (installeur signé Git for Windows, empreinte vérifiée par winget)",
+            "install_path": "C:\\Program Files\\Git",
+            "exe": "C:\\Program Files\\Git\\cmd\\git.exe"
+        },
+        {
+            "id": "cmake",
+            "version": "4.4.4",
+            "source": "winget Kitware.CMake (zip portable, empreinte vérifiée par winget)",
+            "install_path": "%LOCALAPPDATA%\\Microsoft\\WinGet\\Packages\\Kitware.CMake_Microsoft.Winget.Source_8wekyb3d8bbwe\\cmake-4.4.4-windows-x86_64",
+            "exe": "%LOCALAPPDATA%\\Microsoft\\WinGet\\Packages\\Kitware.CMake_Microsoft.Winget.Source_8wekyb3d8bbwe\\cmake-4.4.4-windows-x86_64\\bin\\cmake.exe",
+            "note": "Installé en portée utilisateur ; ajouter le dossier bin au PATH de la session (Tools/Common.ps1)."
+        },
+        {
+            "id": "visual-studio-build-tools-2022",
+            "version": "2022 (charge Développement Desktop C++)",
+            "source": "déjà présent avant le projet (launcher Rust de l'édition Vanilla)",
+            "install_path": "C:\\BuildTools"
+        },
+        {
+            "id": "boost",
+            "version": "1.87.0",
+            "source": "https://downloads.sourceforge.net/project/boost/boost-binaries/1.87.0/boost_1_87_0-msvc-14.3-64.exe",
+            "file": "Build/downloads/boost_1_87_0-msvc-14.3-64.exe",
+            "expected_size": 215218714,
+            "sha256": "7b204c1cfa1a41f771361d23a99d3b4d5d677d7b52064eb73f37ba47b2d238bb",
+            "signature": "non signé (aucune empreinte publiée par le projet Boost pour ces binaires : empreinte relevée ici à titre de référence)",
+            "install_path": "C:\\local\\boost_1_87_0",
+            "env": { "BOOST_ROOT": "C:\\local\\boost_1_87_0" },
+            "install_args": "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=C:\\local\\boost_1_87_0"
+        },
+        {
+            "id": "mysql-client-libs",
+            "version": "8.4.9",
+            "source": "https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.9-winx64.zip",
+            "file": "Build/downloads/mysql-8.4.9-winx64.zip",
+            "expected_size": 280452577,
+            "md5_published": "fe14853279d1704e0f0eb253ea8c8d33",
+            "md5_verified": true,
+            "install_path": "C:\\tools\\mysql\\current",
+            "note": "Seuls include/ et lib/ servent à la compilation (FindMySQL.cmake d'AzerothCore cherche aussi C:/Program Files/MySQL/MySQL Server * ; passer -DMYSQL_INCLUDE_DIR / -DMYSQL_LIBRARY si besoin). Le serveur du package reste MariaDB portable."
+        },
+        {
+            "id": "openssl",
+            "version": "3.5.9 (LTS)",
+            "source": "https://slproweb.com/download/Win64OpenSSL-3_5_9.msi",
+            "file": "Build/downloads/Win64OpenSSL-3_5_9.msi",
+            "expected_size": 297603072,
+            "sha256_published": "6e6eb6fb9531c3aebed9ff4655758a67e578d32a72d091ac7f5794caa83bfcc2",
+            "sha256_source": "https://raw.githubusercontent.com/slproweb/opensslhashes/master/win32_openssl_hashes.json",
+            "sha256_verified": true,
+            "install_path": "C:\\Program Files\\OpenSSL-Win64",
+            "env": { "OPENSSL_ROOT_DIR": "C:\\Program Files\\OpenSSL-Win64" },
+            "install_args": "msiexec /i Win64OpenSSL-3_5_9.msi /qn /norestart"
+        }
+    ]
+}

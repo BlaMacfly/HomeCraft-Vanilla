@@ -1,0 +1,34 @@
+# ---- Jamais versionné : contenu Blizzard et données personnelles
+/Client/
+/Server/Data/
+/UserData/
+/Logs/
+
+# ---- Composants tiers, binaires compilés et dumps (Build/manifest.json et la documentation font foi)
+/Build/downloads/
+/Build/src/
+/Build/install/
+/Server/acore/
+/Server/Database/mysql/
+/Server/Database/sql/
+/Tools/HeidiSQL/
+/Tools/Keira3/
+/Tools/HermesProxy/
+
+# ---- Généré
+/Server/Config/
+/Build/tmp/
+/Build/package/
+/Build/files-manifest.json
+/Launcher/target/
+/HomeCraft Edition WoTLK.exe
+*.orig
+
+# ---- Réglages locaux et copies d'instructions pour d'autres outils
+/.claude/
+/AGENTS.md
+
+# ---- Divers
+Thumbs.db
+desktop.ini
+*.log
