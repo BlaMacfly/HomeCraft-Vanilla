@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.4 — 18 octobre 2026
+
+- Surveillance des services : les ports du serveur ne sont plus sondés qu'une fois toutes les 10 secondes (l'état des processus reste contrôlé chaque seconde). Le launcher ouvrait une connexion au serveur de jeu à chaque seconde, journalisée par mangosd (« Connection accepted/closed », 9 434 lignes sur une journée de test).
+
 ## 0.9.3 — 18 octobre 2026
 
 - Bots de peuplement : après une génération, le launcher règle au plus 300 bots connectés (minimum la moitié) au lieu du total généré, et active « Bots visibles dans /qui ». Mesure : avec 2 600 personnages bots, l'ancien réglage (minimum 1 300) faisait connecter plus de 1 000 bots d'un coup (1,1 Go pour le serveur, un cœur de processeur), invisibles dans `/qui`.

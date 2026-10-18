@@ -189,6 +189,10 @@ pub struct Orchestrator {
     log_file: Option<std::fs::File>,
     /// MoveMapGenerator en arrière-plan
     mmaps_job: Option<Child>,
+    /// Compteur de `tick` : les ports ne sont sondés qu'une fois toutes les 10 secondes (chaque sondage ouvre une
+    /// connexion au serveur, journalisée par mangosd) ; entre deux, seul l'état des processus est contrôlé.
+    ticks: u64,
+    ports_up: (bool, bool),
 }
 
 pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sender<Command>) {
@@ -229,7 +233,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         .name("orchestrateur".into())
         .spawn(move || {
             let log_file = std::fs::create_dir_all(layout.logs()).ok().and_then(|_| std::fs::OpenOptions::new().create(true).append(true).open(layout.launcher_log()).ok());
-            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None };
+            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None, ticks: 0, ports_up: (false, false) };
             o.run();
         })
         .expect("thread orchestrateur");
@@ -692,8 +696,15 @@ impl Orchestrator {
     /// Contrôle périodique : santé réelle des services, fin du jeu, plantages.
     fn tick(&mut self) {
         let db_up = self.db.as_ref().map(|d| d.ping()).unwrap_or(false);
-        let realmd_up = self.realmd.as_mut().map(|r| r.is_running()).unwrap_or(false) && db::port_open(REALMD_PORT);
-        let world_up = self.mangosd.as_mut().map(|m| m.is_running()).unwrap_or(false) && db::port_open(WORLD_PORT);
+        let realmd_alive = self.realmd.as_mut().map(|r| r.is_running()).unwrap_or(false);
+        let world_alive = self.mangosd.as_mut().map(|m| m.is_running()).unwrap_or(false);
+        // Sondage des ports toutes les 10 s (ou dès qu'un processus redémarre) ; un processus arrêté est vu à la seconde.
+        if self.ticks % 10 == 0 || (realmd_alive && !self.ports_up.0) || (world_alive && !self.ports_up.1) {
+            self.ports_up = (realmd_alive && db::port_open(REALMD_PORT), world_alive && db::port_open(WORLD_PORT));
+        }
+        self.ticks += 1;
+        let realmd_up = realmd_alive && self.ports_up.0;
+        let world_up = world_alive && self.ports_up.1;
         let online = if db_up && world_up { self.db.as_ref().map(|d| d.online_count()).unwrap_or(0) } else { 0 };
         let state = self.state();
         {
