@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.9 — 19 octobre 2026
+
+- Bots de peuplement : au-delà de 100 bots connectés, le joueur restait bloqué sur « Connecté ». Chaque bot ouvre une session sur le serveur et la limite de joueurs du modèle VMaNGOS (`PlayerLimit = 100`) mettait le joueur, et les bots suivants, en file d'attente (le client Benilla n'affiche pas la position dans la file). La limite est désormais supprimée (`PlayerLimit = 0`) ; elle est aussi levée à chaud dès qu'on enregistre un réglage serveur en marche.
+
 ## 0.9.8 — 19 octobre 2026
 
 - Extraction : VMapExtractor plante de façon intermittente (0xC0000374, corruption du tas : la même commande réussit ensuite). Le launcher le relance jusqu'à trois fois, sur un dossier de travail propre.

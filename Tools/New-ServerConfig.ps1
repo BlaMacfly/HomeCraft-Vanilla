@@ -60,6 +60,7 @@ $m = Set-ConfValue $m 'Anticheat.Enable'       '0'
 $m = Set-ConfValue $m 'PartyBot.SkipChecks'    '1'        # un joueur normal peut invoquer des compagnons partout
 $m = Set-ConfValue $m 'PartyBot.MaxBots'       '0'
 $m = Set-ConfValue $m 'PlayerBot.ShowInWhoList' '1'
+$m = Set-ConfValue $m 'PlayerLimit'            '0'        # chaque bot de peuplement compte comme un joueur : pas de file d'attente
 $m = Set-ConfValue $m 'Console.Enable'         '1'        # la console sert au launcher (entrée standard) pour les commandes d'administration
 
 # ---- AHBot : hôtel des ventes approvisionné (exigence utilisateur). L'AHBot VMaNGOS ne sert qu'un seul hôtel :

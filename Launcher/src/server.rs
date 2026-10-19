@@ -67,6 +67,9 @@ pub fn generate_configs(layout: &Layout, db: &MariaDb, settings: &Settings) -> R
     set_conf_value(&mut m, "Warden.WinEnabled", "0")?;
     set_conf_value(&mut m, "Anticheat.Enable", "0")?;
     set_conf_value(&mut m, "Console.Enable", "1")?;
+    // Les bots de peuplement ouvrent chacun une session : avec la limite du modèle (100), au-delà de 100 bots le
+    // joueur était mis en file d'attente (le client restait sur « Connecté »). 0 = pas de limite.
+    set_conf_value(&mut m, "PlayerLimit", "0")?;
     // Réglages des onglets PlayerBots et Monde : valeurs du catalogue (défaut = modèle, surcharges de l'utilisateur).
     // Seules les clés du catalogue sont surchargeables ; les clés gérées ci-dessus ne le sont jamais.
     for opt in crate::conf_catalog::BOT_OPTIONS.iter().chain(crate::conf_catalog::WORLD_OPTIONS.iter()) {
