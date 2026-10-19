@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.13 — 19 octobre 2026
+
+- Bots de peuplement absents de `/qui` malgré « Bots visibles dans /qui » : les personnages bots étaient créés avec `world_phase_mask = 0`, alors qu'un personnage normal a 1 (`WORLD_DEFAULT_CHAR`). VMaNGOS écarte de `/qui` tout personnage sans phase commune avec le joueur (`Player::IsVisibleGloballyFor` → `CanSeeInWorld`), sauf en mode MJ (`.gm on`). La visibilité en jeu n'en dépendait pas, d'où des bots visibles en ville mais pas dans la liste. Les bots sont désormais créés avec la phase 1, et ceux déjà générés sont corrigés au démarrage du serveur.
+
 ## 0.9.12 — 19 octobre 2026
 
 - Accueil : la génération des cartes de déplacement (mmaps) affiche une barre de progression et le temps restant estimé, mis à jour toutes les 10 secondes (tuiles écrites rapportées aux 1 742 d'un jeu complet, au rythme observé depuis le lancement).

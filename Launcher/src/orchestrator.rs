@@ -1270,6 +1270,11 @@ impl Orchestrator {
         if let Err(e) = server::generate_configs(&self.layout, &db, &self.settings).and_then(|_| server::ensure_realm(&db)) {
             return self.fail_ret("configuration serveur", e);
         }
+        match crate::botgen::fix_phase_mask(&db) {
+            Ok(0) => {}
+            Ok(n) => self.log(format!("personnages bots rendus visibles dans /qui : {n}")),
+            Err(e) => self.log(format!("ERREUR bots (/qui) : {e}")),
+        }
         self.db = Some(db);
 
         // Première installation : données du client (dbc, maps, vmaps) extraites si absentes. Les mmaps restent optionnelles.

@@ -420,6 +420,8 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **Le launcher annonce N personnages en ligne mais `/qui` n'affiche personne** : les bots de peuplement sont cachés de la liste `/qui` par défaut. PlayerBots > Général > « Bots visibles dans /qui », Enregistrer, puis redémarrez le serveur. Rappel : `/qui` ne montre que votre faction, et les bots sont de toute façon visibles physiquement dans les capitales.
 
+**« Bots visibles dans /qui » est coché mais `/qui` n'affiche toujours aucun bot** (versions 0.9.12 et antérieures) : les personnages bots étaient créés avec un masque de phase à 0, que `/qui` écarte. Corrigé en 0.9.13 : les nouveaux bots sont créés correctement et les anciens sont corrigés au démarrage suivant du serveur. Avec un compte joueur ordinaire (niveau 0), `/qui` ne montre que votre faction, sauf si « /qui commun aux deux factions » est activé dans Monde ; un compte de niveau 6 voit les deux.
+
 **L'hôtel des ventes est vide** : il se remplit progressivement après le démarrage (une vague par minute) pour la faction choisie dans Paramètres ; vérifiez que l'option est cochée.
 
 **Lenteur, ventilateur bruyant pendant une partie** : la génération des mmaps tourne en arrière-plan (accueil). Elle s'arrête d'elle-même ; vous pouvez la désactiver dans Paramètres et la lancer plus tard.

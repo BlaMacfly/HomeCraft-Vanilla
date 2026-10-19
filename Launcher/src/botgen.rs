@@ -9,6 +9,21 @@ use std::collections::HashSet;
 
 pub const BOT_ACCOUNT: &str = "HOMECRAFTBOTS";
 
+/// Masque de phase par défaut d'un personnage (VMaNGOS `WORLD_DEFAULT_CHAR` = 0x01). À 0, le bot n'apparaît pas
+/// dans /qui (`Player::IsVisibleGloballyFor` → `CanSeeInWorld`) ; la visibilité en jeu, elle, n'en dépend pas.
+const WORLD_DEFAULT_MASK: u32 = 1;
+
+/// Bots créés jusqu'à la version 0.9.12 avec un masque de phase à 0 : invisibles dans /qui. Renvoie le nombre corrigé.
+pub fn fix_phase_mask(db: &MariaDb) -> Result<u64, String> {
+    let mut c = db.root_conn()?;
+    c.query_drop(format!(
+        "UPDATE characters.characters c JOIN realmd.account a ON a.id=c.account SET c.world_phase_mask={WORLD_DEFAULT_MASK} \
+         WHERE a.username='{BOT_ACCOUNT}' AND c.world_phase_mask=0"
+    ))
+    .map_err(|e| e.to_string())?;
+    Ok(c.affected_rows())
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct GenReport {
     pub created: usize,
@@ -217,7 +232,7 @@ pub fn generate(db: &MariaDb, count: u32, progress: &dyn Fn(usize, usize)) -> Re
 
         c.query_drop(format!(
             "INSERT INTO characters.characters (guid, account, name, race, class, gender, skin, face, hair_style, hair_color, facial_hair, level, xp, money, zone, map, position_x, position_y, position_z, orientation, known_taxi_mask, current_taxi_path, online, create_time, logout_time, health, power1, power2, power3, power4, power5, explored_zones, equipment_cache, action_bars, world_phase_mask) \
-             VALUES ({guid},{account},'{name}',{race},{class},{gender},{},{},{},{},{},{level},0,{},{},{},{},{},{},{},'{taxi}','',0,{now},{now},{},{},0,0,{},0,'{explored}','{equipment_cache}',0,0)",
+             VALUES ({guid},{account},'{name}',{race},{class},{gender},{},{},{},{},{},{level},0,{},{},{},{},{},{},{},'{taxi}','',0,{now},{now},{},{},0,0,{},0,'{explored}','{equipment_cache}',0,{WORLD_DEFAULT_MASK})",
             rng.below(4), rng.below(5), rng.below(6), rng.below(6), rng.below(4),
             rng.below(5000), start.3, start.2, start.4, start.5, start.6, start.7,
             basehp.max(10) * 2, if uses_mana { basemana.max(10) * 2 } else { 0 }, if class == 4 { 100 } else { 0 }
