@@ -358,9 +358,13 @@ impl App {
                 MmapsStatus::Unknown => ui.label("…"),
                 MmapsStatus::Present => ui.label(RichText::new(fr::HOME_MMAPS_PRESENT).color(status_color(true, false))),
                 MmapsStatus::Absent => ui.label(RichText::new(fr::HOME_MMAPS_ABSENT).color(WARN)),
-                MmapsStatus::Running(since) => {
-                    let m = since.elapsed().as_secs() / 60;
-                    ui.label(RichText::new(format!("{} {m} min (le jeu reste jouable)", fr::HOME_MMAPS_RUNNING)).color(WARN))
+                MmapsStatus::Running { since, start_tiles, tiles } => {
+                    let p = crate::repair::mmaps_progress(*tiles, *start_tiles, since.elapsed().as_secs());
+                    ui.vertical(|ui| {
+                        ui.add(egui::ProgressBar::new(p.fraction).desired_width(260.0).show_percentage());
+                        ui.label(RichText::new(fr::mmaps_running(since.elapsed().as_secs() / 60, p.remaining_secs)).color(WARN));
+                    })
+                    .response
                 }
                 MmapsStatus::DoneRestartNeeded => ui.label(RichText::new(fr::HOME_MMAPS_DONE_RESTART).color(WARN)),
                 MmapsStatus::Failed(e) => ui.label(RichText::new(format!("{} {e}", fr::HOME_MMAPS_FAILED)).color(ERR)),
@@ -1289,7 +1293,7 @@ impl App {
         let snap = self.shared.lock().unwrap().clone();
         let idle = matches!(snap.state, State::Installed | State::Error | State::Ready | State::NotInstalled);
         ui.horizontal_wrapped(|ui| {
-            let running = matches!(snap.mmaps, MmapsStatus::Running(_));
+            let running = matches!(snap.mmaps, MmapsStatus::Running { .. });
             if ui.add_enabled(!running && !snap.state.is_busy(), egui::Button::new(fr::BTN_MMAPS)).on_hover_text(fr::BTN_MMAPS_HINT).clicked() {
                 self.send(Command::GenerateMmaps);
             }

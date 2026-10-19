@@ -367,4 +367,15 @@ pub mod fr {
     pub fn bot_load(max: u32, min: u32) -> String {
         format!("{max} bots connectés au plus : comptez environ {:.1} Go de mémoire et {} cœur(s) de processeur pour le serveur. Au démarrage, {min} bots se connectent d'un coup : le monde peut mettre une à plusieurs minutes à devenir fluide.", max as f64 * 1.1 / 1000.0, (max + 999) / 1000)
     }
+
+    /// Génération des mmaps : durée écoulée et temps restant estimé.
+    pub fn mmaps_running(elapsed_min: u64, remaining_secs: Option<u64>) -> String {
+        let rest = match remaining_secs {
+            None => "temps restant : estimation en cours…".to_string(),
+            Some(s) if s < 60 => "presque terminé".to_string(),
+            Some(s) if s < 3600 => format!("environ {} min restantes", (s + 59) / 60),
+            Some(s) => format!("environ {} h {:02} restantes", s / 3600, (s % 3600) / 60),
+        };
+        format!("{HOME_MMAPS_RUNNING} {elapsed_min} min, {rest} (le jeu reste jouable)")
+    }
 }

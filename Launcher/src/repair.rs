@@ -105,6 +105,34 @@ fn legacy_mmaps_marker(layout: &Layout) -> PathBuf {
     layout.server_data().join("mmaps").join(".generation-en-cours")
 }
 
+/// Tuiles d'un jeu de mmaps complet pour le client 1.12.1 (mesuré le 2026-10-19 : 1 731 tuiles de terrain
+/// et 11 de transports, 41 cartes).
+pub const MMAPS_EXPECTED_TILES: usize = 1742;
+
+/// Tuiles déjà écrites dans le dossier de travail.
+pub fn mmaps_staged_tiles(layout: &Layout) -> usize {
+    std::fs::read_dir(mmaps_staging(layout).join("mmaps"))
+        .map(|rd| rd.flatten().filter(|e| e.file_name().to_string_lossy().ends_with(".mmtile")).count())
+        .unwrap_or(0)
+}
+
+pub struct MmapsProgress {
+    pub fraction: f32,
+    /// None tant que l'estimation n'est pas fiable (moins d'une minute ou de cinq tuiles depuis le lancement).
+    pub remaining_secs: Option<u64>,
+}
+
+/// Avancement et temps restant au rythme observé depuis le lancement. Les continents passent en premier
+/// (cartes 0 et 1, numérotées avant les instances) et sont les plus lents : l'estimation est prudente au début
+/// et se raccourcit vers la fin.
+pub fn mmaps_progress(tiles: usize, start_tiles: usize, elapsed_secs: u64) -> MmapsProgress {
+    let total = MMAPS_EXPECTED_TILES.max(tiles + 1);
+    let fraction = (tiles as f32 / total as f32).min(0.99);
+    let produced = tiles.saturating_sub(start_tiles);
+    let remaining_secs = (elapsed_secs >= 60 && produced >= 5).then(|| ((total - tiles) as u64 * elapsed_secs) / produced as u64);
+    MmapsProgress { fraction, remaining_secs }
+}
+
 /// Génération terminée, en attente d'installation (au prochain démarrage du serveur).
 pub fn mmaps_pending(layout: &Layout) -> bool {
     util::dir_file_count(&mmaps_staging(layout).join("mmaps")) >= 1000 && !mmaps_marker(layout).exists()
@@ -518,5 +546,25 @@ mod tests {
         assert!(!mmaps_staging(&layout).exists());
         assert!(data_status(&layout).iter().any(|(n, ok)| n == "mmaps" && *ok));
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+}
+
+#[cfg(test)]
+mod progress_tests {
+    use super::*;
+
+    #[test]
+    fn remaining_time_follows_the_observed_rate() {
+        // Moins d'une minute : pas d'estimation.
+        assert!(mmaps_progress(10, 0, 30).remaining_secs.is_none());
+        // Reprise à 742 tuiles, 100 de plus en 10 min : 900 restantes → 90 min.
+        let p = mmaps_progress(842, 742, 600);
+        assert_eq!(p.remaining_secs, Some(5400));
+        assert!((p.fraction - 842.0 / 1742.0).abs() < 1e-4);
+        // Plus de tuiles que prévu : jamais 100 % ni temps négatif tant que le générateur tourne.
+        let p = mmaps_progress(1800, 0, 3600);
+        assert!(p.fraction < 1.0 && p.remaining_secs.is_some());
+        assert_eq!(crate::i18n::fr::mmaps_running(12, Some(5400)), "génération en cours depuis 12 min, environ 1 h 30 restantes (le jeu reste jouable)");
+        assert_eq!(crate::i18n::fr::mmaps_running(3, Some(600)), "génération en cours depuis 3 min, environ 10 min restantes (le jeu reste jouable)");
     }
 }

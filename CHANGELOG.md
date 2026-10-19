@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.12 — 19 octobre 2026
+
+- Accueil : la génération des cartes de déplacement (mmaps) affiche une barre de progression et le temps restant estimé, mis à jour toutes les 10 secondes (tuiles écrites rapportées aux 1 742 d'un jeu complet, au rythme observé depuis le lancement).
+
 ## 0.9.11 — 19 octobre 2026
 
 - PlayerBots : génération et peuplement ont désormais la même limite, 5 000. La génération était limitée à 300 personnages par clic, alors que le nombre de bots connectés montait à 5 000.

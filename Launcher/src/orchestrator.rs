@@ -108,8 +108,8 @@ pub enum MmapsStatus {
     Unknown,
     Present,
     Absent,
-    /// Génération lancée à cet instant
-    Running(std::time::Instant),
+    /// Génération lancée à `since` ; tuiles présentes dans le dossier de travail au lancement et maintenant.
+    Running { since: std::time::Instant, start_tiles: usize, tiles: usize },
     /// Générées pendant cette session : prises en compte au prochain démarrage du serveur
     DoneRestartNeeded,
     Failed(String),
@@ -707,6 +707,12 @@ impl Orchestrator {
         if self.ticks % 10 == 0 || (realmd_alive && !self.ports_up.0) || (world_alive && !self.ports_up.1) {
             self.ports_up = (realmd_alive && db::port_open(REALMD_PORT), world_alive && db::port_open(WORLD_PORT));
         }
+        if self.ticks % 10 == 0 && self.mmaps_job.is_some() {
+            let n = repair::mmaps_staged_tiles(&self.layout);
+            if let MmapsStatus::Running { tiles, .. } = &mut self.shared.lock().unwrap().mmaps {
+                *tiles = n;
+            }
+        }
         self.ticks += 1;
         let realmd_up = realmd_alive && self.ports_up.0;
         let world_up = world_alive && self.ports_up.1;
@@ -795,7 +801,7 @@ impl Orchestrator {
             Ok(child) => {
                 self.log(format!("mmaps {} : génération en arrière-plan ({threads} threads)", if present { "régénérées" } else { "absentes" }));
                 self.mmaps_job = Some(child);
-                self.shared.lock().unwrap().mmaps = MmapsStatus::Running(std::time::Instant::now());
+                self.shared.lock().unwrap().mmaps = { let t = repair::mmaps_staged_tiles(&self.layout); MmapsStatus::Running { since: std::time::Instant::now(), start_tiles: t, tiles: t } };
             }
             Err(e) => {
                 self.log(format!("mmaps : {e}"));
