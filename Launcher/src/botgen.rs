@@ -77,21 +77,40 @@ const SYL_A: &[&str] = &["Al", "Bre", "Ca", "Da", "El", "Fa", "Ga", "Ha", "Il", 
 const SYL_B: &[&str] = &["dan", "lin", "mir", "nor", "ras", "thel", "vin", "wen", "dor", "gar", "lis", "mon", "rel", "sin", "tan", "ven", "zar", "bel", "cor", "fin", "lor", "nis", "rin", "sol"];
 const SYL_C: &[&str] = &["", "", "a", "e", "is", "us", "on", "ia", "ar", "el", "or", "in"];
 
+/// Nom unique, lettres seulement (le jeu refuse les chiffres). Trois syllabes donnent environ 6 000 noms ; au-delà
+/// (plusieurs milliers de bots), une syllabe de plus porte l'éventail à environ 150 000.
 fn make_name(rng: &mut Rng, used: &mut HashSet<String>) -> String {
-    for _ in 0..200 {
-        let mut n = format!("{}{}{}", rng.pick(SYL_A), rng.pick(SYL_B), rng.pick(SYL_C));
-        if n.len() > 12 {
-            n.truncate(12);
-        }
+    for attempt in 0..20_000 {
+        let mut n = if attempt < 50 {
+            format!("{}{}{}", rng.pick(SYL_A), rng.pick(SYL_B), rng.pick(SYL_C))
+        } else {
+            format!("{}{}{}{}", rng.pick(SYL_A), rng.pick(SYL_B), rng.pick(SYL_B), rng.pick(SYL_C))
+        };
+        n.truncate(12);
         let key = n.to_ascii_uppercase();
         if n.len() >= 3 && !used.contains(&key) {
             used.insert(key);
             return n;
         }
     }
-    let n = format!("Bot{}", rng.below(100_000));
-    used.insert(n.to_ascii_uppercase());
-    n
+    // Repli théorique : suffixe en lettres dérivé d'un compteur.
+    let mut i = used.len();
+    loop {
+        let mut suffix = String::new();
+        let mut k = i;
+        loop {
+            suffix.push((b'a' + (k % 26) as u8) as char);
+            k /= 26;
+            if k == 0 {
+                break;
+            }
+        }
+        let n = format!("Zor{suffix}");
+        if used.insert(n.to_ascii_uppercase()) {
+            return n;
+        }
+        i += 1;
+    }
 }
 
 #[derive(Clone)]
@@ -236,4 +255,20 @@ pub fn delete_all(db: &MariaDb) -> Result<usize, String> {
         c.query_drop(sql).map_err(err)?;
     }
     Ok(guids.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ten_thousand_unique_letter_only_names() {
+        let mut rng = Rng::new();
+        let mut used = HashSet::new();
+        for _ in 0..10_000 {
+            let n = make_name(&mut rng, &mut used);
+            assert!(n.len() >= 3 && n.len() <= 12 && n.chars().all(|c| c.is_ascii_alphabetic()), "{n}");
+        }
+        assert_eq!(used.len(), 10_000);
+    }
 }

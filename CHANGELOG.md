@@ -1,5 +1,12 @@
 # Journal des versions
 
+## 0.9.11 — 19 octobre 2026
+
+- PlayerBots : génération et peuplement ont désormais la même limite, 5 000. La génération était limitée à 300 personnages par clic, alors que le nombre de bots connectés montait à 5 000.
+- Après une génération, le maximum de bots connectés est réglé sur le total de personnages bots (et non plus plafonné à 300) ; le minimum, connecté d'un coup au démarrage, sur la moitié.
+- L'onglet PlayerBots signale quand le peuplement demandé dépasse les personnages bots existants (le serveur ne peut pas en connecter plus), et, au-delà de 1 000 bots connectés, la mémoire et le processeur à prévoir.
+- Noms de bots : jusqu'à environ 150 000 noms distincts, lettres seulement. Au-delà de 6 000 bots, l'ancien repli produisait des noms avec chiffres, refusés par le jeu.
+
 ## 0.9.10 — 19 octobre 2026
 
 - Bots de peuplement : le monde se figeait (joueur bloqué sur « Connecté », un cœur du processeur à 100 %) quand le serveur démarrait pendant la génération des cartes de déplacement. mangosd charge toute tuile mmaps présente : avec des mmaps à moitié générées, le continent avait une carte de navigation sans la tuile de la capitale, et VMaNGOS cherche sans fin une position de marche pour y placer les bots (`PopulateAreaBotAI::BeforeAddToMap`, boucle sur `Map::GetWalkRandomPosition`). Relevé sur la pile de mangosd : Forgefer, tuile écrite trois minutes après le démarrage du serveur.

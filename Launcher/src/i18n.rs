@@ -260,7 +260,7 @@ pub mod fr {
     pub const BOTGEN_DONE: &str = "personnages bots créés";
     pub const BOTGEN_NEED_FIRST_START: &str = "les bases de données ne sont pas encore installées : démarrez le serveur une première fois (JOUER ou DÉMARRER LE SERVEUR), puis générez les bots";
     pub const BOTGEN_FAIL: &str = "Génération impossible";
-    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, au plus 300 bots connectés à la fois, minimum = la moitié, bots visibles dans /qui). Serveur en marche, les bots se connectent dans la minute qui suit ; sinon, au prochain démarrage. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
+    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, maximum = nombre total de personnages bots, minimum = la moitié, bots visibles dans /qui). Serveur en marche, les bots se connectent dans la minute qui suit ; sinon, au prochain démarrage. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
 
     // Patchs client
     pub const TAB_PATCHES: &str = "Patchs";
@@ -357,4 +357,14 @@ pub mod fr {
     pub const SET_BROWSE: &str = "Parcourir…";
     pub const MSG_CLIENT_NEEDED: &str = "Le client WoW 1.12.1 est introuvable ou invalide : indiquez son dossier dans PARAMÈTRES (il n'est jamais fourni par ce package).";
     pub const MSG_FIRST_EXTRACT: &str = "Première installation : extraction des données de votre client (quelques minutes)…";
+
+    /// Peuplement demandé au-delà des personnages bots existants (le serveur plafonne au nombre de bots).
+    pub fn bot_pool_short(pool: u32, wanted: u32) -> String {
+        format!("Seuls {pool} personnages bots existent : le serveur n'en connectera pas davantage, même réglé à {wanted}. Générez-en d'autres ci-dessus pour atteindre ce nombre.")
+    }
+
+    /// Estimation mesurée le 2026-10-18 : 1 023 bots connectés = 1,1 Go de mémoire pour mangosd et environ un cœur.
+    pub fn bot_load(max: u32, min: u32) -> String {
+        format!("{max} bots connectés au plus : comptez environ {:.1} Go de mémoire et {} cœur(s) de processeur pour le serveur. Au démarrage, {min} bots se connectent d'un coup : le monde peut mettre une à plusieurs minutes à devenir fluide.", max as f64 * 1.1 / 1000.0, (max + 999) / 1000)
+    }
 }

@@ -151,9 +151,6 @@ fn status_color(ok: bool, busy: bool) -> Color32 {
 }
 
 const WARN: Color32 = Color32::from_rgb(230, 180, 60);
-/// Nombre de bots de peuplement connectés réglé automatiquement après une génération (au plus).
-/// Mesuré le 2026-10-18 : 1 023 bots connectés = 1,1 Go de mémoire pour mangosd et environ un cœur de processeur.
-const BOTS_ONLINE_CAP: u32 = 300;
 const ERR: Color32 = Color32::from_rgb(230, 110, 110);
 
 impl eframe::App for App {
@@ -586,17 +583,16 @@ impl App {
             ui.small(fr::BOTGEN_HINT);
             ui.horizontal(|ui| {
                 ui.label(fr::BOTGEN_COUNT);
-                ui.add(egui::Slider::new(&mut self.botgen_count, 10..=300));
+                ui.add(egui::Slider::new(&mut self.botgen_count, 10..=conf_catalog::RANDOMBOT_MAX).logarithmic(true));
                 let busy = snap.state.is_busy();
                 if ui.add_enabled(!busy, egui::Button::new(fr::BOTGEN_RUN)).clicked() {
                     let n = self.botgen_count;
                     self.send(Command::GenerateBots(n));
-                    // Réglages de peuplement cohérents avec le nombre généré (si l'utilisateur ne les a pas fixés plus haut).
-                    // Le serveur connecte d'un coup « MinBots » bots au démarrage, puis en ajoute ou retire un par minute :
-                    // on plafonne le nombre connecté (300 au plus, la moitié au minimum) quel que soit le nombre de
-                    // personnages bots générés, et les bots deviennent visibles dans /qui (sinon le joueur croit qu'il n'y en a pas).
+                    // Réglages de peuplement cohérents avec le nombre généré (si l'utilisateur ne les a pas fixés plus haut) :
+                    // maximum = tous les personnages bots, minimum = la moitié (connectée d'un coup au démarrage), et bots
+                    // visibles dans /qui (sinon le joueur croit qu'il n'y en a pas).
                     let total: u32 = snap.bot_pool.unwrap_or(0) as u32 + n;
-                    let target_max = total.min(BOTS_ONLINE_CAP);
+                    let target_max = total.min(conf_catalog::RANDOMBOT_MAX);
                     let cur_max: u32 = self.settings.conf.get("RandomBot.MaxBots").and_then(|v| v.parse().ok()).unwrap_or(0);
                     if cur_max < target_max {
                         self.settings.conf.insert("RandomBot.Enable".into(), "1".into());
@@ -611,6 +607,20 @@ impl App {
                 }
             });
             ui.small(fr::BOTGEN_AUTO);
+            // Le serveur ne connecte jamais plus de bots qu'il n'existe de personnages bots : le dire au lieu de
+            // laisser croire qu'un réglage à 2 000 donnera 2 000 bots.
+            let conf_n = |k: &str, d: u32| self.settings.conf.get(k).and_then(|v| v.parse::<u32>().ok()).unwrap_or(d);
+            let (min_b, max_b) = (conf_n("RandomBot.MinBots", 0), conf_n("RandomBot.MaxBots", 0));
+            if conf_n("RandomBot.Enable", 0) == 1 {
+                if let Some(pool) = snap.bot_pool.map(|p| p as u32) {
+                    if max_b > pool || min_b > pool {
+                        ui.colored_label(WARN, fr::bot_pool_short(pool, min_b.max(max_b)));
+                    }
+                }
+                if max_b > 1000 {
+                    ui.colored_label(WARN, fr::bot_load(max_b, min_b));
+                }
+            }
             if let Some(n) = &snap.notice {
                 ui.colored_label(WARN, n);
             }
