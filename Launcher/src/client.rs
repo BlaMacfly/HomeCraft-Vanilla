@@ -456,7 +456,7 @@ pub fn launch(info: &ClientInfo, via_vanillafixes: bool) -> Result<Child, String
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| format!("{exe} : {e}"))
+        .map_err(|e| crate::util::spawn_error(&exe, &e))
 }
 
 #[cfg(test)]

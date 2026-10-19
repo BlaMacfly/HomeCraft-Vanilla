@@ -129,7 +129,7 @@ fn spawn_tool(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| format!("{name} : {e}"))?;
+        .map_err(|e| crate::util::spawn_error(name, &e))?;
     if let Some(out) = child.stdout.take() {
         let sink = sink.clone();
         let name = name.to_string();

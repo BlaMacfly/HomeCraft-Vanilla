@@ -426,6 +426,14 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **L'antivirus a supprimé un fichier** : rétablissez-le depuis la quarantaine, ajoutez le dossier aux exclusions, puis VÉRIFIER LES FICHIERS.
 
+**« Une stratégie de contrôle d'application a bloqué ce fichier » (os error 4551)** : Windows 11 refuse de lancer un programme du serveur. C'est le **Contrôle intelligent des applications** (Smart App Control), actif sur certaines installations neuves de Windows 11 : il bloque tout programme qui n'est pas signé par un éditeur reconnu, et les programmes du serveur VMaNGOS (`MapExtractor`, `VMapExtractor`, `realmd`, `mangosd`…) ne sont pas signés par leurs auteurs. Contrairement à l'avertissement SmartScreen, aucun bouton « Exécuter quand même » n'existe ; les exclusions de l'antivirus n'y changent rien. Pour jouer à HomeCraft sur ce PC :
+
+1. Ouvrez **Sécurité Windows** > **Contrôle des applications et du navigateur** > **Paramètres du contrôle intelligent des applications**.
+2. Choisissez **Désactivé**. Sur certaines versions de Windows 11, ce réglage ne peut plus être réactivé ensuite sans réinitialiser Windows : décidez en connaissance de cause. L'antivirus Microsoft Defender, lui, reste actif.
+3. Relancez le launcher et cliquez sur JOUER (ou RÉPARER) : l'extraction reprend là où elle s'était arrêtée.
+
+Sur un PC professionnel, le blocage peut venir d'une stratégie de l'entreprise (WDAC) : seul l'administrateur peut l'autoriser.
+
 **Le launcher ne se ferme pas tout de suite** : il arrête proprement le serveur et la base (jusqu'à une minute si beaucoup de personnages). Ne tuez pas le processus : la base pourrait devoir se réparer au démarrage suivant (ce qu'elle sait faire, mais c'est plus long).
 
 Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diagnostic). Entraide et questions : serveur Discord https://discord.gg/M34APTbZ8R

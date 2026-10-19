@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.6 — 19 octobre 2026
+
+- Programme bloqué par Windows (« Une stratégie de contrôle d'application a bloqué ce fichier », os error 4551, ainsi que 4553, 1260 et 225) : le launcher explique la cause (Contrôle intelligent des applications de Windows 11, qui refuse les programmes non signés : les outils et serveurs VMaNGOS ne le sont pas) et la marche à suivre, au lieu du seul code d'erreur. S'applique aux extracteurs, à realmd, mangosd, MariaDB et au client. Manuel : entrée de dépannage correspondante.
+
 ## 0.9.5 — 19 octobre 2026
 
 - Client Benilla sans `base.MPQ` : plus aucune manipulation. L'extracteur VMapExtractor de VMaNGOS plante si cette archive est absente, mais n'en lit pas le contenu (extraction identique octet pour octet avec une archive quelconque, vérifiée sur les 3 913 fichiers). Le launcher crée donc dans le `Data\` de Benilla une `base.MPQ` de remplacement (un fichier texte HomeCraft, aucun contenu du jeu), que Benilla ne monte jamais. La 0.9.4 s'arrêtait sur « il manque base.MPQ » quand aucun client d'origine ne se trouvait à côté de l'installation.

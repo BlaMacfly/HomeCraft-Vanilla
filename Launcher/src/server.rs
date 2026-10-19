@@ -143,7 +143,7 @@ impl Realmd {
             .stdout(Stdio::from(out))
             .stderr(Stdio::from(err))
             .spawn()
-            .map_err(|e| format!("realmd : {e}"))?;
+            .map_err(|e| crate::util::spawn_error("realmd", &e))?;
         let start = Instant::now();
         while start.elapsed() < timeout {
             if port_open(REALMD_PORT) {
@@ -191,7 +191,7 @@ impl Mangosd {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|e| format!("mangosd : {e}"))?;
+            .map_err(|e| crate::util::spawn_error("mangosd", &e))?;
         let world_ready = Arc::new(AtomicBool::new(false));
         let stdin = child.stdin.take();
         let stdout = child.stdout.take().ok_or("sortie standard de mangosd indisponible")?;

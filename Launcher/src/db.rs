@@ -166,7 +166,7 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .map_err(|e| format!("mariadbd : {e}"))?;
+            .map_err(|e| crate::util::spawn_error("mariadbd", &e))?;
         let start = Instant::now();
         while start.elapsed() < timeout {
             if self.ping() {

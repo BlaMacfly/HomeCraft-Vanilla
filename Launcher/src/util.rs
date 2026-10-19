@@ -130,3 +130,28 @@ pub fn copy_tree(src: &Path, dst: &Path, skip: &[&str], progress: &dyn Fn(usize,
 pub fn dir_file_count(dir: &Path) -> usize {
     std::fs::read_dir(dir).map(|r| r.filter_map(Result::ok).filter(|e| e.path().is_file()).count()).unwrap_or(0)
 }
+
+/// Message d'erreur de lancement d'un programme, avec une explication quand Windows a bloqué l'exécutable
+/// (Contrôle intelligent des applications, stratégie WDAC, antivirus) : le code seul n'aide pas le joueur.
+pub fn spawn_error(name: &str, e: &std::io::Error) -> String {
+    match e.raw_os_error() {
+        // 4551 : stratégie de contrôle d'application ; 4553 : intégrité du code ; 1260 : stratégie de groupe.
+        Some(4551) | Some(4553) | Some(1260) => format!("{name} : {e}. {}", crate::i18n::fr::SPAWN_BLOCKED_APP_CONTROL),
+        // 225 : fichier détecté comme virus ou logiciel indésirable.
+        Some(225) => format!("{name} : {e}. {}", crate::i18n::fr::SPAWN_BLOCKED_ANTIVIRUS),
+        _ => format!("{name} : {e}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn blocked_executable_gets_an_explanation() {
+        let e = std::io::Error::from_raw_os_error(4551);
+        let m = super::spawn_error("VMapExtractor", &e);
+        assert!(m.starts_with("VMapExtractor : "), "{m}");
+        assert!(m.contains("Contrôle intelligent des applications"), "{m}");
+        let other = super::spawn_error("x", &std::io::Error::from_raw_os_error(2));
+        assert!(!other.contains("Contrôle intelligent"), "{other}");
+    }
+}

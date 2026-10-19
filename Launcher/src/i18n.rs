@@ -139,6 +139,8 @@ pub mod fr {
     pub const SET_CLIENT_USE: &str = "Utiliser";
     pub const SET_CLIENT_IN_USE: &str = "Utilisé";
     pub const SET_VF_BENILLA: &str = "Sans objet avec Benilla : il a son propre rendu 64 bits (Vulkan / Direct3D 12).";
+    pub const SPAWN_BLOCKED_APP_CONTROL: &str = "Windows a bloqué ce programme : c'est en général le « Contrôle intelligent des applications » de Windows 11, qui refuse les programmes non signés par un éditeur reconnu (les outils du serveur VMaNGOS ne le sont pas). Ouvrez Sécurité Windows > Contrôle des applications et du navigateur > Paramètres du contrôle intelligent des applications, et choisissez Désactivé ; voir le manuel, section Dépannage.";
+    pub const SPAWN_BLOCKED_ANTIVIRUS: &str = "L'antivirus a bloqué ce programme : ajoutez le dossier de HomeCraft aux exclusions de l'antivirus, restaurez le fichier depuis la quarantaine, puis utilisez VÉRIFIER LES FICHIERS.";
     pub const EXTRACT_MISSING: &str = "Extraction des données du serveur impossible : il manque";
     pub const EXTRACT_MISSING_HINT: &str = "Les extracteurs du serveur ont besoin de ces archives du client d'origine (Benilla, lui, n'en a pas besoin). Copiez-les depuis votre client 1.12.1 dans ce dossier Data, puis cliquez sur JOUER ou RÉPARER : elles ne gênent pas Benilla.";
     pub const CLIENT_KIND_ORIGINAL: &str = "Client d'origine (WoW.exe)";
