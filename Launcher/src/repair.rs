@@ -115,12 +115,31 @@ pub enum ExtractStep {
 }
 
 fn run_tool(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>) -> Result<(), String> {
-    let mut child = spawn_tool(name, exe, args, cwd, sink)?;
+    let tail = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let (mut child, reader) = spawn_tool_with_tail(name, exe, args, cwd, sink, Some(tail.clone()))?;
     let status = child.wait().map_err(|e| e.to_string())?;
-    if status.success() { Ok(()) } else { Err(format!("{name} a échoué (code {:?})", status.code())) }
+    if let Some(r) = reader {
+        let _ = r.join();
+    }
+    if status.success() {
+        return Ok(());
+    }
+    // Derniers messages significatifs de l'outil : le code de sortie seul (souvent 1) n'explique rien.
+    let last = tail.lock().map(|t| t.join(" / ")).unwrap_or_default();
+    Err(if last.is_empty() { format!("{name} a échoué (code {:?})", status.code()) } else { format!("{name} a échoué (code {:?}) : {last}", status.code()) })
+}
+
+/// Ligne d'erreur d'un extracteur : transmise au journal immédiatement (pas d'échantillonnage) et retenue pour le message d'échec.
+fn is_error_line(line: &str) -> bool {
+    let l = line.to_ascii_lowercase();
+    l.contains("error") || l.contains("fatal") || l.contains("polluted") || l.contains("could not") || l.contains("couldn't") || l.contains("not found") || l.contains("unable")
 }
 
 fn spawn_tool(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>) -> Result<std::process::Child, String> {
+    spawn_tool_with_tail(name, exe, args, cwd, sink, None).map(|(c, _)| c)
+}
+
+fn spawn_tool_with_tail(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>, tail: Option<std::sync::Arc<std::sync::Mutex<Vec<String>>>>) -> Result<(std::process::Child, Option<std::thread::JoinHandle<()>>), String> {
     let mut child = Command::new(exe)
         .args(args)
         .current_dir(cwd)
@@ -130,32 +149,52 @@ fn spawn_tool(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender
         .stderr(Stdio::null())
         .spawn()
         .map_err(|e| crate::util::spawn_error(name, &e))?;
+    let mut handle = None;
     if let Some(out) = child.stdout.take() {
         let sink = sink.clone();
         let name = name.to_string();
-        std::thread::spawn(move || {
+        handle = Some(std::thread::spawn(move || {
             let mut reader = BufReader::new(out);
             let mut buf = Vec::new();
             let mut last = std::time::Instant::now() - std::time::Duration::from_secs(10);
+            let mut errors_sent = 0u32;
             loop {
                 buf.clear();
                 match reader.read_until(b'\n', &mut buf) {
                     Ok(0) | Err(_) => break,
                     Ok(_) => {
-                        // Les extracteurs écrivent des barres de progression très verbeuses : une ligne toutes les 5 s suffit.
-                        if last.elapsed() >= std::time::Duration::from_secs(5) {
-                            let line = String::from_utf8_lossy(&buf).trim().to_string();
-                            if !line.is_empty() {
-                                let _ = sink.send(format!("[{name}] {line}"));
-                                last = std::time::Instant::now();
+                        let line = String::from_utf8_lossy(&buf).trim().to_string();
+                        if line.is_empty() {
+                            continue;
+                        }
+                        let error = is_error_line(&line);
+                        if error {
+                            if let Some(t) = &tail {
+                                if let Ok(mut t) = t.lock() {
+                                    t.push(line.chars().take(200).collect());
+                                    let n = t.len();
+                                    if n > 3 {
+                                        t.drain(..n - 3);
+                                    }
+                                }
+                            }
+                        }
+                        // Les extracteurs écrivent des barres de progression très verbeuses : une ligne toutes les 5 s
+                        // suffit, sauf les erreurs, transmises toutes.
+                        // Plafond : un extracteur peut signaler des centaines de modèles manquants sans échouer.
+                        if (error && errors_sent < 20) || last.elapsed() >= std::time::Duration::from_secs(5) {
+                            let _ = sink.send(format!("[{name}] {line}"));
+                            last = std::time::Instant::now();
+                            if error {
+                                errors_sent += 1;
                             }
                         }
                     }
                 }
             }
-        });
+        }));
     }
-    Ok(child)
+    Ok((child, handle))
 }
 
 /// Extraction des données du client avec les outils VMaNGOS (mêmes étapes que Tools/Extract-ClientData.ps1).
@@ -180,6 +219,13 @@ pub fn extract(layout: &Layout, client_dir: &Path, steps: &[ExtractStep], sink: 
     }
     if steps.contains(&ExtractStep::Vmaps) {
         progress("extraction des modèles de collision (vmaps)");
+        // Dossier de travail de VMapExtractor : s'il reste d'une extraction interrompue (programme bloqué par Windows,
+        // launcher fermé), l'extracteur refuse de repartir (« Your output directory seems to be polluted », code 1).
+        // Il est entièrement régénéré : on le vide toujours avant de commencer.
+        let work = data.join("Buildings");
+        if work.exists() {
+            std::fs::remove_dir_all(&work).map_err(|e| format!("nettoyage de {} : {e}", work.display()))?;
+        }
         run_tool("VMapExtractor", &bin.join("VMapExtractor.exe"), &["-l".into(), "-d".into(), q(&client_dir.join("Data")), "--silent".into()], &data, sink)?;
         std::fs::create_dir_all(data.join("vmaps")).map_err(|e| e.to_string())?;
         progress("assemblage des vmaps");

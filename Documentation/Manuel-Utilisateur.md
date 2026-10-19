@@ -430,7 +430,7 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 1. Ouvrez **Sécurité Windows** > **Contrôle des applications et du navigateur** > **Paramètres du contrôle intelligent des applications**.
 2. Choisissez **Désactivé**. Sur certaines versions de Windows 11, ce réglage ne peut plus être réactivé ensuite sans réinitialiser Windows : décidez en connaissance de cause. L'antivirus Microsoft Defender, lui, reste actif.
-3. Relancez le launcher et cliquez sur JOUER (ou RÉPARER) : l'extraction reprend là où elle s'était arrêtée.
+3. Relancez le launcher et cliquez sur JOUER (ou RÉPARER) : l'extraction reprend depuis le début de l'étape interrompue (le launcher nettoie lui-même ce qu'elle avait laissé).
 
 Sur un PC professionnel, le blocage peut venir d'une stratégie de l'entreprise (WDAC) : seul l'administrateur peut l'autoriser.
 

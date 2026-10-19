@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 0.9.7 — 19 octobre 2026
+
+- Correctif : « VMapExtractor a échoué (code 1) » après une extraction interrompue (programme bloqué par Windows, launcher fermé en cours). VMapExtractor refuse de repartir si son dossier de travail `Server\Data\Buildings` contient encore `dir` ou `dir_bin` (« Your output directory seems to be polluted »). Le launcher vide désormais ce dossier, entièrement régénéré, avant chaque extraction.
+- Les erreurs des extracteurs sont transmises au journal sans attendre (20 au plus) et le message d'échec reprend leurs dernières lignes au lieu du seul code de sortie.
+
 ## 0.9.6 — 19 octobre 2026
 
 - Programme bloqué par Windows (« Une stratégie de contrôle d'application a bloqué ce fichier », os error 4551, ainsi que 4553, 1260 et 225) : le launcher explique la cause (Contrôle intelligent des applications de Windows 11, qui refuse les programmes non signés : les outils et serveurs VMaNGOS ne le sont pas) et la marche à suivre, au lieu du seul code d'erreur. S'applique aux extracteurs, à realmd, mangosd, MariaDB et au client. Manuel : entrée de dépannage correspondante.
