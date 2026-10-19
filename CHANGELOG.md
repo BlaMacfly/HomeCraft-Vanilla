@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 0.9.5 — 19 octobre 2026
+
+- Client Benilla sans `base.MPQ` : plus aucune manipulation. L'extracteur VMapExtractor de VMaNGOS plante si cette archive est absente, mais n'en lit pas le contenu (extraction identique octet pour octet avec une archive quelconque, vérifiée sur les 3 913 fichiers). Le launcher crée donc dans le `Data\` de Benilla une `base.MPQ` de remplacement (un fichier texte HomeCraft, aucun contenu du jeu), que Benilla ne monte jamais. La 0.9.4 s'arrêtait sur « il manque base.MPQ » quand aucun client d'origine ne se trouvait à côté de l'installation.
+
 ## 0.9.4 — 18 octobre 2026
 
 - Surveillance des services : les ports du serveur ne sont plus sondés qu'une fois toutes les 10 secondes (l'état des processus reste contrôlé chaque seconde). Le launcher ouvrait une connexion au serveur de jeu à chaque seconde, journalisée par mangosd (« Connection accepted/closed », 9 434 lignes sur une journée de test).

@@ -1048,6 +1048,9 @@ impl Orchestrator {
                 if !info.is_ok() {
                     return Err(format!("données du client absentes et client non valide dans {}", info.dir.display()));
                 }
+                if let Some(msg) = client::ensure_benilla_base_mpq(&info)? {
+                    self.log(msg);
+                }
                 let source = client::extraction_source(&info, &self.layout.root)?;
                 if source != info.dir {
                     self.log(format!("extraction : archives lues dans {} (il manque {} au client choisi)", source.display(), client::extraction_missing(&info.dir).join(", ")));
@@ -1226,6 +1229,11 @@ impl Orchestrator {
             let info = client::inspect(&self.client_dir());
             if !info.is_ok() {
                 return self.fail_ret("données du client", fr::MSG_CLIENT_NEEDED.into());
+            }
+            match client::ensure_benilla_base_mpq(&info) {
+                Ok(Some(msg)) => self.log(msg),
+                Ok(None) => {}
+                Err(e) => return self.fail_ret("données du client", e),
             }
             let source = match client::extraction_source(&info, &self.layout.root) {
                 Ok(s) => s,

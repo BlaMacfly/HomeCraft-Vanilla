@@ -75,6 +75,25 @@ pub fn build_from_dir(src: &Path, out: &Path, progress: &dyn Fn(usize, usize)) -
     Ok(total)
 }
 
+/// Archive de remplacement minimale (un seul fichier texte écrit par HomeCraft, aucun contenu Blizzard).
+/// Sert de `base.MPQ` dans le `Data\` d'un client Benilla : l'extracteur de VMaNGOS plante si cette archive
+/// est absente, mais n'en lit pas le contenu (extraction identique octet pour octet, vérifié le 2026-10-19),
+/// et Benilla ne la monte jamais.
+pub fn build_placeholder(out: &Path) -> Result<(), String> {
+    let note = std::env::temp_dir().join(format!("homecraft-placeholder-{}.txt", std::process::id()));
+    std::fs::write(&note, "Archive de remplacement creee par HomeCraft Edition Vanilla pour les extracteurs du serveur.\r\nElle ne contient aucune donnee du jeu. Benilla l'ignore.\r\n").map_err(|e| e.to_string())?;
+    let r = ArchiveBuilder::new()
+        .version(FormatVersion::V1)
+        .block_size(3)
+        .default_compression(compression::flags::ZLIB)
+        .listfile_option(ListfileOption::Generate)
+        .add_file(&note, "HomeCraft-placeholder.txt")
+        .build(out)
+        .map_err(|e| format!("archive de remplacement : {e}"));
+    let _ = std::fs::remove_file(&note);
+    r
+}
+
 /// Lecture de contrôle : nombre de fichiers listés et taille de l'archive.
 pub fn inspect(path: &Path) -> Result<(usize, u64), String> {
     let mut a = wow_mpq::Archive::open(path).map_err(|e| format!("ouverture : {e}"))?;

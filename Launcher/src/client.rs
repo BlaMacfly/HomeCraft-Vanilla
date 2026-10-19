@@ -214,6 +214,18 @@ pub fn extraction_missing(dir: &Path) -> Vec<String> {
     EXTRACTION_MPQ.iter().filter(|m| !dir.join("Data").join(m).is_file()).map(|m| m.to_string()).collect()
 }
 
+/// Client Benilla sans `base.MPQ` : dépose une archive de remplacement HomeCraft dans son `Data\` (seule archive
+/// d'extraction qu'un dossier Benilla n'a pas ; son contenu n'est pas lu par l'extracteur). Renvoie le message à
+/// journaliser si une archive a été créée. Sans effet pour le client d'origine ou s'il manque d'autres archives.
+pub fn ensure_benilla_base_mpq(info: &ClientInfo) -> Result<Option<String>, String> {
+    if !info.is_benilla() || extraction_missing(&info.dir) != ["base.MPQ"] {
+        return Ok(None);
+    }
+    let out = info.dir.join("Data").join("base.MPQ");
+    crate::mpqbuild::build_placeholder(&out)?;
+    Ok(Some(format!("base.MPQ absente du client Benilla : archive de remplacement HomeCraft créée ({}), sans contenu du jeu, ignorée par Benilla", out.display())))
+}
+
 /// Dossier client à utiliser pour extraire les données du serveur : le client choisi s'il a toutes les archives
 /// d'extraction, sinon un autre client complet trouvé près de l'installation (lecture seule, rien n'est copié).
 /// Erreur explicite sinon.
@@ -519,7 +531,12 @@ mod tests {
         assert_eq!(extraction_missing(&benilla), vec!["base.MPQ".to_string()]);
         let err = extraction_source(&info, &root).unwrap_err();
         assert!(err.contains("base.MPQ"), "{err}");
-        std::fs::write(benilla.join("Data").join("base.MPQ"), b"").unwrap();
+        // Archive de remplacement créée pour Benilla, puis le client devient une source d'extraction valide.
+        assert!(ensure_benilla_base_mpq(&info).unwrap().is_some());
+        let base = benilla.join("Data").join("base.MPQ");
+        let bytes = std::fs::read(&base).unwrap();
+        assert_eq!(&bytes[..4], b"MPQ\x1a", "en-tête MPQ");
+        assert!(ensure_benilla_base_mpq(&info).unwrap().is_none(), "rien à faire la seconde fois");
         assert_eq!(extraction_source(&info, &root).unwrap(), benilla);
         let _ = std::fs::remove_dir_all(&tmp);
     }
