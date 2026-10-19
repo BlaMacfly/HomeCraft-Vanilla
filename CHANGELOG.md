@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 0.9.10 — 19 octobre 2026
+
+- Bots de peuplement : le monde se figeait (joueur bloqué sur « Connecté », un cœur du processeur à 100 %) quand le serveur démarrait pendant la génération des cartes de déplacement. mangosd charge toute tuile mmaps présente : avec des mmaps à moitié générées, le continent avait une carte de navigation sans la tuile de la capitale, et VMaNGOS cherche sans fin une position de marche pour y placer les bots (`PopulateAreaBotAI::BeforeAddToMap`, boucle sur `Map::GetWalkRandomPosition`). Relevé sur la pile de mangosd : Forgefer, tuile écrite trois minutes après le démarrage du serveur.
+- Les mmaps sont désormais générées dans `Server\Data\mmaps-generation` (liens physiques vers maps et vmaps) et n'entrent dans `Server\Data\mmaps` qu'une fois complètes, serveur arrêté (au démarrage suivant). Une génération inachevée d'une version précédente est retirée du serveur et reprise là où elle s'était arrêtée.
+
 ## 0.9.9 — 19 octobre 2026
 
 - Bots de peuplement : au-delà de 100 bots connectés, le joueur restait bloqué sur « Connecté ». Chaque bot ouvre une session sur le serveur et la limite de joueurs du modèle VMaNGOS (`PlayerLimit = 100`) mettait le joueur, et les bots suivants, en file d'attente (le client Benilla n'affiche pas la position dans la file). La limite est désormais supprimée (`PlayerLimit = 0`) ; elle est aussi levée à chaud dès qu'on enregistre un réglage serveur en marche.

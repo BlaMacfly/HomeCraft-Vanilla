@@ -80,24 +80,92 @@ pub fn data_status(layout: &Layout) -> Vec<(String, bool)> {
         ("dbc".into(), util::dir_file_count(&d.join("5875").join("dbc")) >= 150),
         ("maps".into(), util::dir_file_count(&d.join("maps")) >= 2000),
         ("vmaps".into(), util::dir_file_count(&d.join("vmaps")) >= 1000),
-        // Une génération interrompue laisse le marqueur en place : les mmaps sont alors considérées absentes et régénérées.
-        ("mmaps".into(), util::dir_file_count(&d.join("mmaps")) >= 1000 && !mmaps_marker(layout).exists()),
+        // Les versions ≤ 0.9.9 généraient directement dans mmaps : avec leur marqueur, la génération est inachevée.
+        ("mmaps".into(), util::dir_file_count(&d.join("mmaps")) >= 1000 && !legacy_mmaps_marker(layout).exists()),
     ]
 }
 
-/// Marqueur « génération des mmaps en cours » (créé au lancement de MoveMapGenerator, retiré à la fin).
+// Les mmaps sont générées dans un dossier de travail et n'entrent dans Server\Data\mmaps qu'une fois complètes,
+// serveur arrêté. mangosd charge toute tuile présente sur le disque : avec des mmaps partielles (génération en cours,
+// ou installées pendant que des zones sont déjà chargées), le carnet de navigation d'un continent existe sans la
+// tuile d'une capitale, et PopulateAreaBotAI::BeforeAddToMap boucle sans fin sur Map::GetWalkRandomPosition :
+// le monde se fige (joueur bloqué sur « Connecté »).
+
+/// Dossier de travail de MoveMapGenerator (il lit maps et vmaps et écrit mmaps relativement à son dossier courant).
+pub fn mmaps_staging(layout: &Layout) -> PathBuf {
+    layout.server_data().join("mmaps-generation")
+}
+
+/// Marqueur « génération des mmaps en cours » (créé au lancement de MoveMapGenerator, retiré s'il réussit).
 pub fn mmaps_marker(layout: &Layout) -> PathBuf {
+    mmaps_staging(layout).join(".generation-en-cours")
+}
+
+fn legacy_mmaps_marker(layout: &Layout) -> PathBuf {
     layout.server_data().join("mmaps").join(".generation-en-cours")
 }
 
-/// Lance MoveMapGenerator sans attendre (génération en arrière-plan pendant que le serveur tourne).
-/// L'appelant surveille le processus, puis appelle `mmaps_finished`.
+/// Génération terminée, en attente d'installation (au prochain démarrage du serveur).
+pub fn mmaps_pending(layout: &Layout) -> bool {
+    util::dir_file_count(&mmaps_staging(layout).join("mmaps")) >= 1000 && !mmaps_marker(layout).exists()
+}
+
+/// Remplit `dst` de liens physiques vers les fichiers de `src` (copie si le volume ne les accepte pas).
+fn link_dir_files(src: &Path, dst: &Path) -> Result<(), String> {
+    if dst.exists() {
+        std::fs::remove_dir_all(dst).map_err(|e| format!("{} : {e}", dst.display()))?;
+    }
+    std::fs::create_dir_all(dst).map_err(|e| e.to_string())?;
+    for e in std::fs::read_dir(src).map_err(|e| format!("{} : {e}", src.display()))?.flatten() {
+        let p = e.path();
+        if p.is_file() {
+            let to = dst.join(e.file_name());
+            if std::fs::hard_link(&p, &to).is_err() {
+                std::fs::copy(&p, &to).map_err(|e| format!("{} : {e}", p.display()))?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// À appeler serveur arrêté, juste avant de lancer mangosd. Installe des mmaps complètes en attente
+/// (renvoie true), et range dans le dossier de travail des mmaps partielles laissées par une ancienne version
+/// (MoveMapGenerator reprend les tuiles déjà faites).
+pub fn install_pending_mmaps(layout: &Layout) -> Result<bool, String> {
+    let live = layout.server_data().join("mmaps");
+    let staging = mmaps_staging(layout);
+    if legacy_mmaps_marker(layout).exists() {
+        std::fs::create_dir_all(&staging).map_err(|e| e.to_string())?;
+        if staging.join("mmaps").exists() {
+            std::fs::remove_dir_all(&live).map_err(|e| format!("{} : {e}", live.display()))?;
+        } else {
+            std::fs::rename(&live, staging.join("mmaps")).map_err(|e| format!("{} : {e}", live.display()))?;
+            let _ = std::fs::remove_file(staging.join("mmaps").join(".generation-en-cours"));
+        }
+        std::fs::write(mmaps_marker(layout), "generation en cours").map_err(|e| e.to_string())?;
+    }
+    if !mmaps_pending(layout) {
+        return Ok(false);
+    }
+    if live.exists() {
+        std::fs::remove_dir_all(&live).map_err(|e| format!("{} : {e}", live.display()))?;
+    }
+    std::fs::rename(staging.join("mmaps"), &live).map_err(|e| format!("installation des mmaps : {e}"))?;
+    std::fs::remove_dir_all(&staging).map_err(|e| format!("{} : {e}", staging.display()))?;
+    Ok(true)
+}
+
+/// Lance MoveMapGenerator sans attendre (génération en arrière-plan pendant que le serveur tourne), dans le
+/// dossier de travail. L'appelant surveille le processus, puis appelle `mmaps_finished`.
 pub fn spawn_mmaps(layout: &Layout, threads: usize, sink: &Sender<String>) -> Result<std::process::Child, String> {
     let bin = layout.server_bin();
     let data = layout.server_data();
-    std::fs::create_dir_all(data.join("mmaps")).map_err(|e| e.to_string())?;
+    let staging = mmaps_staging(layout);
+    std::fs::create_dir_all(staging.join("mmaps")).map_err(|e| e.to_string())?;
+    link_dir_files(&data.join("maps"), &staging.join("maps"))?;
+    link_dir_files(&data.join("vmaps"), &staging.join("vmaps"))?;
     std::fs::write(mmaps_marker(layout), "generation en cours").map_err(|e| e.to_string())?;
-    spawn_tool("MoveMapGenerator", &bin.join("MoveMapGenerator.exe"), &["--threads".into(), threads.to_string(), "--silent".into()], &data, sink)
+    spawn_tool("MoveMapGenerator", &bin.join("MoveMapGenerator.exe"), &["--threads".into(), threads.to_string(), "--silent".into()], &staging, sink)
 }
 
 /// À appeler quand MoveMapGenerator s'est terminé : retire le marqueur si la génération a réussi.
@@ -422,6 +490,33 @@ mod tests {
         }
         assert!(!root.join("Server").join("Data").join("extraction-client").exists(), "dossier de liens supprimé");
         assert!(client.join("Data").join("patch-5.MPQ").is_file(), "patchs du joueur intacts");
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn partial_mmaps_never_reach_the_server() {
+        let tmp = std::env::temp_dir().join(format!("hc-mmaps-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let root = tmp.join("HomeCraft");
+        let data = root.join("Server").join("Data");
+        std::fs::create_dir_all(data.join("mmaps")).unwrap();
+        let layout = Layout { root: root.clone() };
+        let fill = |dir: &Path, n: usize| (0..n).for_each(|i| std::fs::write(dir.join(format!("000{i:04}.mmtile")), b"t").unwrap());
+        // Génération inachevée d'une ancienne version, directement dans mmaps : rangée dans le dossier de travail.
+        fill(&data.join("mmaps"), 400);
+        std::fs::write(data.join("mmaps").join(".generation-en-cours"), "x").unwrap();
+        assert!(!install_pending_mmaps(&layout).unwrap());
+        assert!(!data.join("mmaps").exists(), "mmaps partielles retirées du serveur");
+        assert_eq!(util::dir_file_count(&mmaps_staging(&layout).join("mmaps")), 400, "tuiles conservées pour la reprise");
+        assert!(mmaps_marker(&layout).exists() && !mmaps_pending(&layout));
+        // Génération terminée : installée en bloc, dossier de travail supprimé.
+        fill(&mmaps_staging(&layout).join("mmaps"), 1200);
+        mmaps_finished(&layout, true);
+        assert!(mmaps_pending(&layout));
+        assert!(install_pending_mmaps(&layout).unwrap());
+        assert_eq!(util::dir_file_count(&data.join("mmaps")), 1200);
+        assert!(!mmaps_staging(&layout).exists());
+        assert!(data_status(&layout).iter().any(|(n, ok)| n == "mmaps" && *ok));
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }

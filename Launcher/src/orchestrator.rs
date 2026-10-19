@@ -772,6 +772,11 @@ impl Orchestrator {
             }
             return;
         }
+        if repair::mmaps_pending(&self.layout) {
+            // Déjà générées, installées au prochain démarrage du serveur.
+            self.shared.lock().unwrap().mmaps = MmapsStatus::DoneRestartNeeded;
+            return;
+        }
         let present = repair::data_status(&self.layout).iter().any(|(n, ok)| n == "mmaps" && *ok);
         if present && !force {
             self.shared.lock().unwrap().mmaps = MmapsStatus::Present;
@@ -806,12 +811,17 @@ impl Orchestrator {
                 self.mmaps_job = None;
                 let ok = status.success();
                 repair::mmaps_finished(&self.layout, ok);
-                let present = repair::data_status(&self.layout).iter().any(|(n, k)| n == "mmaps" && *k);
+                let pending = repair::mmaps_pending(&self.layout);
                 let mut s = self.shared.lock().unwrap();
-                if ok && present {
+                if ok && pending {
                     s.mmaps = MmapsStatus::DoneRestartNeeded;
                     drop(s);
-                    self.log("mmaps générées en arrière-plan : prises en compte au prochain démarrage du serveur");
+                    if self.mangosd.is_none() {
+                        self.install_mmaps();
+                        self.refresh_mmaps_status();
+                    } else {
+                        self.log("mmaps générées en arrière-plan : installées au prochain démarrage du serveur");
+                    }
                 } else {
                     let e = format!("MoveMapGenerator terminé avec le code {:?}", status.code());
                     s.mmaps = MmapsStatus::Failed(e.clone());
@@ -837,8 +847,24 @@ impl Orchestrator {
         }
     }
 
+    /// Serveur arrêté uniquement : installe les mmaps générées (voir `repair::install_pending_mmaps`).
+    fn install_mmaps(&mut self) {
+        match repair::install_pending_mmaps(&self.layout) {
+            Ok(true) => {
+                self.log("mmaps générées installées");
+                self.shared.lock().unwrap().mmaps = MmapsStatus::Unknown;
+            }
+            Ok(false) => {}
+            Err(e) => self.log(format!("ERREUR mmaps : {e}")),
+        }
+    }
+
     fn refresh_mmaps_status(&mut self) {
         if self.mmaps_job.is_some() {
+            return;
+        }
+        if repair::mmaps_pending(&self.layout) {
+            self.shared.lock().unwrap().mmaps = MmapsStatus::DoneRestartNeeded;
             return;
         }
         let present = repair::data_status(&self.layout).iter().any(|(n, ok)| n == "mmaps" && *ok);
@@ -1285,6 +1311,10 @@ impl Orchestrator {
         self.log(format!("realmd opérationnel sur 127.0.0.1:{REALMD_PORT}"));
 
         self.set(State::StartingWorld, fr::MSG_WORLD, 0.7);
+        // Serveur arrêté : seul moment où des mmaps neuves peuvent entrer sans être chargées à moitié.
+        if self.mmaps_job.is_none() {
+            self.install_mmaps();
+        }
         let mut m = match Mangosd::start(&self.layout, self.log_tx.clone()) {
             Ok(m) => m,
             Err(e) => return self.fail_ret("démarrage mangosd", e),
