@@ -4090,7 +4090,7 @@ dependencies = [
 
 [[package]]
 name = "vanilla-solo-launcher"
-version = "0.9.7"
+version = "0.9.8"
 dependencies = [
  "eframe",
  "egui_extras",

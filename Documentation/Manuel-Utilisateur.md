@@ -235,7 +235,7 @@ Cet onglet règle les compagnons et les bots de peuplement. Les réglages sont *
 **Bots de peuplement (RandomBot)** : des personnages bots se connectent et flânent dans Hurlevent, Forgefer et Orgrimmar pour donner vie aux villes. Ils ne combattent pas et ne vous suivent pas.
 
 1. Dans la section **Personnages bots**, choisissez un nombre (20 pour commencer) et cliquez « Générer les personnages bots ». Ils sont créés sur un compte technique `HOMECRAFTBOTS` (moitié Alliance, moitié Horde, races, classes, niveaux et apparences variés). Les réglages de peuplement sont ajustés automatiquement (activés, minimum = la moitié, maximum = le total).
-2. Redémarrez le serveur : les bots se connectent progressivement (quelques minutes).
+2. Si le serveur tourne, les bots se connectent aussitôt : le launcher fait relire sa configuration au serveur (`reload config`, `bot reload`). Sinon, ils se connectent au prochain démarrage. Vérifiez avec `.bot info` dans le jeu (compte de niveau 6) : la ligne « Online » donne le nombre de bots connectés.
 3. « Supprimer tous les personnages bots » retire tout, après confirmation ; vos propres personnages ne sont jamais concernés.
 
 Les autres réglages (nombre minimal / maximal de bots, intervalle de renouvellement) sont modifiables ensuite.
@@ -412,7 +412,7 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **Les compagnons restent bloqués ou traversent les murs** : les cartes de déplacement ne sont pas encore générées ou pas encore prises en compte (redémarrez le serveur une fois l'accueil passé à « générées »). En attendant : `.partybot cometome`.
 
-**Aucun bot de peuplement en ville** : dans l'ordre, vérifiez que (1) des personnages bots ont été générés (PlayerBots > Personnages bots), (2) le serveur a été **redémarré** depuis la génération, (3) vous êtes au bon endroit : quartier commerçant de Hurlevent, Forgefer ou Orgrimmar (pas dans une zone de départ), (4) « Activer les bots de peuplement » est coché avec un nombre minimal supérieur à 0 (PlayerBots), et (5) dans le jeu, `.bot info` (compte niveau 6) indique des bots en ligne. Si vous les cherchez avec `/qui`, cochez « Bots visibles dans /qui ». Le compteur « Personnages en ligne » de l'accueil inclut les bots : s'il est élevé, ils sont bien connectés.
+**Aucun bot de peuplement en ville** : dans l'ordre, vérifiez que (1) des personnages bots ont été générés (PlayerBots > Personnages bots), (2) les réglages ont été **enregistrés** (serveur en marche, ils s'appliquent aussitôt ; en cas de doute, arrêtez puis relancez le serveur), (3) vous êtes au bon endroit : quartier commerçant de Hurlevent, Forgefer ou Orgrimmar (pas dans une zone de départ), (4) « Activer les bots de peuplement » est coché avec un nombre minimal supérieur à 0 (PlayerBots), et (5) dans le jeu, `.bot info` (compte niveau 6) indique des bots en ligne. Si vous les cherchez avec `/qui`, cochez « Bots visibles dans /qui ». Le compteur « Personnages en ligne » de l'accueil inclut les bots : s'il est élevé, ils sont bien connectés.
 
 **Le launcher annonce N personnages en ligne mais `/qui` n'affiche personne** : les bots de peuplement sont cachés de la liste `/qui` par défaut. PlayerBots > Général > « Bots visibles dans /qui », Enregistrer, puis redémarrez le serveur. Rappel : `/qui` ne montre que votre faction, et les bots sont de toute façon visibles physiquement dans les capitales.
 

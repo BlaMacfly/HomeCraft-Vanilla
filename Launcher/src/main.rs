@@ -51,6 +51,8 @@ fn main() -> eframe::Result {
             (Some("accdel"), Some(n)) => Some(orchestrator::Command::DeleteAccount(n.clone())),
             (Some("mpqbuild"), Some(p)) => Some(orchestrator::Command::PatchBuild(std::path::PathBuf::from(p))),
             (Some("reimportworld"), _) => Some(orchestrator::Command::ReimportWorld),
+            // Tests : applique un fichier de réglages comme le bouton Enregistrer (après --start : à chaud).
+            (Some("applysettings"), Some(p)) => Some(orchestrator::Command::SettingsChanged(settings::Settings::load(std::path::Path::new(p)))),
             (Some("mmaps"), _) => Some(orchestrator::Command::GenerateMmaps),
             _ => None,
         };

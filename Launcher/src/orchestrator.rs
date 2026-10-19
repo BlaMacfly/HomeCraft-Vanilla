@@ -446,6 +446,7 @@ impl Orchestrator {
                 self.settings = s;
                 self.shared.lock().unwrap().bots_enabled = self.settings.partybots_enabled;
                 self.verify(false);
+                self.apply_settings_live();
             }
             Command::InstallTo(dest) => self.install_to(&dest),
             Command::GenerateBots(n) => self.generate_bots(n),
@@ -639,6 +640,10 @@ impl Orchestrator {
         let prev_msg = self.shared.lock().unwrap().message.clone();
         let shared = self.shared.clone();
         let r = self.ensure_db().and_then(|db| {
+            // Installation neuve : les bases ne sont importées qu'au premier démarrage du serveur.
+            if !db.databases_missing()?.is_empty() {
+                return Err(fr::BOTGEN_NEED_FIRST_START.to_string());
+            }
             crate::botgen::generate(&db, count, &|i, n| shared.lock().unwrap().message = format!("{} {i}/{n}", fr::BOTGEN_PROGRESS))
         });
         match r {
@@ -735,6 +740,26 @@ impl Orchestrator {
             }
         }
         self.poll_mmaps();
+    }
+
+    /// Serveur en marche : réglages appliqués sans redémarrage. `mangosd.conf` est réécrit, puis `reload config`
+    /// (VMaNGOS relit le fichier) et `bot reload` (le gestionnaire de bots relit ses réglages et connecte aussitôt le
+    /// nombre minimal de bots de peuplement). Sans cela, `bot reload` relisait l'ancienne configuration en mémoire et
+    /// rien ne changeait avant le redémarrage suivant.
+    fn apply_settings_live(&mut self) {
+        if self.mangosd.is_none() || !self.state().services_up() {
+            return;
+        }
+        let Some(db) = self.db.clone() else { return };
+        match server::generate_configs(&self.layout, &db, &self.settings) {
+            Ok(()) => {
+                self.console("reload config");
+                std::thread::sleep(Duration::from_millis(800));
+                self.console("bot reload");
+                self.log("réglages appliqués au serveur en marche (reload config, bot reload)");
+            }
+            Err(e) => self.log(format!("réglages : application à chaud impossible ({e}) ; ils seront pris en compte au prochain démarrage")),
+        }
     }
 
     // ------------------------------------------------------------------ mmaps en arrière-plan

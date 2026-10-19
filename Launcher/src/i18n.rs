@@ -157,7 +157,7 @@ pub mod fr {
     pub const SET_AH_HORDE: &str = "Horde";
     pub const SET_BOTS: &str = "Compagnons PlayerBots (commandes .partybot)";
     pub const SET_RATE_XP: &str = "Multiplicateur d'expérience";
-    pub const SET_SAVE: &str = "Enregistrer (appliqué au prochain démarrage du serveur)";
+    pub const SET_SAVE: &str = "Enregistrer";
     pub const SET_SAVED: &str = "Réglages enregistrés.";
 
     // Journaux / diagnostic
@@ -222,7 +222,7 @@ pub mod fr {
     // PlayerBots
     pub const TAB_BOTS: &str = "PlayerBots";
     pub const BOT_TITLE: &str = "Compagnons PlayerBots";
-    pub const BOT_INTRO: &str = "Les compagnons sont créés dans le jeu, à votre niveau, et rejoignent votre groupe. Réglages appliqués au prochain démarrage du serveur.";
+    pub const BOT_INTRO: &str = "Les compagnons sont créés dans le jeu, à votre niveau, et rejoignent votre groupe. Serveur en marche, les réglages enregistrés sont appliqués tout de suite (le serveur relit sa configuration) ; quelques-uns ne prennent effet qu'au redémarrage.";
     pub const BOT_ENABLE: &str = "Autoriser les compagnons (.partybot)";
     pub const BOT_MAX: &str = "Nombre maximal de compagnons par groupe (0 = illimité, un groupe compte 5 membres)";
     pub const BOT_SKIP: &str = "Lever les restrictions d'invocation (en combat, en donjon, niveau au choix)";
@@ -242,7 +242,7 @@ pub mod fr {
     // Monde
     pub const TAB_WORLD: &str = "Monde";
     pub const WORLD_TITLE: &str = "Réglages du monde (mangosd.conf)";
-    pub const WORLD_INTRO: &str = "Les réglages les plus utiles du serveur de jeu, avec leurs valeurs Vanilla par défaut. Les modifications sont appliquées au prochain démarrage du serveur. Les autres clés du fichier restent gérées automatiquement par le launcher.";
+    pub const WORLD_INTRO: &str = "Les réglages les plus utiles du serveur de jeu, avec leurs valeurs Vanilla par défaut. Serveur en marche, les modifications enregistrées sont appliquées tout de suite (le serveur relit sa configuration) ; certaines, comme le contenu du monde par patch, ne prennent effet qu'au redémarrage. Les autres clés du fichier restent gérées automatiquement par le launcher.";
     pub const WORLD_SAVE: &str = "Enregistrer les réglages du monde";
     pub const OPT_DEFAULT: &str = "Défaut";
     pub const OPT_RESET_ALL: &str = "Tout remettre aux valeurs Vanilla";
@@ -258,8 +258,9 @@ pub mod fr {
     pub const BOTGEN_DELETE_CONFIRM: &str = "Tous les personnages du compte HOMECRAFTBOTS seront supprimés définitivement (objets et enregistrements de peuplement compris). Vos propres personnages ne sont pas concernés.";
     pub const BOTGEN_PROGRESS: &str = "Création des personnages bots…";
     pub const BOTGEN_DONE: &str = "personnages bots créés";
+    pub const BOTGEN_NEED_FIRST_START: &str = "les bases de données ne sont pas encore installées : démarrez le serveur une première fois (JOUER ou DÉMARRER LE SERVEUR), puis générez les bots";
     pub const BOTGEN_FAIL: &str = "Génération impossible";
-    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, au plus 300 bots connectés à la fois, minimum = la moitié, bots visibles dans /qui) ; ils prennent effet au prochain démarrage du serveur. Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
+    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, au plus 300 bots connectés à la fois, minimum = la moitié, bots visibles dans /qui). Serveur en marche, les bots se connectent dans la minute qui suit ; sinon, au prochain démarrage. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
 
     // Patchs client
     pub const TAB_PATCHES: &str = "Patchs";

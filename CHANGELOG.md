@@ -1,5 +1,13 @@
 # Journal des versions
 
+## 0.9.8 — 19 octobre 2026
+
+- Extraction : VMapExtractor plante de façon intermittente (0xC0000374, corruption du tas : la même commande réussit ensuite). Le launcher le relance jusqu'à trois fois, sur un dossier de travail propre.
+- Extraction : seules les archives officielles du client sont lues. Les extracteurs ouvrent aussi `patch-3.MPQ` à `patch-99.MPQ` : un patch graphique (VanillaHD…) injectait ses modèles dans les données du serveur (collisions fausses, 4 002 bâtiments au lieu de 3 913). Les patchs ajoutés sont écartés par un dossier de liens physiques vers les seules archives officielles (`Server\Data\extraction-client`, supprimé ensuite), ou, si le client est sur un autre disque, masqués le temps de l'extraction puis rétablis.
+- PlayerBots et Monde : serveur en marche, les réglages enregistrés sont appliqués tout de suite (`mangosd.conf` réécrit, puis `reload config` et `bot reload`). Auparavant `bot reload` relisait l'ancienne configuration en mémoire : les bots de peuplement générés ou activés serveur allumé n'apparaissaient qu'après un redémarrage.
+- Génération de bots sur une installation neuve, avant le premier démarrage : message clair (démarrer le serveur une première fois) au lieu d'une erreur SQL.
+- Option de test `--do applysettings <fichier>`.
+
 ## 0.9.7 — 19 octobre 2026
 
 - Correctif : « VMapExtractor a échoué (code 1) » après une extraction interrompue (programme bloqué par Windows, launcher fermé en cours). VMapExtractor refuse de repartir si son dossier de travail `Server\Data\Buildings` contient encore `dir` ou `dir_bin` (« Your output directory seems to be polluted »). Le launcher vide désormais ce dossier, entièrement régénéré, avant chaque extraction.

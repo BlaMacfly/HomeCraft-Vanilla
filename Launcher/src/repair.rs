@@ -198,10 +198,98 @@ fn spawn_tool_with_tail(name: &str, exe: &Path, args: &[String], cwd: &Path, sin
 }
 
 /// Extraction des données du client avec les outils VMaNGOS (mêmes étapes que Tools/Extract-ClientData.ps1).
+/// Archives officielles du client 1.12.1. Les extracteurs du serveur ouvrent aussi `patch-3.MPQ` à `patch-99.MPQ` :
+/// un patch ajouté (graphismes HD…) y injecterait ses modèles (« Couldn't open RootWmo », collisions fausses, voire
+/// plantage 0xC0000374 de VMapExtractor). L'extraction ne voit donc que ces archives.
+const OFFICIAL_MPQ: &[&str] = &[
+    "backup.MPQ", "base.MPQ", "dbc.MPQ", "fonts.MPQ", "interface.MPQ", "misc.MPQ", "model.MPQ", "patch.MPQ", "patch-2.MPQ",
+    "sound.MPQ", "speech.MPQ", "terrain.MPQ", "texture.MPQ", "wmo.MPQ",
+];
+/// Suffixe temporaire des patchs ajoutés, quand ils doivent être masqués pendant l'extraction (repli sans lien physique).
+const HIDDEN_SUFFIX: &str = ".homecraft-extraction";
+
+/// `patch-N.MPQ` avec N ≥ 3 : jamais une archive officielle de la 1.12.1, mais lue par les extracteurs.
+pub fn is_added_patch(name: &str) -> bool {
+    let l = name.to_ascii_lowercase();
+    l.strip_prefix("patch-").and_then(|r| r.strip_suffix(".mpq")).and_then(|n| n.parse::<u32>().ok()).map(|n| n >= 3).unwrap_or(false)
+}
+
+/// Source d'extraction ne contenant que les archives officielles. Restaure tout à la fin (`Drop`), même en cas d'erreur.
+struct ExtractionSource {
+    root: PathBuf,
+    linked: Option<PathBuf>,
+    hidden: Vec<(PathBuf, PathBuf)>,
+}
+
+impl Drop for ExtractionSource {
+    fn drop(&mut self) {
+        for (hidden, original) in self.hidden.drain(..) {
+            let _ = std::fs::rename(&hidden, &original);
+        }
+        if let Some(dir) = self.linked.take() {
+            let _ = std::fs::remove_dir_all(dir);
+        }
+    }
+}
+
+/// Prépare la source d'extraction : le client tel quel s'il n'a aucun patch ajouté ; sinon un dossier de liens physiques
+/// vers ses seules archives officielles (`Server\Data\extraction-client`) ; à défaut (client sur un autre volume),
+/// les patchs ajoutés sont renommés le temps de l'extraction puis rétablis.
+fn prepare_source(layout: &Layout, client_dir: &Path, sink: &Sender<String>) -> Result<ExtractionSource, String> {
+    let data = client_dir.join("Data");
+    let entries: Vec<(String, PathBuf)> = std::fs::read_dir(&data)
+        .map_err(|e| format!("{} : {e}", data.display()))?
+        .filter_map(Result::ok)
+        .filter(|e| e.path().is_file())
+        .filter_map(|e| e.file_name().into_string().ok().map(|n| (n, e.path())))
+        .collect();
+    // Patchs masqués par une extraction précédente interrompue : rétablis d'abord.
+    for (name, path) in &entries {
+        if let Some(orig) = name.strip_suffix(HIDDEN_SUFFIX) {
+            let target = data.join(orig);
+            if !target.exists() {
+                let _ = std::fs::rename(path, &target);
+            }
+        }
+    }
+    let added: Vec<String> = entries.iter().map(|(n, _)| n.clone()).filter(|n| is_added_patch(n)).collect();
+    if added.is_empty() {
+        return Ok(ExtractionSource { root: client_dir.to_path_buf(), linked: None, hidden: Vec::new() });
+    }
+    let _ = sink.send(format!("[extraction] patchs ajoutés ignorés par l'extraction du serveur : {}", added.join(", ")));
+    let link_root = layout.server_data().join("extraction-client");
+    if link_root.exists() {
+        std::fs::remove_dir_all(&link_root).map_err(|e| format!("{} : {e}", link_root.display()))?;
+    }
+    std::fs::create_dir_all(link_root.join("Data")).map_err(|e| e.to_string())?;
+    let mut linked_all = true;
+    for (name, path) in &entries {
+        if OFFICIAL_MPQ.iter().any(|o| o.eq_ignore_ascii_case(name)) && std::fs::hard_link(path, link_root.join("Data").join(name)).is_err() {
+            linked_all = false;
+            break;
+        }
+    }
+    if linked_all {
+        return Ok(ExtractionSource { root: link_root.clone(), linked: Some(link_root), hidden: Vec::new() });
+    }
+    // Client sur un autre volume : pas de lien physique possible, on masque les patchs ajoutés.
+    let _ = std::fs::remove_dir_all(&link_root);
+    let mut src = ExtractionSource { root: client_dir.to_path_buf(), linked: None, hidden: Vec::new() };
+    for name in &added {
+        let original = data.join(name);
+        let hidden = data.join(format!("{name}{HIDDEN_SUFFIX}"));
+        std::fs::rename(&original, &hidden).map_err(|e| format!("{name} (masquage temporaire pour l'extraction) : {e}"))?;
+        src.hidden.push((hidden, original));
+    }
+    Ok(src)
+}
+
 pub fn extract(layout: &Layout, client_dir: &Path, steps: &[ExtractStep], sink: &Sender<String>, progress: &dyn Fn(&str)) -> Result<(), String> {
     let bin = layout.server_bin();
     let data = layout.server_data();
     std::fs::create_dir_all(&data).map_err(|e| e.to_string())?;
+    let source = prepare_source(layout, client_dir, sink)?;
+    let client_dir = source.root.as_path();
     let q = |p: &Path| p.to_string_lossy().into_owned();
     if steps.contains(&ExtractStep::DbcMaps) {
         progress("extraction des DBC et des cartes");
@@ -223,10 +311,23 @@ pub fn extract(layout: &Layout, client_dir: &Path, steps: &[ExtractStep], sink: 
         // launcher fermé), l'extracteur refuse de repartir (« Your output directory seems to be polluted », code 1).
         // Il est entièrement régénéré : on le vide toujours avant de commencer.
         let work = data.join("Buildings");
-        if work.exists() {
-            std::fs::remove_dir_all(&work).map_err(|e| format!("nettoyage de {} : {e}", work.display()))?;
+        // VMapExtractor plante de façon intermittente (0xC0000374 corruption du tas, 0xC0000005) : la même commande
+        // réussit ensuite (vérifié le 2026-10-19). Jusqu'à trois essais, chacun sur un dossier de travail propre ;
+        // un échec « normal » (code positif) n'est pas retenté.
+        let mut attempt = 1;
+        loop {
+            if work.exists() {
+                std::fs::remove_dir_all(&work).map_err(|e| format!("nettoyage de {} : {e}", work.display()))?;
+            }
+            match run_tool("VMapExtractor", &bin.join("VMapExtractor.exe"), &["-l".into(), "-d".into(), q(&client_dir.join("Data")), "--silent".into()], &data, sink) {
+                Ok(()) => break,
+                Err(e) if attempt < 3 && e.contains("(code Some(-") => {
+                    let _ = sink.send(format!("[extraction] VMapExtractor s'est arrêté brutalement (essai {attempt}/3), nouvelle tentative : {e}"));
+                    attempt += 1;
+                }
+                Err(e) => return Err(e),
+            }
         }
-        run_tool("VMapExtractor", &bin.join("VMapExtractor.exe"), &["-l".into(), "-d".into(), q(&client_dir.join("Data")), "--silent".into()], &data, sink)?;
         std::fs::create_dir_all(data.join("vmaps")).map_err(|e| e.to_string())?;
         progress("assemblage des vmaps");
         run_tool("VMapAssembler", &bin.join("VMapAssembler.exe"), &["Buildings".into(), "vmaps".into()], &data, sink)?;
@@ -283,4 +384,44 @@ pub fn export_diagnostic(layout: &Layout, report: Option<&VerifyReport>) -> Resu
     w.write_all(etat.as_bytes()).map_err(|e| e.to_string())?;
     w.finish().map_err(|e| e.to_string())?;
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn added_patches_are_patch_3_and_above() {
+        for n in ["patch-3.MPQ", "patch-4.mpq", "PATCH-5.MPQ", "patch-12.MPQ"] {
+            assert!(is_added_patch(n), "{n}");
+        }
+        for n in ["patch.MPQ", "patch-2.MPQ", "patch-A.MPQ", "patch-3.MPQ.off", "base.MPQ", "patch-3.MPQ.homecraft-extraction"] {
+            assert!(!is_added_patch(n), "{n}");
+        }
+    }
+
+    #[test]
+    fn extraction_source_links_official_archives_only_and_cleans_up() {
+        let tmp = std::env::temp_dir().join(format!("hc-src-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let root = tmp.join("HomeCraft");
+        std::fs::create_dir_all(root.join("Server").join("Data")).unwrap();
+        std::fs::create_dir_all(root.join("Tools")).unwrap();
+        let client = tmp.join("Client");
+        std::fs::create_dir_all(client.join("Data")).unwrap();
+        for n in ["base.MPQ", "dbc.MPQ", "patch.MPQ", "patch-2.MPQ", "patch-4.MPQ", "patch-5.MPQ"] {
+            std::fs::write(client.join("Data").join(n), n.as_bytes()).unwrap();
+        }
+        let layout = Layout { root: root.clone() };
+        let (tx, _rx) = std::sync::mpsc::channel();
+        {
+            let src = prepare_source(&layout, &client, &tx).unwrap();
+            let names: Vec<String> = std::fs::read_dir(src.root.join("Data")).unwrap().filter_map(|e| e.ok()?.file_name().into_string().ok()).collect();
+            assert!(names.contains(&"patch-2.MPQ".to_string()));
+            assert!(!names.iter().any(|n| is_added_patch(n)), "{names:?}");
+        }
+        assert!(!root.join("Server").join("Data").join("extraction-client").exists(), "dossier de liens supprimé");
+        assert!(client.join("Data").join("patch-5.MPQ").is_file(), "patchs du joueur intacts");
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }
