@@ -63,23 +63,16 @@ pub fn datetime_compact() -> String {
     format!("{:04}{:02}{:02}-{:02}{:02}{:02}", t.y, t.mo, t.d, t.h, t.mi, t.s)
 }
 
-/// Ligne écrite par un programme du serveur : UTF-8 si elle en est, sinon page de code Windows-1252 (mangosd écrit
-/// ses messages français en ANSI ; un décodage UTF-8 seul affichait « Compte cr�� »).
+/// Ligne écrite par un programme du serveur : UTF-8 si elle en est, sinon page de code OEM 850 (mangosd écrit ses
+/// messages français pour la console Windows : « créé » arrive en 0x82 0x82 ; un décodage UTF-8 seul affichait
+/// « Compte cr�� », un décodage Windows-1252 « Compte cr‚‚ »).
 pub fn decode_console(bytes: &[u8]) -> String {
     if let Ok(s) = std::str::from_utf8(bytes) {
         return s.to_string();
     }
-    const CP1252_80_9F: [char; 32] = [
-        '€', '\u{81}', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u{8d}', 'Ž', '\u{8f}',
-        '\u{90}', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u{9d}', 'ž', 'Ÿ',
-    ];
-    bytes
-        .iter()
-        .map(|&b| match b {
-            0x80..=0x9F => CP1252_80_9F[(b - 0x80) as usize],
-            _ => b as char,
-        })
-        .collect()
+    const CP850_HIGH: &str = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´\u{ad}±‗¾¶§÷¸°¨·¹³²■\u{a0}";
+    let high: Vec<char> = CP850_HIGH.chars().collect();
+    bytes.iter().map(|&b| if b < 0x80 { b as char } else { high.get((b - 0x80) as usize).copied().unwrap_or('?') }).collect()
 }
 
 pub fn sha256_file(path: &Path) -> Result<String, String> {
@@ -166,9 +159,9 @@ pub fn spawn_error(name: &str, e: &std::io::Error) -> String {
 mod tests {
     #[test]
     fn console_lines_in_ansi_are_decoded() {
-        assert_eq!(super::decode_console(&[b'c', b'r', 0xE9, 0xE9]), "créé");
+        assert_eq!(super::decode_console(&[b'c', b'r', 0x82, 0x82, b' ', 0x85]), "créé à");
         assert_eq!(super::decode_console("déjà".as_bytes()), "déjà");
-        assert_eq!(super::decode_console(&[0x80, b' ', 0x92]), "€ ’");
+        assert_eq!(super::decode_console(&[0x80, 0x87, 0x8A, 0xFF]), "Ççè\u{a0}");
     }
 
     #[test]

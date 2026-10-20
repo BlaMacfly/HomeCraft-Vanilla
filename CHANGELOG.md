@@ -1,5 +1,22 @@
 # Journal des versions
 
+## 0.9.16 — 20 octobre 2026
+
+Audit complet du code du launcher.
+
+- **Suppression d'un compte serveur arrêté** : elle effaçait toutes les tables de la base `characters` ayant une colonne `guid`. Or dans `item_instance`, `item_loot`, `corpse`, `creature_respawn`, `gameobject_respawn` et `pet_*`, cette colonne est le numéro d'un objet, d'un cadavre, d'une créature ou d'un familier : des objets et familiers d'autres personnages pouvaient disparaître. Chaque table est maintenant désignée par la colonne qui porte vraiment le numéro du personnage (propriétaire, destinataire, membre…). La suppression des bots utilise la même fonction.
+- **Démarrage** : en cas d'échec (import, configuration, chargement du monde trop long), MariaDB et mangosd sont toujours arrêtés, au lieu de rester en arrière-plan et d'occuper les ports. Une base lancée par le launcher et laissée en service (après une restauration ou un réimport) reste sous sa responsabilité : elle est arrêtée à la fermeture.
+- **Fermeture** : le launcher attend la fin réelle de l'arrêt des services (jusqu'à deux minutes) au lieu de 0,2 seconde.
+- **Comptes** : le niveau MJ est attribué une fois le compte réellement enregistré par le serveur (« Compte inexistant » et comptes créés deux fois auparavant) ; un compte existant est signalé ; identifiant de 1 à 16 lettres ou chiffres, mot de passe de 4 à 16 caractères sans espace.
+- **Mots de passe** masqués dans les journaux (création de compte, changement de mot de passe, commandes tapées dans la console).
+- **Fermer le jeu** : seuls les WoW.exe du dossier client HomeCraft sont fermés (auparavant tous les WoW.exe du PC).
+- **Restauration** : l'interface relit les réglages restaurés (elle réécrivait les anciens au prochain « Enregistrer »).
+- **Hôtel des ventes** en faction automatique : calculée sur vos personnages, plus sur les bots.
+- **Journaux** : messages de la console du serveur décodés correctement (page de code 850 : « Compte créé » au lieu de « Compte cr�� »).
+- **Archives** : noms de fichiers des sauvegardes et des AddOns contrôlés (rien ne peut être écrit hors du dossier prévu) ; un patch ajouté est copié sous un nom provisoire puis renommé (jamais d'archive tronquée dans `Data`).
+- **Scripts du package** (`Tools\Scripts`) : ils calculaient la racine du dossier depuis `Tools` et ne fonctionnaient pas ; la racine est maintenant le premier dossier parent contenant `Server`.
+- Tests : `Tests\Test-Integration.ps1` (copie du package, premier démarrage, comptes, suppression sans dommage pour les autres comptes, bots serveur en marche, aucun processus résiduel) ; option `--do acccreate <compte> <mot de passe> [niveau]`.
+
 ## 0.9.15 — 20 octobre 2026
 
 - PlayerBots : « Générer les personnages bots » et « Supprimer tous les personnages bots » ne sont plus grisés serveur en marche. Le launcher arrête le serveur le temps de l'opération puis le relance ; c'est refusé, avec explication, si un personnage joueur est en jeu.
