@@ -1,5 +1,11 @@
 # Journal des versions
 
+## 0.9.14 — 20 octobre 2026
+
+- Personnage tout juste créé déconnecté à son entrée dans le monde : des bots générés serveur en marche recevaient des numéros (GUID) que mangosd, qui les attribue à partir d'un compteur lu au démarrage, redonnait ensuite aux personnages créés en jeu. Le personnage du joueur écrasait le bot en base, puis le serveur le refusait à la connexion (« Cheat Attempt to login to character on different account » dans `Anticheat.log`), et l'inscription de peuplement du bot désignait désormais le personnage du joueur.
+- La génération et la suppression des personnages bots se font maintenant serveur arrêté (boutons grisés et explication sinon).
+- Au démarrage du serveur, les inscriptions de peuplement qui ne désignent pas un personnage du compte des bots sont retirées : les personnages touchés se connectent de nouveau normalement.
+
 ## 0.9.13 — 19 octobre 2026
 
 - Bots de peuplement absents de `/qui` malgré « Bots visibles dans /qui » : les personnages bots étaient créés avec `world_phase_mask = 0`, alors qu'un personnage normal a 1 (`WORLD_DEFAULT_CHAR`). VMaNGOS écarte de `/qui` tout personnage sans phase commune avec le joueur (`Player::IsVisibleGloballyFor` → `CanSeeInWorld`), sauf en mode MJ (`.gm on`). La visibilité en jeu n'en dépendait pas, d'où des bots visibles en ville mais pas dans la liste. Les bots sont désormais créés avec la phase 1, et ceux déjà générés sont corrigés au démarrage du serveur.

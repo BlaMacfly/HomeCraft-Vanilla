@@ -589,7 +589,8 @@ impl App {
                 ui.label(fr::BOTGEN_COUNT);
                 ui.add(egui::Slider::new(&mut self.botgen_count, 10..=conf_catalog::RANDOMBOT_MAX).logarithmic(true));
                 let busy = snap.state.is_busy();
-                if ui.add_enabled(!busy, egui::Button::new(fr::BOTGEN_RUN)).clicked() {
+                let server_up = snap.state.services_up();
+                if ui.add_enabled(!busy && !server_up, egui::Button::new(fr::BOTGEN_RUN)).on_disabled_hover_text(fr::BOTGEN_SERVER_RUNNING).clicked() {
                     let n = self.botgen_count;
                     self.send(Command::GenerateBots(n));
                     // Réglages de peuplement cohérents avec le nombre généré (si l'utilisateur ne les a pas fixés plus haut) :
@@ -606,7 +607,7 @@ impl App {
                     self.settings.conf.insert("PlayerBot.ShowInWhoList".into(), "1".into());
                     self.save_settings();
                 }
-                if ui.add_enabled(!busy && snap.bot_pool.unwrap_or(0) > 0, egui::Button::new(fr::BOTGEN_DELETE)).clicked() {
+                if ui.add_enabled(!busy && !server_up && snap.bot_pool.unwrap_or(0) > 0, egui::Button::new(fr::BOTGEN_DELETE)).on_disabled_hover_text(fr::BOTGEN_SERVER_RUNNING).clicked() {
                     self.pending = Some(Pending::DeleteBots);
                 }
             });

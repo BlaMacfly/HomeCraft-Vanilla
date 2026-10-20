@@ -585,15 +585,16 @@ impl Orchestrator {
                 self.refresh_patches();
             }
             Command::DeleteBots => {
+                if self.mangosd.is_some() {
+                    self.shared.lock().unwrap().notice = Some(fr::BOTGEN_SERVER_RUNNING.into());
+                    return;
+                }
                 let was_temp = self.db.is_none();
                 let r = self.ensure_db().and_then(|db| crate::botgen::delete_all(&db));
                 match r {
                     Ok(k) => {
                         self.log(format!("{k} personnage(s) bot(s) supprimé(s)"));
                         self.shared.lock().unwrap().notice = Some(format!("{k} personnages bots supprimés."));
-                        if self.mangosd.is_some() {
-                            self.console("bot reload");
-                        }
                     }
                     Err(e) => self.log(format!("ERREUR suppression des bots : {e}")),
                 }
@@ -636,6 +637,13 @@ impl Orchestrator {
         if self.state().is_busy() {
             return;
         }
+        // mangosd attribue les numéros de personnages et d'objets à partir d'un compteur lu au démarrage : des
+        // personnages insérés en base pendant qu'il tourne reçoivent les mêmes numéros que les prochains personnages
+        // créés en jeu (personnage du joueur écrasé sur un bot, puis refusé à la connexion).
+        if self.mangosd.is_some() {
+            self.shared.lock().unwrap().notice = Some(fr::BOTGEN_SERVER_RUNNING.into());
+            return;
+        }
         let was_temp = self.db.is_none();
         let prev_msg = self.shared.lock().unwrap().message.clone();
         let shared = self.shared.clone();
@@ -653,9 +661,6 @@ impl Orchestrator {
                 s.notice = Some(format!("{} {} ({} Alliance, {} Horde).", rep.created, fr::BOTGEN_DONE, rep.alliance, rep.horde));
                 s.message = prev_msg;
                 drop(s);
-                if self.mangosd.is_some() {
-                    self.console("bot reload");
-                }
             }
             Err(e) => {
                 self.log(format!("ERREUR génération des bots : {e}"));
@@ -1274,6 +1279,11 @@ impl Orchestrator {
             Ok(0) => {}
             Ok(n) => self.log(format!("personnages bots rendus visibles dans /qui : {n}")),
             Err(e) => self.log(format!("ERREUR bots (/qui) : {e}")),
+        }
+        match crate::botgen::drop_foreign_entries(&db) {
+            Ok(0) => {}
+            Ok(n) => self.log(format!("peuplement : {n} inscription(s) de bot retirée(s) (elles désignaient un personnage joueur)")),
+            Err(e) => self.log(format!("ERREUR bots (inscriptions) : {e}")),
         }
         self.db = Some(db);
 

@@ -260,7 +260,8 @@ pub mod fr {
     pub const BOTGEN_DONE: &str = "personnages bots créés";
     pub const BOTGEN_NEED_FIRST_START: &str = "les bases de données ne sont pas encore installées : démarrez le serveur une première fois (JOUER ou DÉMARRER LE SERVEUR), puis générez les bots";
     pub const BOTGEN_FAIL: &str = "Génération impossible";
-    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, maximum = nombre total de personnages bots, minimum = la moitié, bots visibles dans /qui). Serveur en marche, les bots se connectent dans la minute qui suit ; sinon, au prochain démarrage. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
+    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, maximum = nombre total de personnages bots, minimum = la moitié, bots visibles dans /qui). La génération et la suppression se font serveur arrêté ; les bots se connectent au démarrage suivant. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
+    pub const BOTGEN_SERVER_RUNNING: &str = "Arrêtez d'abord le serveur : pendant qu'il tourne, il attribue lui-même les numéros des personnages, et des bots ajoutés ou retirés en même temps se mélangeraient avec vos propres personnages.";
 
     // Patchs client
     pub const TAB_PATCHES: &str = "Patchs";

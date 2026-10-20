@@ -24,6 +24,20 @@ pub fn fix_phase_mask(db: &MariaDb) -> Result<u64, String> {
     Ok(c.affected_rows())
 }
 
+/// Jusqu'à 0.9.13, des bots générés serveur en marche pouvaient porter le numéro du prochain personnage créé en jeu :
+/// le serveur écrasait le bot par le personnage du joueur, mais l'inscription au peuplement restait. Retire toute
+/// inscription qui ne désigne pas un personnage du compte des bots (sinon le serveur connecterait le personnage du
+/// joueur comme bot). Renvoie le nombre retiré.
+pub fn drop_foreign_entries(db: &MariaDb) -> Result<u64, String> {
+    let mut c = db.root_conn()?;
+    c.query_drop(format!(
+        "DELETE p FROM characters.playerbot p LEFT JOIN characters.characters c ON c.guid=p.char_guid \
+         LEFT JOIN realmd.account a ON a.id=c.account WHERE a.username IS NULL OR a.username<>'{BOT_ACCOUNT}'"
+    ))
+    .map_err(|e| e.to_string())?;
+    Ok(c.affected_rows())
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct GenReport {
     pub created: usize,
