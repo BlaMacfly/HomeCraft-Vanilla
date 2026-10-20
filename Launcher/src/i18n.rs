@@ -260,8 +260,8 @@ pub mod fr {
     pub const BOTGEN_DONE: &str = "personnages bots créés";
     pub const BOTGEN_NEED_FIRST_START: &str = "les bases de données ne sont pas encore installées : démarrez le serveur une première fois (JOUER ou DÉMARRER LE SERVEUR), puis générez les bots";
     pub const BOTGEN_FAIL: &str = "Génération impossible";
-    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, maximum = nombre total de personnages bots, minimum = la moitié, bots visibles dans /qui). La génération et la suppression se font serveur arrêté ; les bots se connectent au démarrage suivant. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
-    pub const BOTGEN_SERVER_RUNNING: &str = "Arrêtez d'abord le serveur : pendant qu'il tourne, il attribue lui-même les numéros des personnages, et des bots ajoutés ou retirés en même temps se mélangeraient avec vos propres personnages.";
+    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, maximum = nombre total de personnages bots, minimum = la moitié, bots visibles dans /qui). Serveur en marche, il est arrêté le temps de la génération puis relancé : les bots se connectent dans la minute. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
+    pub const BOTGEN_RESTART_HINT: &str = "Serveur en marche : il est arrêté le temps de l'opération puis relancé automatiquement (une minute environ). Le serveur attribue lui-même les numéros des personnages pendant qu'il tourne : des bots ajoutés ou retirés en même temps se mélangeraient avec vos propres personnages.";
 
     // Patchs client
     pub const TAB_PATCHES: &str = "Patchs";
@@ -378,5 +378,10 @@ pub mod fr {
             Some(s) => format!("environ {} h {:02} restantes", s / 3600, (s % 3600) / 60),
         };
         format!("{HOME_MMAPS_RUNNING} {elapsed_min} min, {rest} (le jeu reste jouable)")
+    }
+
+    /// Génération ou suppression de bots demandée alors qu'un personnage joueur est en jeu (le serveur doit être arrêté).
+    pub fn botgen_players_in_world(n: u64) -> String {
+        format!("{n} de vos personnages {} en jeu : déconnectez-vous (retour à la sélection des personnages), puis recommencez. Le serveur doit être arrêté quelques secondes pendant l'opération.", if n > 1 { "sont" } else { "est" })
     }
 }

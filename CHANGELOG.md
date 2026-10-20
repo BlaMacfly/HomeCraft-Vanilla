@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 0.9.15 — 20 octobre 2026
+
+- PlayerBots : « Générer les personnages bots » et « Supprimer tous les personnages bots » ne sont plus grisés serveur en marche. Le launcher arrête le serveur le temps de l'opération puis le relance ; c'est refusé, avec explication, si un personnage joueur est en jeu.
+- Correctif de la 0.9.14 : le retrait des inscriptions de peuplement qui désignent un personnage joueur échouait (« No database selected », DELETE multi-tables par alias sans base par défaut). Requête réécrite avec une sous-requête.
+
 ## 0.9.14 — 20 octobre 2026
 
 - Personnage tout juste créé déconnecté à son entrée dans le monde : des bots générés serveur en marche recevaient des numéros (GUID) que mangosd, qui les attribue à partir d'un compteur lu au démarrage, redonnait ensuite aux personnages créés en jeu. Le personnage du joueur écrasait le bot en base, puis le serveur le refusait à la connexion (« Cheat Attempt to login to character on different account » dans `Anticheat.log`), et l'inscription de peuplement du bot désignait désormais le personnage du joueur.

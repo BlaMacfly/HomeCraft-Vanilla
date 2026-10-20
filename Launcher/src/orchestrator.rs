@@ -449,7 +449,7 @@ impl Orchestrator {
                 self.apply_settings_live();
             }
             Command::InstallTo(dest) => self.install_to(&dest),
-            Command::GenerateBots(n) => self.generate_bots(n),
+            Command::GenerateBots(n) => self.with_world_stopped(|o| o.generate_bots(n)),
             Command::RefreshPatches => self.refresh_patches(),
             Command::PatchBuild(dir) => {
                 let st = self.state();
@@ -584,25 +584,7 @@ impl Orchestrator {
                 }
                 self.refresh_patches();
             }
-            Command::DeleteBots => {
-                if self.mangosd.is_some() {
-                    self.shared.lock().unwrap().notice = Some(fr::BOTGEN_SERVER_RUNNING.into());
-                    return;
-                }
-                let was_temp = self.db.is_none();
-                let r = self.ensure_db().and_then(|db| crate::botgen::delete_all(&db));
-                match r {
-                    Ok(k) => {
-                        self.log(format!("{k} personnage(s) bot(s) supprimé(s)"));
-                        self.shared.lock().unwrap().notice = Some(format!("{k} personnages bots supprimés."));
-                    }
-                    Err(e) => self.log(format!("ERREUR suppression des bots : {e}")),
-                }
-                self.refresh_accounts();
-                if was_temp {
-                    self.release_temp_db();
-                }
-            }
+            Command::DeleteBots => self.with_world_stopped(|o| o.delete_bots()),
             Command::KillGame => {
                 if let Some(mut g) = self.game.take() {
                     let _ = g.kill();
@@ -632,16 +614,59 @@ impl Orchestrator {
         self.shared.lock().unwrap().addons = list;
     }
 
-    /// Génère des personnages bots de peuplement ; recharge la liste du serveur s'il tourne.
-    fn generate_bots(&mut self, count: u32) {
+    /// Exécute une opération sur les personnages bots serveur arrêté. mangosd attribue les numéros de personnages
+    /// et d'objets à partir d'un compteur lu au démarrage : des personnages insérés ou retirés en base pendant qu'il
+    /// tourne entrent en collision avec les prochains personnages créés en jeu (personnage du joueur écrasé sur un
+    /// bot, puis refusé à la connexion). S'il tourne et qu'aucun personnage joueur n'est en jeu, il est arrêté,
+    /// puis relancé après l'opération.
+    fn with_world_stopped(&mut self, op: impl FnOnce(&mut Self)) {
         if self.state().is_busy() {
             return;
         }
-        // mangosd attribue les numéros de personnages et d'objets à partir d'un compteur lu au démarrage : des
-        // personnages insérés en base pendant qu'il tourne reçoivent les mêmes numéros que les prochains personnages
-        // créés en jeu (personnage du joueur écrasé sur un bot, puis refusé à la connexion).
+        let restart = self.mangosd.is_some();
+        if restart {
+            let in_game = self.db.as_ref().map(crate::botgen::players_in_world).unwrap_or(Ok(0));
+            match in_game {
+                Ok(0) => {}
+                Ok(n) => {
+                    self.shared.lock().unwrap().notice = Some(fr::botgen_players_in_world(n));
+                    return;
+                }
+                Err(e) => {
+                    self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::BOTGEN_FAIL));
+                    return;
+                }
+            }
+            self.log("personnages bots : arrêt du serveur le temps de l'opération, puis redémarrage");
+            self.set(State::Stopping, fr::MSG_STOPPING, 0.5);
+            self.stop_services_quiet();
+            self.set(State::Installed, fr::MSG_STOPPED, 0.0);
+        }
+        op(self);
+        if restart && self.start_all() {
+            self.set(State::Ready, fr::MSG_READY, 1.0);
+        }
+    }
+
+    fn delete_bots(&mut self) {
+        let was_temp = self.db.is_none();
+        let r = self.ensure_db().and_then(|db| crate::botgen::delete_all(&db));
+        match r {
+            Ok(k) => {
+                self.log(format!("{k} personnage(s) bot(s) supprimé(s)"));
+                self.shared.lock().unwrap().notice = Some(format!("{k} personnages bots supprimés."));
+            }
+            Err(e) => self.log(format!("ERREUR suppression des bots : {e}")),
+        }
+        self.refresh_accounts();
+        if was_temp {
+            self.release_temp_db();
+        }
+    }
+
+    /// Génère des personnages bots de peuplement (serveur arrêté : voir `with_world_stopped`).
+    fn generate_bots(&mut self, count: u32) {
         if self.mangosd.is_some() {
-            self.shared.lock().unwrap().notice = Some(fr::BOTGEN_SERVER_RUNNING.into());
             return;
         }
         let was_temp = self.db.is_none();
