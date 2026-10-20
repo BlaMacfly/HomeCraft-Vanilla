@@ -111,6 +111,10 @@ fn extract_verified(path: &Path, dest: &Path) -> Result<BackupManifest, String> 
     let mut z = zip::ZipArchive::new(f).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(dest).map_err(|e| e.to_string())?;
     for (name, expected) in &manifest.files {
+        // Seuls les fichiers qu'écrit `create` : un nom venu de l'archive ne doit jamais sortir du dossier temporaire.
+        if !DUMPS.iter().any(|(_, f)| f == name) && name != "settings.json" {
+            return Err(format!("{name} : fichier inattendu dans la sauvegarde"));
+        }
         let mut entry = z.by_name(name).map_err(|_| format!("{name} absent de l'archive"))?;
         let out = dest.join(name);
         let mut o = std::fs::File::create(&out).map_err(|e| e.to_string())?;

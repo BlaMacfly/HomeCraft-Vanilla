@@ -259,7 +259,7 @@ fn spawn_tool_with_tail(name: &str, exe: &Path, args: &[String], cwd: &Path, sin
                 match reader.read_until(b'\n', &mut buf) {
                     Ok(0) | Err(_) => break,
                     Ok(_) => {
-                        let line = String::from_utf8_lossy(&buf).trim().to_string();
+                        let line = crate::util::decode_console(&buf).trim().to_string();
                         if line.is_empty() {
                             continue;
                         }

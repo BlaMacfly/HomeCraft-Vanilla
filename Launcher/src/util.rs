@@ -63,6 +63,25 @@ pub fn datetime_compact() -> String {
     format!("{:04}{:02}{:02}-{:02}{:02}{:02}", t.y, t.mo, t.d, t.h, t.mi, t.s)
 }
 
+/// Ligne écrite par un programme du serveur : UTF-8 si elle en est, sinon page de code Windows-1252 (mangosd écrit
+/// ses messages français en ANSI ; un décodage UTF-8 seul affichait « Compte cr�� »).
+pub fn decode_console(bytes: &[u8]) -> String {
+    if let Ok(s) = std::str::from_utf8(bytes) {
+        return s.to_string();
+    }
+    const CP1252_80_9F: [char; 32] = [
+        '€', '\u{81}', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u{8d}', 'Ž', '\u{8f}',
+        '\u{90}', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u{9d}', 'ž', 'Ÿ',
+    ];
+    bytes
+        .iter()
+        .map(|&b| match b {
+            0x80..=0x9F => CP1252_80_9F[(b - 0x80) as usize],
+            _ => b as char,
+        })
+        .collect()
+}
+
 pub fn sha256_file(path: &Path) -> Result<String, String> {
     let mut f = std::fs::File::open(path).map_err(|e| format!("{} : {e}", path.display()))?;
     let mut hasher = Sha256::new();
@@ -145,6 +164,13 @@ pub fn spawn_error(name: &str, e: &std::io::Error) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn console_lines_in_ansi_are_decoded() {
+        assert_eq!(super::decode_console(&[b'c', b'r', 0xE9, 0xE9]), "créé");
+        assert_eq!(super::decode_console("déjà".as_bytes()), "déjà");
+        assert_eq!(super::decode_console(&[0x80, b' ', 0x92]), "€ ’");
+    }
+
     #[test]
     fn blocked_executable_gets_an_explanation() {
         let e = std::io::Error::from_raw_os_error(4551);

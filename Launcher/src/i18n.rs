@@ -87,6 +87,8 @@ pub mod fr {
     pub const ACC_DELETED: &str = "Compte supprimé :";
     pub const ACC_DELETE_FAIL: &str = "Suppression impossible";
     pub const ACC_DELETE_SELF_WARN: &str = "Attention : ce compte est celui qui s'est connecté le plus récemment.";
+    pub const ACC_CREATE_FAIL: &str = "Création du compte impossible : le serveur ne l'a pas enregistré (voir l'onglet Journaux).";
+    pub const ACC_INVALID: &str = "Identifiant : 1 à 16 lettres ou chiffres. Mot de passe : 4 à 16 caractères, sans espace.";
 
     // Base de données
     pub const DB_TITLE: &str = "Explorateur de base de données";
@@ -383,5 +385,13 @@ pub mod fr {
     /// Génération ou suppression de bots demandée alors qu'un personnage joueur est en jeu (le serveur doit être arrêté).
     pub fn botgen_players_in_world(n: u64) -> String {
         format!("{n} de vos personnages {} en jeu : déconnectez-vous (retour à la sélection des personnages), puis recommencez. Le serveur doit être arrêté quelques secondes pendant l'opération.", if n > 1 { "sont" } else { "est" })
+    }
+
+    pub fn acc_exists(user: &str) -> String {
+        format!("Le compte {} existe déjà.", user.to_ascii_uppercase())
+    }
+
+    pub fn acc_created(user: &str, gm: u8) -> String {
+        format!("Compte {} créé (niveau GM {gm}).", user.to_ascii_uppercase())
     }
 }

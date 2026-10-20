@@ -213,7 +213,7 @@ impl Mangosd {
                     match reader.read_until(b'\n', &mut buf) {
                         Ok(0) | Err(_) => break,
                         Ok(_) => {
-                            let line = String::from_utf8_lossy(&buf).trim_end().to_string();
+                            let line = crate::util::decode_console(&buf).trim_end().to_string();
                             if line.is_empty() {
                                 continue;
                             }

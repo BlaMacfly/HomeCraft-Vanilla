@@ -1,7 +1,10 @@
 ﻿# Fonctions partagées par les scripts Tools/. À « dot-sourcer » : . "$PSScriptRoot\Common.ps1"
-# Tous les chemins sont relatifs à la racine du projet (dossier parent de Tools/).
+# Tous les chemins sont relatifs à la racine du projet : premier dossier parent contenant Server\ (Tools\ en
+# développement, Tools\Scripts\ dans le package distribué).
 
 $script:ProjectRoot = Split-Path -Parent $PSScriptRoot
+while ($script:ProjectRoot -and -not (Test-Path (Join-Path $script:ProjectRoot 'Server'))) { $script:ProjectRoot = Split-Path -Parent $script:ProjectRoot }
+if (-not $script:ProjectRoot) { throw "Racine HomeCraft introuvable (aucun dossier Server au-dessus de $PSScriptRoot)" }
 
 function Get-ProjectPath {
     param([Parameter(Mandatory)][string]$Relative)

@@ -161,6 +161,10 @@ impl eframe::App for App {
             self.shared.lock().unwrap().report_fresh = false;
             self.show_report = true;
         }
+        if snap.settings_reloaded {
+            self.shared.lock().unwrap().settings_reloaded = false;
+            self.settings = Settings::load(&self.layout.settings_file());
+        }
 
         if let Some(t) = self.quit_at {
             if std::time::Instant::now() >= t && !self.closing {
@@ -395,14 +399,21 @@ impl App {
                 ui.add(egui::Slider::new(&mut self.acc_gm, 0..=6));
                 ui.end_row();
             });
-            let valid = !self.acc_user.trim().is_empty() && self.acc_pass.len() >= 4 && self.acc_user.chars().all(|c| c.is_ascii_alphanumeric());
+            // Limites de VMaNGOS (16 caractères) ; la console sépare les arguments par des espaces.
+            let user = self.acc_user.trim();
+            let user_ok = (1..=16).contains(&user.len()) && user.chars().all(|c| c.is_ascii_alphanumeric());
+            let pass_ok = (4..=16).contains(&self.acc_pass.len()) && self.acc_pass.chars().all(|c| c.is_ascii_graphic());
+            let valid = user_ok && pass_ok;
+            if (!user.is_empty() && !user_ok) || (!self.acc_pass.is_empty() && !pass_ok) {
+                ui.colored_label(WARN, fr::ACC_INVALID);
+            }
             ui.horizontal(|ui| {
                 if ui.add_enabled(snap.world_up && valid, egui::Button::new(fr::ACC_CREATE)).clicked() {
                     self.send(Command::CreateAccount { user: self.acc_user.trim().to_string(), pass: self.acc_pass.clone(), gm: self.acc_gm });
                     self.acc_pass.clear();
                 }
                 let sel = self.acc_selected.clone();
-                if ui.add_enabled(snap.world_up && sel.is_some() && self.acc_pass.len() >= 4, egui::Button::new(fr::ACC_SET_PASS)).clicked() {
+                if ui.add_enabled(snap.world_up && sel.is_some() && pass_ok, egui::Button::new(fr::ACC_SET_PASS)).clicked() {
                     self.send(Command::SetPassword { user: sel.clone().unwrap(), pass: self.acc_pass.clone() });
                     self.acc_pass.clear();
                 }

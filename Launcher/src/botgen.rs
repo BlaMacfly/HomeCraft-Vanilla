@@ -285,16 +285,7 @@ pub fn delete_all(db: &MariaDb) -> Result<usize, String> {
     if guids.is_empty() {
         return Ok(0);
     }
-    let list = guids.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
-    for sql in [
-        format!("DELETE FROM characters.item_instance WHERE owner_guid IN ({list})"),
-        format!("DELETE FROM characters.character_inventory WHERE guid IN ({list})"),
-        format!("DELETE FROM characters.character_homebind WHERE guid IN ({list})"),
-        format!("DELETE FROM characters.playerbot WHERE char_guid IN ({list})"),
-        format!("DELETE FROM characters.characters WHERE guid IN ({list})"),
-    ] {
-        c.query_drop(sql).map_err(err)?;
-    }
+    crate::db::delete_characters(&mut c, &guids)?;
     Ok(guids.len())
 }
 

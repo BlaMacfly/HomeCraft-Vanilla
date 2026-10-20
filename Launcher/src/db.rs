@@ -55,6 +55,72 @@ pub fn port_open(port: u16) -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
 }
 
+/// Tables de `characters` reliées à un personnage par une autre colonne que `guid`.
+const CHARACTER_LINKS: &[(&str, &str)] = &[
+    ("character_pet", "owner_guid"),
+    ("item_instance", "owner_guid"),
+    ("item_loot", "owner_guid"),
+    ("corpse", "player_guid"),
+    ("character_social", "friend"),
+    ("character_deleted_items", "player_guid"),
+    ("auction", "seller_guid"),
+    ("group_member", "member_guid"),
+    ("petition_sign", "player_guid"),
+    ("petition", "owner_guid"),
+    ("guild_member", "guid"),
+    ("gm_tickets", "guid"),
+    ("gm_surveys", "guid"),
+    ("playerbot", "char_guid"),
+];
+
+/// Supprime des personnages et ce qui leur appartient dans la base `characters`. Chaque table est désignée par la
+/// colonne qui porte vraiment le numéro du personnage : dans `item_instance`, `corpse`, `creature_respawn` ou `pet_*`,
+/// la colonne `guid` est le numéro d'un objet, d'un cadavre, d'une créature ou d'un familier (les effacer par `guid`
+/// détruirait les données d'autres personnages). Les tables `character_*` sont, elles, indexées par le personnage.
+pub fn delete_characters(c: &mut Conn, guids: &[u32]) -> Result<(), String> {
+    if guids.is_empty() {
+        return Ok(());
+    }
+    let err = |e: mysql::Error| e.to_string();
+    let list = guids.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
+    let columns: Vec<(String, String)> = c.query("SELECT table_name, column_name FROM information_schema.columns WHERE table_schema='characters'").map_err(err)?;
+    let has = |t: &str, col: &str| columns.iter().any(|(a, b)| a == t && b == col);
+    let mut sql: Vec<String> = Vec::new();
+    if has("character_pet", "owner_guid") {
+        let pets: Vec<u32> = c.query(format!("SELECT id FROM characters.character_pet WHERE owner_guid IN ({list})")).map_err(err)?;
+        if !pets.is_empty() {
+            let pet_list = pets.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
+            for t in ["pet_aura", "pet_spell", "pet_spell_cooldown"] {
+                if has(t, "guid") {
+                    sql.push(format!("DELETE FROM characters.`{t}` WHERE guid IN ({pet_list})"));
+                }
+            }
+        }
+    }
+    if has("mail", "receiver_guid") {
+        if has("mail_items", "mail_id") {
+            sql.push(format!("DELETE FROM characters.mail_items WHERE mail_id IN (SELECT id FROM characters.mail WHERE receiver_guid IN ({list}))"));
+        }
+        sql.push(format!("DELETE FROM characters.mail WHERE receiver_guid IN ({list})"));
+    }
+    let mut own_tables: Vec<&str> = columns.iter().filter(|(t, col)| col == "guid" && t.starts_with("character_")).map(|(t, _)| t.as_str()).collect();
+    own_tables.sort_unstable();
+    own_tables.dedup();
+    for t in own_tables {
+        sql.push(format!("DELETE FROM characters.`{t}` WHERE guid IN ({list})"));
+    }
+    for (t, col) in CHARACTER_LINKS {
+        if has(t, col) {
+            sql.push(format!("DELETE FROM characters.`{t}` WHERE `{col}` IN ({list})"));
+        }
+    }
+    sql.push(format!("DELETE FROM characters.characters WHERE guid IN ({list})"));
+    for s in sql {
+        c.query_drop(&s).map_err(|e| format!("{e} ({s})"))?;
+    }
+    Ok(())
+}
+
 fn value_to_string(v: &Value) -> String {
     match v {
         Value::NULL => "NULL".to_string(),
@@ -404,7 +470,13 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
     /// Faction (55 Alliance / 29 Horde) du dernier personnage joué, pour l'AHBot.
     pub fn last_played_faction(&self) -> Option<u32> {
         let mut c = self.root_conn().ok()?;
-        let race: Option<u8> = c.query_first("SELECT race FROM characters.characters ORDER BY logout_time DESC LIMIT 1").ok()?;
+        // Personnages du joueur seulement : les bots générés ont une date de déconnexion récente et une faction au hasard.
+        let race: Option<u8> = c
+            .query_first(format!(
+                "SELECT c.race FROM characters.characters c JOIN realmd.account a ON a.id=c.account WHERE a.username<>'{}' ORDER BY c.logout_time DESC LIMIT 1",
+                crate::botgen::BOT_ACCOUNT
+            ))
+            .ok()?;
         race.map(|r| if matches!(r, 2 | 5 | 6 | 8) { 29 } else { 55 })
     }
 
@@ -419,18 +491,7 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
             return Err(format!("compte {username} introuvable"));
         };
         let guids: Vec<u32> = c.query(format!("SELECT guid FROM characters.characters WHERE account={id}")).map_err(err)?;
-        if !guids.is_empty() {
-            let list = guids.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
-            let tables: Vec<String> = c
-                .query("SELECT table_name FROM information_schema.columns WHERE table_schema='characters' AND column_name='guid' AND table_name<>'characters'")
-                .map_err(err)?;
-            for t in tables {
-                c.query_drop(format!("DELETE FROM characters.`{t}` WHERE guid IN ({list})")).map_err(err)?;
-            }
-            c.query_drop(format!("DELETE FROM characters.item_instance WHERE owner_guid IN ({list})")).map_err(err)?;
-            c.query_drop(format!("DELETE FROM characters.playerbot WHERE char_guid IN ({list})")).map_err(err)?;
-            c.query_drop(format!("DELETE FROM characters.characters WHERE guid IN ({list})")).map_err(err)?;
-        }
+        delete_characters(&mut c, &guids)?;
         for sql in [
             format!("DELETE FROM realmd.account_access WHERE id={id}"),
             format!("DELETE FROM realmd.account_banned WHERE id={id}"),

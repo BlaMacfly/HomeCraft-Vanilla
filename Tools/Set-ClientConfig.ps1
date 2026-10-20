@@ -6,11 +6,12 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$ClientDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'Client'),
+    [string]$ClientDir = '',
     [switch]$Windowed
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Common.ps1"
+if (-not $ClientDir) { $ClientDir = Get-ProjectPath 'Client' }
 
 if (-not (Test-Path (Join-Path $ClientDir 'WoW.exe'))) { throw "WoW.exe introuvable dans $ClientDir" }
 

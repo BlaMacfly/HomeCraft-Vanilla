@@ -109,7 +109,17 @@ pub fn add(src: &Path, client_dir: &Path, progress: &dyn Fn(&str)) -> Result<Str
         return Err(format!("{name} existe déjà dans Data"));
     }
     progress(&format!("copie de {file} vers {name}"));
-    std::fs::copy(src, &dest).map_err(|e| format!("{file} : {e}"))?;
+    // Copie sous un nom que le client ne charge pas, puis renommage : une copie interrompue (disque plein…) ne
+    // laisse jamais une archive tronquée que le jeu tenterait d'ouvrir.
+    let partial = client_dir.join("Data").join(format!("{name}.copie-en-cours"));
+    if let Err(e) = std::fs::copy(src, &partial) {
+        let _ = std::fs::remove_file(&partial);
+        return Err(format!("{file} : {e}"));
+    }
+    std::fs::rename(&partial, &dest).map_err(|e| {
+        let _ = std::fs::remove_file(&partial);
+        format!("{file} : {e}")
+    })?;
     if let Ok(meta) = std::fs::metadata(&dest) {
         let mut perm = meta.permissions();
         if perm.readonly() {

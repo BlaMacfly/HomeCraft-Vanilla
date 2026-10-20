@@ -100,6 +100,8 @@ pub struct Snapshot {
     /// Une écriture a eu lieu : la page affichée doit être rechargée
     pub table_dirty: bool,
     pub mmaps: MmapsStatus,
+    /// settings.json remplacé par une restauration : l'interface doit relire ses réglages (sinon elle réécrirait les anciens)
+    pub settings_reloaded: bool,
 }
 
 /// État des cartes de déplacement (mmaps), générées en arrière-plan.
@@ -195,7 +197,7 @@ pub struct Orchestrator {
     ports_up: (bool, bool),
 }
 
-pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sender<Command>) {
+pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sender<Command>, std::thread::JoinHandle<()>) {
     let shared = Arc::new(Mutex::new(Snapshot {
         state: State::Installed,
         message: fr::MSG_IDLE.into(),
@@ -225,11 +227,12 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         table_view: None,
         table_dirty: false,
         mmaps: MmapsStatus::Unknown,
+        settings_reloaded: false,
     }));
     let (tx, rx) = mpsc::channel();
     let (log_tx, log_rx) = mpsc::channel();
     let shared2 = shared.clone();
-    std::thread::Builder::new()
+    let handle = std::thread::Builder::new()
         .name("orchestrateur".into())
         .spawn(move || {
             let log_file = std::fs::create_dir_all(layout.logs()).ok().and_then(|_| std::fs::OpenOptions::new().create(true).append(true).open(layout.launcher_log()).ok());
@@ -237,7 +240,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
             o.run();
         })
         .expect("thread orchestrateur");
-    (shared, tx)
+    (shared, tx, handle)
 }
 
 impl Orchestrator {
@@ -362,14 +365,10 @@ impl Orchestrator {
             }
             Command::Console(c) => self.console(&c),
             Command::RefreshAccounts => self.refresh_accounts(),
-            Command::CreateAccount { user, pass, gm } => {
-                self.console(&format!("account create {user} {pass}"));
-                std::thread::sleep(Duration::from_millis(400));
-                self.console(&format!("account set gmlevel {user} {gm}"));
-                std::thread::sleep(Duration::from_millis(400));
-                self.refresh_accounts();
+            Command::CreateAccount { user, pass, gm } => self.create_account(&user, &pass, gm),
+            Command::SetPassword { user, pass } => {
+                self.console_shown(&format!("account set password {user} {pass} {pass}"), &format!("account set password {user} ******** ********"))
             }
-            Command::SetPassword { user, pass } => self.console(&format!("account set password {user} {pass} {pass}")),
             Command::DeleteAccount(user) => {
                 if self.state() == State::Playing {
                     self.shared.lock().unwrap().notice = Some(fr::ACC_DELETE_PLAYING.into());
@@ -591,10 +590,18 @@ impl Orchestrator {
                     let _ = g.wait();
                     self.log("jeu fermé de force à la demande de l'utilisateur");
                 }
-                // Instances de WoW.exe lancées hors launcher (ou via VanillaFixes) : fermées aussi si elles viennent du dossier client.
+                // WoW.exe lancé via VanillaFixes (processus enfant de VanillaFixes.exe) : fermé seulement s'il vient du
+                // dossier du client HomeCraft. Un « taskkill /IM WoW.exe » fermerait aussi tout autre client WoW du PC.
                 let dir = self.client_dir();
-                let _ = std::process::Command::new("taskkill").args(["/F", "/IM", "WoW.exe"]).creation_flags(crate::db::CREATE_NO_WINDOW).output();
-                self.log(format!("WoW.exe terminé (client : {})", dir.display()));
+                let prefix = dir.to_string_lossy().trim_end_matches('\\').replace('\'', "''");
+                let script = format!(
+                    "Get-Process -Name WoW -ErrorAction SilentlyContinue | Where-Object {{ $_.Path -and $_.Path.StartsWith('{prefix}\\', [StringComparison]::OrdinalIgnoreCase) }} | Stop-Process -Force"
+                );
+                let _ = std::process::Command::new("powershell.exe")
+                    .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &script])
+                    .creation_flags(crate::db::CREATE_NO_WINDOW)
+                    .output();
+                self.log(format!("jeu fermé (client : {})", dir.display()));
                 if self.state() == State::Playing {
                     self.set(State::Ready, fr::MSG_READY, 1.0);
                 }
@@ -644,7 +651,13 @@ impl Orchestrator {
         }
         op(self);
         if restart && self.start_all() {
-            self.set(State::Ready, fr::MSG_READY, 1.0);
+            // Jeu resté ouvert (à la sélection des personnages) : toujours suivi, pour la sauvegarde à sa fermeture.
+            let game_open = self.game.as_mut().map(|g| matches!(g.try_wait(), Ok(None))).unwrap_or(false);
+            if game_open {
+                self.set(State::Playing, fr::MSG_PLAYING, 1.0);
+            } else {
+                self.set(State::Ready, fr::MSG_READY, 1.0);
+            }
         }
     }
 
@@ -1230,6 +1243,7 @@ impl Orchestrator {
             Ok(m) => {
                 self.log(format!("restauration terminée depuis {} ({} personnages, {} comptes)", path.display(), m.characters, m.accounts));
                 self.settings = Settings::load(&self.layout.settings_file());
+                self.shared.lock().unwrap().settings_reloaded = true;
                 self.set(State::Installed, fr::MSG_RESTORE_DONE, 0.0);
             }
             Err(e) => self.fail("restauration", e),
@@ -1272,13 +1286,18 @@ impl Orchestrator {
         }
 
         self.set(State::StartingDb, fr::MSG_DB, 0.3);
+        // Base déjà lancée par ce launcher (laissée en service après une restauration ou un réimport) : elle reste
+        // la nôtre, sinon elle ne serait plus arrêtée à la fermeture.
+        let already_ours = self.db_owned && self.db.as_ref().map(|d| d.ping()).unwrap_or(false);
         let started = match db.start(Duration::from_secs(90)) {
             Ok(s) => s,
             Err(e) => return self.fail_ret("démarrage MariaDB", e),
         };
-        self.db_owned = started;
+        self.db_owned = started || already_ours;
         self.db_annex = false;
-        self.log(format!("MariaDB opérationnelle sur 127.0.0.1:{MARIADB_PORT}{}", if started { "" } else { " (déjà en service, non gérée par ce launcher)" }));
+        // Connue tout de suite : un échec plus loin (import, configuration, monde) l'arrête avec le reste.
+        self.db = Some(db.clone());
+        self.log(format!("MariaDB opérationnelle sur 127.0.0.1:{MARIADB_PORT}{}", if self.db_owned { "" } else { " (déjà en service, non gérée par ce launcher)" }));
         match db.databases_missing() {
             Ok(missing) if !missing.is_empty() => {
                 self.set(State::StartingDb, fr::MSG_DB_IMPORT, 0.4);
@@ -1370,7 +1389,11 @@ impl Orchestrator {
             self.drain_server_logs();
             match m.wait_ready(Duration::from_millis(500)) {
                 Ok(()) => break,
-                Err(e) if std::time::Instant::now() > deadline || !m.is_running() => return self.fail_ret("chargement du monde", e),
+                Err(e) if std::time::Instant::now() > deadline || !m.is_running() => {
+                    // Toujours arrêté ici : il n'est pas encore dans `self.mangosd`, l'arrêt général ne le verrait pas.
+                    m.stop(Duration::from_secs(30));
+                    return self.fail_ret("chargement du monde", e);
+                }
                 Err(_) => {}
             }
         }
@@ -1485,7 +1508,12 @@ impl Orchestrator {
     // ------------------------------------------------------------------ console, comptes, outils
 
     fn console(&mut self, command: &str) {
-        self.log(format!("console> {command}"));
+        self.console_shown(command, &mask_console_secrets(command));
+    }
+
+    /// Envoie `command` à la console de mangosd ; `shown` est la version écrite dans le journal.
+    fn console_shown(&mut self, command: &str, shown: &str) {
+        self.log(format!("console> {shown}"));
         match self.mangosd.as_mut() {
             Some(m) => {
                 if let Err(e) = m.send(command) {
@@ -1494,6 +1522,59 @@ impl Orchestrator {
             }
             None => self.log(fr::ACC_NEED_SERVER),
         }
+    }
+
+    /// Création d'un compte par la console de mangosd (seule voie qui calcule le vérificateur SRP6 du mot de passe).
+    /// `account create` écrit en base de façon asynchrone : le niveau MJ n'est attribué qu'une fois le compte présent,
+    /// sinon le serveur répond « compte inexistant » (et l'utilisateur, croyant à un échec, recréait le compte).
+    fn create_account(&mut self, user: &str, pass: &str, gm: u8) {
+        let Some(db) = self.db.clone() else {
+            self.shared.lock().unwrap().notice = Some(fr::ACC_NEED_SERVER.into());
+            return;
+        };
+        let upper = user.to_ascii_uppercase();
+        let exists = |db: &MariaDb| {
+            db.root_conn()
+                .and_then(|mut c| {
+                    use mysql::prelude::Queryable;
+                    c.query_first::<u64, _>(format!("SELECT COUNT(*) FROM realmd.account WHERE username='{upper}'")).map_err(|e| e.to_string())
+                })
+                .map(|n| n.unwrap_or(0) > 0)
+        };
+        match exists(&db) {
+            Ok(true) => {
+                self.shared.lock().unwrap().notice = Some(fr::acc_exists(user));
+                return;
+            }
+            Ok(false) => {}
+            Err(e) => {
+                self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::ACC_CREATE_FAIL));
+                return;
+            }
+        }
+        self.console_shown(&format!("account create {user} {pass}"), &format!("account create {user} ********"));
+        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        let mut created = false;
+        while std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(300));
+            if exists(&db).unwrap_or(false) {
+                created = true;
+                break;
+            }
+        }
+        self.drain_server_logs();
+        if !created {
+            self.log(format!("ERREUR compte {user} : le serveur ne l'a pas créé dans le délai (voir la console du serveur)"));
+            self.shared.lock().unwrap().notice = Some(fr::ACC_CREATE_FAIL.into());
+            return;
+        }
+        if gm > 0 {
+            self.console(&format!("account set gmlevel {user} {gm}"));
+            std::thread::sleep(Duration::from_millis(500));
+        }
+        self.log(format!("compte {user} créé (niveau {gm})"));
+        self.shared.lock().unwrap().notice = Some(fr::acc_created(user, gm));
+        self.refresh_accounts();
     }
 
     fn refresh_accounts(&mut self) {
@@ -1547,5 +1628,34 @@ impl Orchestrator {
             Ok(_) => self.log("HeidiSQL ouvert"),
             Err(e) => self.log(format!("HeidiSQL : {e}")),
         }
+    }
+}
+
+/// Masque les mots de passe des commandes de comptes avant de les écrire dans le journal (y compris les commandes
+/// tapées à la main dans l'onglet Journaux).
+fn mask_console_secrets(cmd: &str) -> String {
+    let words: Vec<&str> = cmd.split_whitespace().collect();
+    let lower: Vec<String> = words.iter().map(|w| w.trim_start_matches('.').to_ascii_lowercase()).collect();
+    let l: Vec<&str> = lower.iter().map(String::as_str).collect();
+    let keep = match l.as_slice() {
+        ["account", "create", ..] => 3,
+        ["account", "set", "password", ..] => 4,
+        ["account", "password", ..] => 2,
+        _ => return cmd.to_string(),
+    };
+    words.iter().enumerate().map(|(i, w)| if i < keep { (*w).to_string() } else { "********".to_string() }).collect::<Vec<_>>().join(" ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mask_console_secrets;
+
+    #[test]
+    fn passwords_never_reach_the_log() {
+        assert_eq!(mask_console_secrets("account create bob secret"), "account create bob ********");
+        assert_eq!(mask_console_secrets("account set password bob a b"), "account set password bob ******** ********");
+        assert_eq!(mask_console_secrets(".account password old new new"), ".account password ******** ******** ********");
+        assert_eq!(mask_console_secrets("account set gmlevel bob 6"), "account set gmlevel bob 6");
+        assert_eq!(mask_console_secrets("bot reload"), "bot reload");
     }
 }

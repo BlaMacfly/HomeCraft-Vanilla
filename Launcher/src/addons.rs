@@ -163,7 +163,8 @@ pub fn add_from_zip(zip_path: &Path, client_dir: &Path, progress: &dyn Fn(&str))
                 continue;
             }
             let rel = &ename[prefix.len()..];
-            if rel.is_empty() || rel.contains("..") {
+            // Chemin absolu ou lecteur (« /x », « C:x ») : `join` sortirait du dossier de l'AddOn.
+            if rel.is_empty() || rel.contains("..") || rel.starts_with('/') || rel.contains(':') {
                 continue;
             }
             let target = dest.join(rel);

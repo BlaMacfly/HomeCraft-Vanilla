@@ -9,12 +9,13 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$ClientDir = (Join-Path (Split-Path -Parent $PSScriptRoot) 'Client'),
+    [string]$ClientDir = '',
     [string[]]$Steps = @('dbcmaps', 'vmaps'),
     [int]$Threads = [Environment]::ProcessorCount
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Common.ps1"
+if (-not $ClientDir) { $ClientDir = Get-ProjectPath 'Client' }
 
 $bin  = Get-ProjectPath 'Server\vmangos'
 $data = Get-ProjectPath 'Server\Data'

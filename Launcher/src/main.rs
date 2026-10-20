@@ -22,7 +22,7 @@ mod util;
 fn main() -> eframe::Result {
     let layout = paths::Layout::detect();
     let settings = settings::Settings::load(&layout.settings_file());
-    let (shared, tx) = orchestrator::spawn(layout.clone(), settings.clone());
+    let (shared, tx, orchestrator_thread) = orchestrator::spawn(layout.clone(), settings.clone());
 
     // Options de test (Tests/) : --start démarre les services immédiatement, --quit-after N ferme après N secondes.
     let args: Vec<String> = std::env::args().collect();
@@ -49,6 +49,8 @@ fn main() -> eframe::Result {
             (Some("addonon"), Some(n)) => Some(orchestrator::Command::AddonSetActive(n.clone(), true)),
             (Some("addondel"), Some(n)) => Some(orchestrator::Command::AddonRemove(n.clone())),
             (Some("accdel"), Some(n)) => Some(orchestrator::Command::DeleteAccount(n.clone())),
+            // Tests : --do acccreate <compte> <mot de passe> [niveau] (serveur démarré par --start).
+            (Some("acccreate"), Some(u)) => args.get(i + 3).map(|p| orchestrator::Command::CreateAccount { user: u.clone(), pass: p.clone(), gm: args.get(i + 4).and_then(|g| g.parse().ok()).unwrap_or(0) }),
             (Some("mpqbuild"), Some(p)) => Some(orchestrator::Command::PatchBuild(std::path::PathBuf::from(p))),
             (Some("reimportworld"), _) => Some(orchestrator::Command::ReimportWorld),
             // Tests : applique un fichier de réglages comme le bouton Enregistrer (après --start : à chaud).
@@ -79,8 +81,12 @@ fn main() -> eframe::Result {
         options,
         Box::new(move |cc| Ok(Box::new(ui::App::new(cc, layout, settings, shared, tx, quit_after, start_tab)))),
     );
-    // Fermeture : l'orchestrateur arrête les services qu'il a démarrés.
+    // Fermeture : l'orchestrateur arrête les services qu'il a démarrés (MariaDB comprise, arrêt SQL propre) ; le
+    // processus attend qu'il ait fini, sans quoi la fin de main interromprait l'arrêt en cours.
     let _ = tx_exit.send(orchestrator::Command::Shutdown);
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+    while !orchestrator_thread.is_finished() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
     result
 }
