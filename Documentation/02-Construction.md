@@ -72,3 +72,18 @@ Tests (Tests/) : `Test-ServerStartup.ps1` enchaîne MariaDB → realmd → mango
 ## Exigences ajoutées en cours de route
 
 - **AHBot** (demande utilisateur du 2026-10-14) : l'hôtel des ventes doit être approvisionné avec tous les objets utiles en solo. VMaNGOS fournit un AHBot minimal (`AHBot.Enable`, `AHBot.ah.fid` une seule faction, `AHBot.itemcount`, table `auctionhousebot` : 78 objets dans le snapshot). **Fait le 2026-10-14** : `Tools/New-AHBotTable.ps1 -Apply` génère `Server/Database/custom/auctionhousebot_solo.sql` (6 392 objets : consommables, réactifs, composants, recettes, sacs, munitions, familiers/montures, armes et armures vertes/bleues/épiques non liées au ramassage ; prix = prix vendeur ou 4 × prix de revente, piles jusqu'à 20, enchère = 75 % du rachat). `New-ServerConfig.ps1` active `AHBot.Enable = 1`, choisit l'hôtel de la faction du dernier personnage joué (Alliance par défaut) et règle `AHBot.itemcount = 3 × lignes` (≈ 19 000 enchères). Limites : un seul hôtel à la fois (changement au redémarrage), doublons dus au tirage aléatoire, prix non économiques ; amélioration possible par un correctif du cœur (listing déterministe, deux factions).
+
+## Autonomie vis-à-vis des runtimes Visual C++ (0.9.17, 2026-10-20)
+
+Les programmes VMaNGOS demandent MSVCP140 / VCRUNTIME140 (Visual C++ 2015-2022) et leur `libmySQL.dll` (MySQL 5.5.62)
+le runtime Visual C++ 2008 (`Microsoft.VC90.CRT`), absents d'un Windows neuf. Après toute (ré)installation du composant
+VMaNGOS ou de MariaDB, et après `Build/Patch-MangosdBuilds.ps1`, lancer **`Build/Set-VmangosRuntime.ps1`** :
+
+- copie dans `Server\vmangos` le runtime Visual C++ 14.44 livré par MariaDB (même version que l'éditeur de liens de VMaNGOS) ;
+- compile `Build/libmysql-shim` (Build Tools 2022) et remplace `libmySQL.dll` par cette couche (213 fonctions redirigées
+  vers `libmariadb.dll`, MariaDB Connector/C 3.4, binairement compatible pour ce qu'utilise VMaNGOS : `MYSQL_FIELD`,
+  `MYSQL_BIND` et les options 7 et 9 de `mysql_options`, structures comparées aux en-têtes ; seules `mysql_thread_init`,
+  `mysql_thread_end` et `mysql_thread_safe` sont écrites dans la couche) ; l'original reste en `libmySQL.dll.orig`.
+
+Le launcher est lié à la CRT statique (`Launcher/.cargo/config.toml`). Contrôle : `Tests/Test-Dependencies.ps1` (chaque
+DLL importée par un programme du package doit être une DLL de Windows ou se trouver à côté de lui).

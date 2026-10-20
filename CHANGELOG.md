@@ -1,5 +1,14 @@
 # Journal des versions
 
+## 0.9.17 — 20 octobre 2026
+
+HomeCraft ne dépend plus d'aucun « Microsoft Visual C++ Redistributable » installé dans Windows. Auparavant, sur un Windows où ces runtimes manquent (installation neuve), le launcher ne démarrait pas (VCRUNTIME140.dll introuvable) et le serveur non plus.
+
+- Launcher compilé avec la bibliothèque C intégrée (CRT statique).
+- Programmes VMaNGOS (mangosd, realmd, extracteurs) : runtime Visual C++ 2015-2022 (14.44, la version de leur compilation) placé à côté d'eux, tiré de MariaDB.
+- `libmySQL.dll` de VMaNGOS (client MySQL 5.5.62, qui exigeait le runtime Visual C++ **2008**) remplacé par une couche de compatibilité qui redirige ses fonctions vers MariaDB Connector/C (`libmariadb.dll`, déjà livré avec la base). Structures et options utilisées par VMaNGOS vérifiées identiques ; seules trois fonctions de threads, devenues sans effet, sont fournies par la couche.
+- Nouveau contrôle `Tests\Test-Dependencies.ps1` : chaque DLL demandée par un programme du package est une DLL de Windows ou se trouve à côté de lui (22 manques détectés sur le package 0.9.16, 0 sur la 0.9.17).
+
 ## 0.9.16 — 20 octobre 2026
 
 Audit complet du code du launcher.

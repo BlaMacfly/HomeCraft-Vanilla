@@ -66,6 +66,7 @@ Copy-Item (Join-Path $root 'LICENCE.txt') (Join-Path $lic 'HomeCraft-Licence.txt
 Copy-Item (Join-Path $root 'Server\Config\LICENSE') (Join-Path $lic 'VMaNGOS-GPL-2.0.txt')
 $mdbLic = Get-ChildItem (Join-Path $root 'Server\Database\mariadb') -File | Where-Object { $_.Name -match '^(COPYING|LICENSE|THIRDPARTY|README)' }
 foreach ($f in $mdbLic) { Copy-Item $f.FullName (Join-Path $lic "MariaDB-$($f.Name)") }
+Copy-Item (Join-Path $PSScriptRoot 'package-files\MariaDB-Connector-C-LGPL-2.1.txt') (Join-Path $lic 'MariaDB-Connector-C-LGPL-2.1.txt')
 Copy-Item (Join-Path $root 'Tools\HeidiSQL\gpl.txt') (Join-Path $lic 'HeidiSQL-GPL-2.0.txt')
 Copy-Item (Join-Path $root 'Tools\HeidiSQL\license.txt') (Join-Path $lic 'HeidiSQL-license.txt')
 foreach ($f in 'LICENSE-VanillaFixes.txt', 'LICENSE-DXVK.txt') { $p = Join-Path $root "Tools\VanillaFixes\$f"; if (Test-Path $p) { Copy-Item $p (Join-Path $lic ($f -replace '^LICENSE-', '' -replace '\.txt$', '-licence.txt')) } }
@@ -84,7 +85,9 @@ foreach ($c in $manifestComponents) { $sources += "| $($c.id) | $($c.commit) ($(
 $sources += @("| HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments Server\Database\custom, identité visuelle) | v$version | Sources\Launcher, Sources\Build, Tools\Scripts (ce package) | Propriétaire : LICENCE.txt (usage personnel ; reproduction, diffusion et modification interdites) |", "",
     "Les licences des composants tiers ci-dessus s'appliquent uniquement à ces composants ; la licence HomeCraft ne les restreint pas.", "",
     "## Modifications apportées aux composants", "",
-    "- **mangosd.exe (VMaNGOS)** : la liste des builds client acceptés à la connexion monde, {5875, 6005, 6141}, est modifiée en {5875, 6005, 5880} pour accepter le client 1.12.1 build 5880 (script reproductible : Sources\Build\Patch-MangosdBuilds.ps1, appliqué au binaire officiel du commit indiqué). Le binaire d'origine est disponible à l'adresse du composant ; la modification équivaut, dans le code source, à remplacer 6141 par 5880 dans le tableau des builds acceptés du serveur monde.", "")
+    "- **mangosd.exe (VMaNGOS)** : la liste des builds client acceptés à la connexion monde, {5875, 6005, 6141}, est modifiée en {5875, 6005, 5880} pour accepter le client 1.12.1 build 5880 (script reproductible : Sources\Build\Patch-MangosdBuilds.ps1, appliqué au binaire officiel du commit indiqué). Le binaire d'origine est disponible à l'adresse du composant ; la modification équivaut, dans le code source, à remplacer 6141 par 5880 dans le tableau des builds acceptés du serveur monde.",
+    "- **libmySQL.dll (VMaNGOS)** : le client MySQL 5.5.62 livré avec VMaNGOS dépend du runtime Visual C++ 2008, absent des Windows récents. Il est remplacé par une couche de compatibilité écrite pour HomeCraft (Sources\Build\libmysql-shim, compilée par Sources\Build\Set-VmangosRuntime.ps1) qui redirige les fonctions mysql_* vers **MariaDB Connector/C** (libmariadb.dll, LGPL-2.1, texte dans MariaDB-Connector-C-LGPL-2.1.txt), tiré du composant mariadb-server-windows.",
+    "- **Runtime Visual C++ 2015-2022** (vcruntime140*.dll, msvcp140*.dll, concrt140.dll) : copié de MariaDB à côté des programmes VMaNGOS (déploiement local autorisé par Microsoft pour ces fichiers redistribuables), pour qu'aucun « Visual C++ Redistributable » ne soit requis.", "")
 $sources += @(
     "Le code source complet de VMaNGOS, MariaDB et HeidiSQL est disponible aux adresses ci-dessus pour les versions exactes indiquées (commit ou numéro de version). Sur demande, l'éditeur de ce package en fournit une copie.", "",
     "## Bibliothèques Rust du launcher (licences déclarées par les auteurs)", "", "| Crate | Version | Licence |", "|---|---|---|") + $crates
