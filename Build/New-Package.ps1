@@ -85,7 +85,7 @@ foreach ($c in $manifestComponents) { $sources += "| $($c.id) | $($c.commit) ($(
 $sources += @("| HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments Server\Database\custom, identité visuelle) | v$version | Sources\Launcher, Sources\Build, Tools\Scripts (ce package) | Propriétaire : LICENCE.txt (usage personnel ; reproduction, diffusion et modification interdites) |", "",
     "Les licences des composants tiers ci-dessus s'appliquent uniquement à ces composants ; la licence HomeCraft ne les restreint pas.", "",
     "## Modifications apportées aux composants", "",
-    "- **mangosd.exe (VMaNGOS)** : la liste des builds client acceptés à la connexion monde, {5875, 6005, 6141}, est modifiée en {5875, 6005, 5880} pour accepter le client 1.12.1 build 5880 (script reproductible : Sources\Build\Patch-MangosdBuilds.ps1, appliqué au binaire officiel du commit indiqué). Le binaire d'origine est disponible à l'adresse du composant ; la modification équivaut, dans le code source, à remplacer 6141 par 5880 dans le tableau des builds acceptés du serveur monde.",
+    "- **mangosd.exe et realmd.exe (VMaNGOS)** : compilés par HomeCraft depuis les sources du commit indiqué, avec les modifications de **Sources\Build\vmangos-patches\homecraft.patch** (GPL-2.0, comme VMaNGOS ; compilation reproductible : Sources\Build\Build-Vmangos.ps1, Visual Studio Build Tools 2022). Modifications : build client 5880 accepté (client 1.12.1 frFR) ; bots du monde (les bots de peuplement acceptent l'invitation d'un joueur, se mettent à son niveau, le rejoignent et combattent avec lui ; hors groupe, ils restent en ville ou chassent dans une zone de leur niveau) ; réglages HomeCraftBot.* de mangosd.conf. Les extracteurs sont les binaires officiels du composant.",
     "- **libmySQL.dll (VMaNGOS)** : le client MySQL 5.5.62 livré avec VMaNGOS dépend du runtime Visual C++ 2008, absent des Windows récents. Il est remplacé par une couche de compatibilité écrite pour HomeCraft (Sources\Build\libmysql-shim, compilée par Sources\Build\Set-VmangosRuntime.ps1) qui redirige les fonctions mysql_* vers **MariaDB Connector/C** (libmariadb.dll, LGPL-2.1, texte dans MariaDB-Connector-C-LGPL-2.1.txt), tiré du composant mariadb-server-windows.",
     "- **Runtime Visual C++ 2015-2022** (vcruntime140*.dll, msvcp140*.dll, concrt140.dll) : copié de MariaDB à côté des programmes VMaNGOS (déploiement local autorisé par Microsoft pour ces fichiers redistribuables), pour qu'aucun « Visual C++ Redistributable » ne soit requis.", "")
 $sources += @(
@@ -96,7 +96,7 @@ $src = Join-Path $out 'Sources\Launcher'
 CopyTree (Join-Path $root 'Launcher\src') (Join-Path $src 'src')
 CopyTree (Join-Path $root 'Launcher\assets') (Join-Path $src 'assets')
 foreach ($f in 'Cargo.toml', 'Cargo.lock', 'README.md', 'build.rs') { Copy-Item (Join-Path $root "Launcher\$f") (Join-Path $src $f) }
-CopyTree $PSScriptRoot (Join-Path $out 'Sources\Build') -Exclude @('package\*', 'downloads\*', 'tmp\*', 'files-manifest.json', 'installer-assets\*')
+CopyTree $PSScriptRoot (Join-Path $out 'Sources\Build') -Exclude @('package\*', 'downloads\*', 'tmp\*', 'files-manifest.json', 'installer-assets\*', 'vmangos-src\*', 'vmangos-build\*')
 
 Step "autorun.inf"
 Set-Content -Path (Join-Path $out 'autorun.inf') -Encoding ASCII -Value "[autorun]`r`nopen=HomeCraft Edition Vanilla.exe`r`nicon=HomeCraft Edition Vanilla.exe,0`r`nlabel=HomeCraft Edition Vanilla`r`n"

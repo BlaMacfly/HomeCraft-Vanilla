@@ -1,5 +1,24 @@
 # Journal des versions
 
+## 0.9.18 — 23 octobre 2026
+
+**Bots du monde.** Le serveur VMaNGOS est désormais compilé par HomeCraft (même commit 53d24d5, modifications publiées dans `Sources\Build\vmangos-patches\homecraft.patch`, GPL-2.0), pour donner une vraie vie aux bots de peuplement :
+
+- **Invitation acceptée** : un bot invité par un joueur accepte toujours, quel que soit son niveau (sauf s'il accompagne déjà quelqu'un). Il prend le niveau du joueur, avec talents, sorts et équipement adaptés (réglage « Bot invité mis à votre niveau »), le rejoint par téléportation et combat avec lui comme un compagnon `.partybot` (suivi, attaque de sa cible, soins, donjons ; les commandes `.partybot` fonctionnent sur lui). Renvoyé du groupe, il reprend sa vie.
+- **Chasse** : hors groupe, les bots partent dans une zone de leur niveau sur les deux continents, jamais en territoire adverse. Ils y combattent les monstres ordinaires avec les sorts de leur classe, sans toucher à ceux qu'un autre a déjà engagés, se reposent, gagnent de l'expérience et des niveaux, et changent de zone quand il n'y a plus rien à chasser.
+- **En ville** : une partie reste dans les capitales (« Part des bots restant en ville », 25 % par défaut) et y flâne.
+- Le gestionnaire de peuplement ne déconnecte jamais un bot qui accompagne un joueur.
+- Les bots ne font pas encore de quêtes par eux-mêmes.
+
+Corrections dans le serveur, trouvées en testant :
+
+- Un bot jamais sauvegardé « regardait » la cinématique d'introduction de sa race à chaque connexion, sans client pour la terminer : les monstres ne pouvaient pas l'attaquer et abandonnaient aussitôt le combat.
+- Avec `PlayerBot.AllowSaving`, les bots de peuplement étaient réenregistrés sous le numéro de compte fictif de leur session et quittaient le compte des bots.
+- Plusieurs fonctions des compagnons supposaient un groupe et auraient planté le serveur pour un bot seul.
+- Le build client 5880 est accepté dans les sources (`cmake/generators/Progression.h.in`) au lieu d'un patch binaire. Le contrôle est automatique : à chaque démarrage du test d'intégration, la liste écrite par le serveur doit contenir 5880.
+
+Outils : `Build\Build-Vmangos.ps1` (clone, patch, compilation CMake/MSBuild, installation ; vérifie que chaque fichier du patch est appliqué). La phase 5 du test d'intégration vérifie les bots du monde : 60 bots pendant 5 minutes, chasse hors des capitales, expérience gagnée, charge du serveur, arrêt propre.
+
 ## 0.9.17 — 20 octobre 2026
 
 HomeCraft ne dépend plus d'aucun « Microsoft Visual C++ Redistributable » installé dans Windows. Auparavant, sur un Windows où ces runtimes manquent (installation neuve), le launcher ne démarrait pas (VCRUNTIME140.dll introuvable) et le serveur non plus.

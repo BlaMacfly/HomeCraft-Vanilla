@@ -81,7 +81,7 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 **Jouer**
 - Un bouton **JOUER** : base de données → authentification → monde → configuration du client (`realmlist.wtf`, fenêtré, résolution bornée à l'écran) → lancement du jeu. Premier démarrage automatique (import des bases, extraction dbc/maps/vmaps), deux à cinq minutes une seule fois.
 - **Compagnons PartyBots** : `.partybot add tank | healer | dps` dans le chat, puis cometome, pull, marques, pause… Toutes les commandes dans le manuel et dans l'onglet PlayerBots.
-- **Bots de peuplement** : génération de personnages bots qui flânent dans les capitales.
+- **Bots du monde** : des personnages bots qui vivent dans les capitales ou chassent dans les zones de leur niveau ; invitez-en un et il vous rejoint à votre niveau pour combattre à vos côtés (serveur VMaNGOS compilé avec les modifications HomeCraft, sources fournies).
 - **Hôtel des ventes** approvisionné automatiquement pour votre faction.
 - **Cartes de déplacement (mmaps)** générées en arrière-plan après le premier démarrage, pour des compagnons qui se déplacent correctement en donjon.
 

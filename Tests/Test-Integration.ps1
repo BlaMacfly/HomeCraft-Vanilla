@@ -91,6 +91,9 @@ $results['1. compte créé avec le niveau 6'] = $t -match 'compte AUDITA créé 
 $results['1. pas de « Compte inexistant »'] = $t -notmatch 'Compte inexistant'
 $gm = Invoke-Sql -AsRoot -Query "SELECT COALESCE(MAX(aa.gmlevel), a.gmlevel) FROM realmd.account a LEFT JOIN realmd.account_access aa ON aa.id=a.id WHERE a.username='AUDITA' GROUP BY a.id"
 $results['1. niveau 6 en base'] = ("$gm".Trim() -eq '6')
+# mangosd réécrit realmlist.realmbuilds avec sa propre liste au démarrage : le client frFR (5880) doit y figurer.
+$builds = "$(Invoke-Sql -AsRoot -Query "SELECT realmbuilds FROM realmd.realmlist WHERE id=1")".Trim()
+$results["1. build client 5880 accepté par mangosd ($builds)"] = ($builds -split '\s+') -contains '5880'
 $results['1. arrêt propre à la fermeture'] = Close-Launcher
 $results['1. aucun processus serveur restant'] = (Remaining-Processes) -eq 0
 $results['1. mot de passe absent du journal'] = -not (Select-String -Path $log -Pattern 'Motdepasse1' -SimpleMatch -Quiet)
@@ -142,6 +145,34 @@ $results['4. aucun personnage ni inscription de bot'] = ((& $q "SELECT COUNT(*) 
 $results['4. personnage et objet de AUDITB intacts'] = ((& $q "SELECT COUNT(*) FROM characters.characters WHERE guid=9002") -eq 1) -and ((& $q "SELECT COUNT(*) FROM characters.item_instance WHERE guid=9001") -eq 1)
 $results['4. arrêt propre'] = Close-Launcher
 $results['4. aucun processus serveur restant'] = (Remaining-Processes) -eq 0
+
+# ---- 5. Bots du monde (mangosd compilé par HomeCraft) : chasse hors des capitales, expérience gagnée
+Step "5. bots du monde : 60 bots pendant 5 minutes"
+$t = Run-Launcher -LauncherArgs @('--do', 'botgen', '60') -Until 'personnages bots créés' -TimeoutSec 120
+Close-Launcher | Out-Null
+$results['5. 60 bots générés'] = $t -match '60 personnages bots créés'
+# Sauvegarde des bots activée pour le test : leur position et leur expérience sont lues en base après l'arrêt.
+[IO.File]::WriteAllText((Join-Path $Root 'UserData\settings.json'), '{"windowed":true,"auto_mmaps":false,"auto_backup":false,"conf":{"RandomBot.Enable":"1","RandomBot.MinBots":"60","RandomBot.MaxBots":"60","RandomBot.Refresh":"10000","PlayerBot.AllowSaving":"1","HomeCraftBot.CityPercent":"25","PlayerBot.ShowInWhoList":"1"}}', (New-Object Text.UTF8Encoding $false))
+$t = Run-Launcher -LauncherArgs @('--start') -Until 'monde opérationnel' -ExtraSec 300
+$mangosd = Get-Process mangosd -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
+$cpu1 = if ($mangosd) { $mangosd.TotalProcessorTime.TotalSeconds } else { 0 }
+Start-Sleep 20
+$cpu2 = if ($mangosd) { (Get-Process -Id $mangosd.Id).TotalProcessorTime.TotalSeconds } else { 0 }
+$cores = [math]::Round(($cpu2 - $cpu1) / 20, 2)
+$online = & $q "SELECT COUNT(*) FROM characters.characters c JOIN characters.playerbot p ON p.char_guid=c.guid WHERE c.online=1"
+$results["5. bots connectés ($online)"] = $online -ge 40
+$results["5. serveur resté en service (charge : $cores cœur(s))"] = ($mangosd -ne $null) -and -not $mangosd.HasExited -and ((Log-Since 0) -notmatch 'service interrompu')
+$results['5. arrêt propre'] = Close-Launcher
+$results['5. aucun processus serveur restant'] = (Remaining-Processes) -eq 0
+& (Join-Path $scripts 'Start-MariaDB.ps1') | Out-Null
+$bots = "FROM characters.characters c JOIN realmd.account a ON a.id=c.account WHERE a.username='HOMECRAFTBOTS'"
+$inCapital = & $q "SELECT COUNT(*) $bots AND c.zone IN (1519, 1537, 1637)"
+$outside = & $q "SELECT COUNT(*) $bots AND c.zone NOT IN (1519, 1537, 1637)"
+$gainedXp = & $q "SELECT COUNT(*) $bots AND c.xp > 0"
+Step "   bots en capitale : $inCapital ; hors capitale : $outside ; avec de l'expérience : $gainedXp"
+$results["5. la plupart des bots partis chasser ($outside hors capitale)"] = $outside -ge 30
+$results["5. expérience gagnée en chassant ($gainedXp bots)"] = $gainedXp -ge 10
+& (Join-Path $scripts 'Stop-MariaDB.ps1') | Out-Null
 
 # ---- Bilan
 $all = Get-Content $log -Encoding UTF8

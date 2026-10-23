@@ -3335,3 +3335,20 @@ DynamicRespawn.AffectLevelBelow = 0
 DynamicRespawn.PlayersThreshold = 0
 DynamicRespawn.PlayersMaxLevelDiff = 0
 
+
+###################################################################################################################
+# HOMECRAFT : BOTS DU MONDE (mangosd compilé par HomeCraft, Build/vmangos-patches)
+#
+#    HomeCraftBot.CityPercent
+#        Part des bots de peuplement (RandomBot) qui restent dans leur capitale ; les autres chassent dans une zone
+#        de leur niveau. Tous acceptent l'invitation d'un joueur et l'accompagnent comme un compagnon.
+#        Default: 25
+#
+#    HomeCraftBot.LevelSync
+#        Un bot qui rejoint le groupe d'un joueur prend le niveau de ce joueur (talents, sorts, équipement).
+#        Default: 1
+#
+###################################################################################################################
+
+HomeCraftBot.CityPercent = 25
+HomeCraftBot.LevelSync = 1

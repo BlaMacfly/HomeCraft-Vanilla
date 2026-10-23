@@ -1,0 +1,767 @@
+diff --git a/cmake/generators/Progression.h.in b/cmake/generators/Progression.h.in
+index 1b8e40b1..18b5c3c3 100644
+--- a/cmake/generators/Progression.h.in
++++ b/cmake/generators/Progression.h.in
+@@ -37,7 +37,7 @@
+ 
+ // This defines which client builds the world server will accept.
+ #if SUPPORTED_CLIENT_BUILD >= CLIENT_BUILD_1_12_1
+-#define EXPECTED_MANGOSD_CLIENT_BUILD        { 5875, 6005, 6141, 0}
++#define EXPECTED_MANGOSD_CLIENT_BUILD        { 5875, 5880, 6005, 6141, 0} // HomeCraft : 5880 (client 1.12.1 frFR)
+ #elif SUPPORTED_CLIENT_BUILD == CLIENT_BUILD_1_11_2
+ #define EXPECTED_MANGOSD_CLIENT_BUILD        { 5464, 0}
+ #elif SUPPORTED_CLIENT_BUILD == CLIENT_BUILD_1_10_2
+diff --git a/src/game/Objects/Player.cpp b/src/game/Objects/Player.cpp
+index c45726eb..644da18a 100644
+--- a/src/game/Objects/Player.cpp
++++ b/src/game/Objects/Player.cpp
+@@ -14597,6 +14597,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
+     MANGOS_ASSERT(lowGuid == guid.GetCounter());
+ 
+     uint32 dbAccountId = fields[1].GetUInt32();
++    m_dbAccountId = dbAccountId;
+ 
+     // check if the character's account in the db and the logged in account match.
+     // player should be able to load/delete character only with correct account!
+@@ -16387,7 +16388,9 @@ void Player::SaveToDB(bool online, bool force)
+                               "?, ?, ?, ?)");
+ 
+     uberInsert.addUInt32(GetGUIDLow());
+-    uberInsert.addUInt32(GetSession()->GetAccountId());
++    // HomeCraft : la session d'un bot de peuplement porte un numéro de compte fictif (PlayerBotMgr::GenBotAccountId) ;
++    // avec PlayerBot.AllowSaving, le personnage était réenregistré sous ce numéro et quittait le compte des bots.
++    uberInsert.addUInt32(IsBot() && m_dbAccountId ? m_dbAccountId : GetSession()->GetAccountId());
+     uberInsert.addString(m_name);
+     uberInsert.addUInt8(GetRace());
+     uberInsert.addUInt8(GetClass());
+diff --git a/src/game/Objects/Player.h b/src/game/Objects/Player.h
+index 4d14f601..2faba872 100644
+--- a/src/game/Objects/Player.h
++++ b/src/game/Objects/Player.h
+@@ -1916,6 +1916,8 @@ class Player final: public Unit
+         /*********************************************************/
+ 
+     private:
++        // HomeCraft : compte du personnage lu en base au chargement (la session d'un bot a un numéro fictif).
++        uint32 m_dbAccountId = 0;
+         uint32 m_currentCinematicEntry;
+         Position m_cinematicStartPos;
+         uint32 m_cinematicLastCheck;
+diff --git a/src/game/PlayerBots/CombatBotBaseAI.cpp b/src/game/PlayerBots/CombatBotBaseAI.cpp
+index a9b589a5..037213f1 100644
+--- a/src/game/PlayerBots/CombatBotBaseAI.cpp
++++ b/src/game/PlayerBots/CombatBotBaseAI.cpp
+@@ -1847,6 +1847,8 @@ void CombatBotBaseAI::AddAllSpellReagents()
+ bool CombatBotBaseAI::AreOthersOnSameTarget(ObjectGuid guid, bool checkMelee, bool checkSpells) const
+ {
+     Group* pGroup = me->GetGroup();
++    if (!pGroup) // HomeCraft : bot de peuplement hors groupe
++        return false;
+     for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+     {
+         if (Player* pMember = itr->getSource())
+diff --git a/src/game/PlayerBots/PartyBotAI.cpp b/src/game/PlayerBots/PartyBotAI.cpp
+index 88b14d30..aad12c68 100644
+--- a/src/game/PlayerBots/PartyBotAI.cpp
++++ b/src/game/PlayerBots/PartyBotAI.cpp
+@@ -27,8 +27,15 @@
+ #include "SpellAuras.h"
+ #include "Chat.h"
+ #include "Utilities/Random.h"
++#include "Config/Config.h"
++#include "MapManager.h"
++#include "GridNotifiers.h"
++#include "GridNotifiersImpl.h"
++#include "CellImpl.h"
++#include "Timer.h"
+ 
+ #include <random>
++#include <mutex>
+ 
+ enum PartyBotSpells
+ {
+@@ -47,6 +54,15 @@ enum PartyBotSpells
+ 
+ bool PartyBotAI::OnSessionLoaded(PlayerBotEntry* entry, WorldSession* sess)
+ {
++    // HomeCraft : un bot du monde reconnecté par le gestionnaire de peuplement repart de zéro.
++    if (m_worldBot)
++    {
++        m_initialized = false;
++        m_joinSetupDone = false;
++        m_leaderGuid.Clear();
++        m_deadSince = 0;
++    }
++
+     if (!m_race && !m_class)
+     {
+         sess->LoginPlayer(entry->playerGUID);
+@@ -151,6 +167,8 @@ Unit* PartyBotAI::GetDistancingTarget(Unit* pEnemy)
+ 
+     Unit* pNonTank = nullptr;
+     Group* pGroup = me->GetGroup();
++    if (!pGroup) // HomeCraft : bot de peuplement hors groupe
++        return nullptr;
+     for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+     {
+         if (Player* pMember = itr->getSource())
+@@ -241,6 +259,8 @@ bool PartyBotAI::ShouldAutoRevive() const
+ 
+     bool alivePlayerNearby = false;
+     Group* pGroup = me->GetGroup();
++    if (!pGroup) // HomeCraft : bot de peuplement hors groupe
++        return true;
+     for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+     {
+         if (Player* pMember = itr->getSource())
+@@ -349,6 +369,8 @@ bool PartyBotAI::AttackStart(Unit* pVictim)
+ 
+ Unit* PartyBotAI::GetMarkedTarget(RaidTargetIcon mark) const
+ {
++    if (!me->GetGroup()) // HomeCraft : bot de peuplement hors groupe
++        return nullptr;
+     ObjectGuid targetGuid = me->GetGroup()->GetTargetWithIcon(mark);
+     if (targetGuid.IsUnit())
+         return me->GetMap()->GetUnit(targetGuid);
+@@ -370,6 +392,8 @@ Unit* PartyBotAI::SelectAttackTarget(Player* pLeader) const
+         {
+             for (auto markId : m_marksToFocus)
+             {
++                if (!me->GetGroup()) // HomeCraft : bot de peuplement hors groupe
++                    break;
+                 ObjectGuid targetGuid = me->GetGroup()->GetTargetWithIcon(markId);
+                 if (targetGuid.IsUnit())
+                     if (Unit* pVictim = me->GetMap()->GetUnit(targetGuid))
+@@ -414,6 +438,8 @@ Unit* PartyBotAI::SelectAttackTarget(Player* pLeader) const
+ Unit* PartyBotAI::SelectPartyAttackTarget() const
+ {
+     Group* pGroup = me->GetGroup();
++    if (!pGroup) // HomeCraft : bot de peuplement hors groupe
++        return nullptr;
+     for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+     {
+         if (Player* pMember = itr->getSource())
+@@ -440,6 +466,8 @@ Player* PartyBotAI::SelectResurrectionTarget() const
+         return nullptr;
+ 
+     Group* pGroup = me->GetGroup();
++    if (!pGroup) // HomeCraft : bot de peuplement hors groupe
++        return nullptr;
+     for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+     {
+         if (Player* pMember = itr->getSource())
+@@ -468,6 +496,8 @@ Player* PartyBotAI::SelectShieldTarget() const
+         return nullptr;
+ 
+     Group* pGroup = me->GetGroup();
++    if (!pGroup) // HomeCraft : bot de peuplement hors groupe
++        return nullptr;
+     for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+     {
+         if (Player* pMember = itr->getSource())
+@@ -554,6 +584,24 @@ void PartyBotAI::OnPacketReceived(WorldPacket const* packet)
+                 m_resetSpellData = true;
+             return;
+         }
++        case SMSG_GROUP_INVITE:
++        {
++            // HomeCraft : un bot du monde accepte l'invitation de tout joueur réel, quel que soit son niveau,
++            // sauf s'il accompagne déjà quelqu'un ; il refuse celles des autres bots.
++            if (!m_worldBot || !me)
++                return;
++            Group* pInvite = me->GetGroupInvite();
++            Player* pInviter = pInvite ? ObjectAccessor::FindPlayer(pInvite->GetLeaderGuid()) : nullptr;
++            bool const accept = pInviter && !pInviter->IsBot() && !IsBusyWithRealPlayer();
++            if (accept)
++            {
++                m_leaderGuid = pInviter->GetObjectGuid();
++                m_joinSetupDone = false;
++            }
++            auto data = std::make_unique<NullClientPacket>(accept ? CMSG_GROUP_ACCEPT : CMSG_GROUP_DECLINE);
++            me->GetSession()->QueuePacket(std::move(data));
++            return;
++        }
+         case SMSG_DUEL_REQUESTED:
+         {
+             auto data = std::make_unique<WorldPackets::Duel::DuelAccepted>();
+@@ -614,6 +662,13 @@ void PartyBotAI::UpdateAI(uint32 const diff)
+ 
+     if (!m_initialized)
+     {
++        if (m_worldBot)
++        {
++            InitializeWorldBot();
++            m_initialized = true;
++            return;
++        }
++
+         AddToPlayerGroup();
+ 
+         if (m_race && m_class) // temporary character
+@@ -686,10 +741,23 @@ void PartyBotAI::UpdateAI(uint32 const diff)
+     Player* pLeader = GetPartyLeader();
+     if (!pLeader)
+     {
++        // HomeCraft : sans joueur à accompagner, un bot du monde vit sa vie au lieu d'être déconnecté.
++        if (m_worldBot)
++        {
++            UpdateWorldBotAI();
++            return;
++        }
+         botEntry->requestRemoval = true;
+         return;
+     }
+ 
++    // HomeCraft : invitation acceptée, première mise à jour dans le groupe du joueur.
++    if (m_worldBot && !m_joinSetupDone)
++    {
++        SetupAfterJoin(pLeader);
++        return;
++    }
++
+     if (!pLeader->IsInWorld())
+         return;
+ 
+@@ -3351,3 +3419,428 @@ void PartyBotAI::UpdateInCombatAI_Druid()
+         }
+     }
+ }
++
++// =====================================================================================================================
++// HomeCraft : bots du monde.
++// Les bots de peuplement (PlayerBotMgr, RandomBot.*) utilisent ce mode à la place de PopulateAreaBotAI, qui se
++// contentait de les faire errer dans une capitale. Hors groupe, un bot du monde reste dans sa capitale ou chasse dans
++// une zone de son niveau ; il accepte l'invitation de tout joueur réel, se met à son niveau (HomeCraftBot.LevelSync),
++// le rejoint et se comporte alors exactement comme un compagnon (.partybot) ; quand le joueur le quitte, il reprend
++// sa vie. Réglages lus dans mangosd.conf : HomeCraftBot.CityPercent (part des bots restant en ville, 25 par défaut)
++// et HomeCraftBot.LevelSync (1 par défaut).
++// =====================================================================================================================
++
++namespace
++{
++    // Zones de chasse : apparitions de monstres ordinaires hostiles aux joueurs sur les deux continents, par niveau.
++    struct HuntSpot
++    {
++        uint32 mapId;
++        float x, y, z;
++    };
++    std::vector<HuntSpot> g_huntSpots[PLAYER_MAX_LEVEL + 1];
++    std::once_flag g_huntSpotsBuilt;
++
++    void BuildHuntSpots()
++    {
++        struct Collector
++        {
++            bool operator()(CreatureDataPair const& pair)
++            {
++                CreatureData const& data = pair.second;
++                if (data.position.mapId > 1)
++                    return false;
++                CreatureInfo const* pInfo = sObjectMgr.GetCreatureTemplate(data.creature_id[0]);
++                if (!pInfo || pInfo->rank != 0 || pInfo->type == CREATURE_TYPE_CRITTER || pInfo->npc_flags != 0)
++                    return false;
++                FactionTemplateEntry const* pFaction = sObjectMgr.GetFactionTemplateEntry(pInfo->faction);
++                if (!pFaction || !pFaction->IsHostileToPlayers())
++                    return false;
++                uint32 const low = pInfo->level_min > 1 ? pInfo->level_min - 1 : 1;
++                uint32 const high = std::min<uint32>(pInfo->level_max + 1, PLAYER_MAX_LEVEL);
++                for (uint32 level = low; level <= high; ++level)
++                    g_huntSpots[level].push_back({ data.position.mapId, data.position.x, data.position.y, data.position.z });
++                return false;
++            }
++        } collector;
++        sObjectMgr.DoCreatureData(collector);
++    }
++}
++
++void PartyBotAI::BeforeAddToMap(Player* player)
++{
++    // Connexion d'un bot du monde : placé dans sa capitale (me est encore nul ici).
++    if (!m_worldBot || player->GetInstanceId() || player->GetTeam() != m_homeTeam)
++        return;
++    if (player->GetMapId() == m_homeMap && player->IsWithinDist3d(m_homeX, m_homeY, m_homeZ, m_homeRadius * 2))
++        return;
++
++    float x = m_homeX, y = m_homeY, z = m_homeZ;
++    Map* pMap = sMapMgr.CreateMap(m_homeMap, player);
++    // Nombre d'essais borné : avec une carte de navigation incomplète, la recherche peut échouer indéfiniment.
++    for (int attempt = 0; attempt < 10; ++attempt)
++    {
++        float tx = m_homeX, ty = m_homeY, tz = m_homeZ;
++        if (pMap->GetWalkRandomPosition(nullptr, tx, ty, tz, m_homeRadius))
++        {
++            x = tx;
++            y = ty;
++            z = tz;
++            break;
++        }
++    }
++    player->Relocate(x, y, z);
++    player->SetLocationMapId(m_homeMap);
++}
++
++bool PartyBotAI::IsBusyWithRealPlayer() const
++{
++    if (!me)
++        return false;
++    Group* pGroup = me->GetGroup();
++    if (!pGroup)
++        return false;
++    for (GroupReference* itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
++    {
++        if (Player* pMember = itr->getSource())
++            if (!pMember->IsBot())
++                return true;
++    }
++    return false;
++}
++
++void PartyBotAI::PrepareForLevel(bool regear)
++{
++    m_lastLevel = me->GetLevel();
++    me->InitTalentForLevel();
++    LearnPremadeSpecForClass();
++    if (m_role == ROLE_INVALID)
++        AutoAssignRole();
++    if (regear)
++    {
++        // Les bots du monde ne sont pas sauvegardés (PlayerBot.AllowSaving) : équipement renouvelé pour leur niveau.
++        for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
++            if (me->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
++                me->DestroyItem(INVENTORY_SLOT_BAG_0, slot, true);
++        AutoEquipGear(sWorld.getConfig(CONFIG_UINT32_PARTY_BOT_AUTO_EQUIP));
++    }
++    me->UpdateSkillsToMaxSkillsForLevel();
++    ResetSpellData();
++    PopulateSpellData();
++    AddAllSpellReagents();
++    SummonPetIfNeeded();
++}
++
++void PartyBotAI::InitializeWorldBot()
++{
++    if (me->IsGameMaster())
++        me->SetGameMaster(false);
++    // Temps de jeu nul (bot jamais sauvegardé) : le serveur lance la cinématique d'introduction de la race à chaque
++    // connexion, et sans client personne ne la termine. Un joueur « en cinématique » n'est pas une cible valide
++    // (Unit::IsTargetableBy) : les monstres attaqués abandonnaient aussitôt le combat et le bot ne tuait jamais rien.
++    if (me->GetCurrentCinematicEntry())
++        me->CinematicEnd();
++
++    PrepareForLevel(true);
++    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SPAWNING);
++    me->SetHealthPercent(100.0f);
++    me->SetPowerPercent(me->GetPowerType(), 100.0f);
++
++    int32 const cityPercent = sConfig.GetIntDefault("HomeCraftBot.CityPercent", 25);
++    m_stayInCity = int32(urand(1, 100)) <= cityPercent;
++    m_lastHuntTime = WorldTimer::getMSTime();
++    m_nextWanderTime = WorldTimer::getMSTime() + urand(2000, 20000);
++    if (!m_stayInCity && !TeleportToHuntingArea())
++        m_stayInCity = true;
++
++    uint32 newzone, newarea;
++    me->GetZoneAndAreaId(newzone, newarea);
++    me->UpdateZone(newzone, newarea);
++}
++
++bool PartyBotAI::TeleportToHuntingArea()
++{
++    std::call_once(g_huntSpotsBuilt, BuildHuntSpots);
++    uint32 const level = std::min<uint32>(std::max<uint32>(me->GetLevel(), 1), PLAYER_MAX_LEVEL);
++    std::vector<HuntSpot> const& spots = g_huntSpots[level];
++    if (spots.empty())
++        return false;
++
++    Team const team = me->GetTeam();
++    for (int attempt = 0; attempt < 30; ++attempt)
++    {
++        HuntSpot const& spot = spots[urand(0, uint32(spots.size() - 1))];
++        Map* pMap = sMapMgr.CreateMap(spot.mapId, me);
++        if (!pMap)
++            continue;
++        AreaEntry const* pZone = AreaEntry::GetById(pMap->GetTerrain()->GetZoneId(spot.x, spot.y, spot.z));
++        if (!pZone)
++            continue;
++        // Jamais en territoire adverse (gardes, villes) ; zones contestées et zones de sa faction acceptées.
++        if ((team == ALLIANCE && pZone->Team == AREATEAM_HORDE) || (team == HORDE && pZone->Team == AREATEAM_ALLY))
++            continue;
++        // Monstre isolé loin de sa zone d'origine : la zone doit rester proche du niveau du bot.
++        if (pZone->AreaLevel > 0 && std::abs(int32(pZone->AreaLevel) - int32(level)) > 12)
++            continue;
++        me->TeleportTo(spot.mapId, spot.x, spot.y, spot.z + 0.5f, frand(0.0f, 2 * M_PI_F));
++        return true;
++    }
++    return false;
++}
++
++void PartyBotAI::MoveToRandomPointAround(float x, float y, float z, float radius)
++{
++    if (!MaNGOS::IsValidMapCoord(x, y, z))
++        return;
++    float tx = x, ty = y, tz = z;
++    if (me->GetMap()->GetWalkRandomPosition(nullptr, tx, ty, tz, radius))
++        me->GetMotionMaster()->MovePoint(0, tx, ty, tz, MOVE_PATHFINDING | MOVE_EXCLUDE_STEEP_SLOPES);
++}
++
++Unit* PartyBotAI::FindHuntTarget() const
++{
++    std::list<Unit*> units;
++    MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck check(me, me, 40.0f);
++    MaNGOS::UnitListSearcher<MaNGOS::AnyUnfriendlyUnitInObjectRangeCheck> searcher(units, check);
++    Cell::VisitAllObjects(me, searcher, 40.0f);
++
++    uint32 const level = me->GetLevel();
++    Unit* pBest = nullptr;
++    float bestDistance = 0.0f;
++    for (Unit* pUnit : units)
++    {
++        Creature* pCreature = pUnit->ToCreature();
++        if (!pCreature || pCreature->IsPet() || pCreature->IsTotem() || pCreature->IsCivilian() || pCreature->IsElite())
++            continue;
++        if (pCreature->GetCreatureInfo()->type == CREATURE_TYPE_CRITTER)
++            continue;
++        if (pCreature->GetLevel() + 5 < level || pCreature->GetLevel() > level + 2)
++            continue;
++        // Jamais le monstre d'un autre (joueur ou bot) : ni marqué, ni déjà en combat contre quelqu'un d'autre.
++        if (pCreature->HasLootRecipient() && !pCreature->IsTappedBy(me))
++            continue;
++        if (pCreature->IsInEvadeMode() || (pCreature->IsInCombat() && pCreature->GetVictim() != me))
++            continue;
++        if (!IsValidHostileTarget(pCreature) || !me->IsWithinLOSInMap(pCreature))
++            continue;
++        float const distance = me->GetDistance(pCreature);
++        if (!pBest || distance < bestDistance)
++        {
++            pBest = pCreature;
++            bestDistance = distance;
++        }
++    }
++    return pBest;
++}
++
++void PartyBotAI::SetupAfterJoin(Player* pLeader)
++{
++    m_joinSetupDone = true;
++    m_stayInCity = false;
++    me->CombatStop(true);
++    me->GetMotionMaster()->Clear(false, true);
++    me->GetMotionMaster()->MoveIdle();
++    if (me->IsDead())
++    {
++        me->ResurrectPlayer(1.0f);
++        me->SpawnCorpseBones();
++    }
++    if (sConfig.GetBoolDefault("HomeCraftBot.LevelSync", true) && me->GetLevel() != pLeader->GetLevel())
++    {
++        me->GiveLevel(pLeader->GetLevel());
++        me->SetUInt32Value(PLAYER_XP, 0);
++        PrepareForLevel(true);
++    }
++    me->SetHealthPercent(100.0f);
++    me->SetPowerPercent(me->GetPowerType(), 100.0f);
++    // La boucle de compagnon le téléporte ensuite vers le meneur s'il est à plus de 100 mètres.
++}
++
++void PartyBotAI::ReturnToWorldLife()
++{
++    m_joinSetupDone = false;
++    m_leaderGuid.Clear();
++    m_marksToCC.clear();
++    m_marksToFocus.clear();
++    if (me->GetGroup())
++        me->RemoveFromGroup();
++    me->CombatStop(true);
++    me->GetMotionMaster()->Clear(false, true);
++    me->GetMotionMaster()->MoveIdle();
++    if (me->IsDead())
++    {
++        me->ResurrectPlayer(0.5f);
++        me->SpawnCorpseBones();
++    }
++    m_lastHuntTime = WorldTimer::getMSTime();
++    m_stayInCity = false;
++    if (!TeleportToHuntingArea())
++    {
++        m_stayInCity = true;
++        me->TeleportTo(m_homeMap, m_homeX, m_homeY, m_homeZ, 0.0f);
++    }
++}
++
++void PartyBotAI::UpdateWorldBotCityAI()
++{
++    // En ville : se défend si on l'attaque, sinon flâne autour du centre de sa capitale.
++    if (Unit* pVictim = me->GetVictim())
++    {
++        if (!IsValidHostileTarget(pVictim))
++            me->AttackStop();
++        else
++        {
++            if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() == IDLE_MOTION_TYPE)
++                BeginChasing(pVictim);
++            if (me->IsInCombat())
++                UpdateInCombatAI();
++            return;
++        }
++    }
++    for (auto const pAttacker : me->GetAttackers())
++    {
++        if (IsValidHostileTarget(pAttacker))
++        {
++            AttackStart(pAttacker);
++            return;
++        }
++    }
++    if (me->IsInCombat() || DrinkAndEat())
++        return;
++    uint32 const now = WorldTimer::getMSTime();
++    if (!me->IsMoving() && int32(now - m_nextWanderTime) >= 0 && me->GetMapId() == m_homeMap)
++    {
++        m_nextWanderTime = now + urand(8000, 40000);
++        MoveToRandomPointAround(m_homeX, m_homeY, m_homeZ, m_homeRadius);
++    }
++}
++
++void PartyBotAI::UpdateWorldBotAI()
++{
++    // Joueur parti (groupe quitté ou dissous, déconnexion) : le bot reprend sa vie.
++    if (m_joinSetupDone || me->GetGroup())
++    {
++        ReturnToWorldLife();
++        return;
++    }
++
++    if (me->IsDead())
++    {
++        uint32 const now = WorldTimer::getMSTime();
++        if (!m_deadSince)
++            m_deadSince = now;
++        else if (WorldTimer::getMSTimeDiff(m_deadSince, now) > 30000)
++        {
++            m_deadSince = 0;
++            me->ResurrectPlayer(0.5f);
++            me->SpawnCorpseBones();
++        }
++        return;
++    }
++    m_deadSince = 0;
++
++    // Niveau gagné en chassant : talents et sorts mis à jour, équipement tous les cinq niveaux.
++    if (me->GetLevel() != m_lastLevel)
++        PrepareForLevel(me->GetLevel() % 5 == 0);
++
++    if (me->HasUnitState(UNIT_STATE_CAN_NOT_REACT_OR_LOST_CONTROL))
++    {
++        BreakCrowdControlEffects();
++        return;
++    }
++
++    if (m_stayInCity)
++    {
++        UpdateWorldBotCityAI();
++        return;
++    }
++
++    Unit* pVictim = me->GetVictim();
++    if (pVictim && !IsValidHostileTarget(pVictim))
++    {
++        me->AttackStop();
++        pVictim = nullptr;
++    }
++
++    if (!pVictim)
++    {
++        for (auto const pAttacker : me->GetAttackers())
++        {
++            if (IsValidHostileTarget(pAttacker))
++            {
++                AttackStart(pAttacker);
++                return;
++            }
++        }
++        if (me->IsInCombat())
++        {
++            UpdateInCombatAI();
++            return;
++        }
++        if (me->IsNonMeleeSpellCasted(false) || DrinkAndEat())
++            return;
++        UpdateOutOfCombatAI();
++        if (m_isBuffing || me->IsNonMeleeSpellCasted(false))
++            return;
++
++        uint32 const now = WorldTimer::getMSTime();
++        if (Unit* pTarget = FindHuntTarget())
++        {
++            m_lastHuntTime = now;
++            if (me->GetStandState() != UNIT_STAND_STATE_STAND)
++                me->SetStandState(UNIT_STAND_STATE_STAND);
++            me->SetTargetGuid(pTarget->GetObjectGuid());
++            if (!me->HasInArc(pTarget, M_PI_F / 2))
++                me->SetFacingToObject(pTarget);
++            if (AttackStart(pTarget))
++                UpdateInCombatAI();
++            return;
++        }
++        // Plus rien à chasser ici depuis trois minutes : autre zone de son niveau.
++        if (WorldTimer::getMSTimeDiff(m_lastHuntTime, now) > 180000)
++        {
++            m_lastHuntTime = now;
++            TeleportToHuntingArea();
++            return;
++        }
++        if (!me->IsMoving() && int32(now - m_nextWanderTime) >= 0)
++        {
++            m_nextWanderTime = now + urand(5000, 15000);
++            MoveToRandomPointAround(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 40.0f);
++        }
++        return;
++    }
++
++    // Debout et arme en main (un bot qui vient de manger reste assis : il ne peut ni avancer ni frapper).
++    if (me->GetStandState() != UNIT_STAND_STATE_STAND)
++        me->SetStandState(UNIT_STAND_STATE_STAND);
++    if (me->GetSheath() == SHEATH_STATE_UNARMED && !me->IsMounted())
++        me->SetSheath(SHEATH_STATE_MELEE);
++
++    // Un joueur ne frappe que la cible qu'il a sélectionnée et qui est devant lui (ATTACK_RESULT_BAD_FACING sinon) :
++    // la boucle de compagnon n'en a pas besoin, le déplacement derrière le meneur oriente déjà le bot.
++    if (me->GetTargetGuid() != pVictim->GetObjectGuid())
++        me->SetTargetGuid(pVictim->GetObjectGuid());
++    if (!me->IsMoving() && !me->HasInArc(pVictim, M_PI_F / 2))
++        me->SetFacingToObject(pVictim);
++
++    if (!me->HasUnitState(UNIT_STATE_MELEE_ATTACKING) && (GetRole() == ROLE_MELEE_DPS || GetRole() == ROLE_TANK) && AttackStart(pVictim))
++        return;
++    if (!me->IsMoving())
++    {
++        switch (me->GetMotionMaster()->GetCurrentMovementGeneratorType())
++        {
++            case IDLE_MOTION_TYPE:
++            case POINT_MOTION_TYPE:
++            case RANDOM_MOTION_TYPE:
++                BeginChasing(pVictim);
++                break;
++            default:
++                break;
++        }
++    }
++    // Seul, le bot engage lui-même le combat : la rotation de sa classe tourne dès qu'il a une cible. (En groupe,
++    // la boucle de compagnon attend que le combat ait commencé, parce que le meneur l'engage le premier ; un
++    // lanceur de sorts isolé restait alors à distance sans jamais lancer le premier sort.)
++    UpdateInCombatAI();
++}
+diff --git a/src/game/PlayerBots/PartyBotAI.h b/src/game/PlayerBots/PartyBotAI.h
+index d0f79b49..78a51032 100644
+--- a/src/game/PlayerBots/PartyBotAI.h
++++ b/src/game/PlayerBots/PartyBotAI.h
+@@ -41,8 +41,18 @@ public:
+         m_updateTimer.Reset(2000);
+     }
+ 
++    // HomeCraft : bot du monde (peuplement). Hors groupe il vit seul (capitale ou zone de chasse de son niveau) ;
++    // il accepte l'invitation de tout joueur réel, se met à son niveau, le rejoint et se comporte en compagnon.
++    PartyBotAI(uint32 homeMap, float homeX, float homeY, float homeZ, Team homeTeam, float homeRadius)
++        : CombatBotBaseAI(), m_worldBot(true), m_homeMap(homeMap), m_homeX(homeX), m_homeY(homeY), m_homeZ(homeZ), m_homeTeam(homeTeam), m_homeRadius(homeRadius)
++    {
++        m_role = ROLE_INVALID;
++        m_updateTimer.Reset(2000);
++    }
++
+     bool OnSessionLoaded(PlayerBotEntry* entry, WorldSession* sess) final;
+     void OnPlayerLogin() final;
++    void BeforeAddToMap(Player* player) final;
+     void UpdateAI(uint32 const diff) final;
+     void OnPacketReceived(WorldPacket const* packet) final;
+ 
+@@ -105,6 +115,33 @@ public:
+     float m_z = 0.0f;
+     float m_o = 0.0f;
+     bool m_resetSpellData = false;
++
++    // HomeCraft : bot du monde
++    bool IsWorldBot() const { return m_worldBot; }
++    bool IsBusyWithRealPlayer() const;
++    void InitializeWorldBot();
++    void SetupAfterJoin(Player* pLeader);
++    void ReturnToWorldLife();
++    void UpdateWorldBotAI();
++    void UpdateWorldBotCityAI();
++    void PrepareForLevel(bool regear);
++    Unit* FindHuntTarget() const;
++    bool TeleportToHuntingArea();
++    void MoveToRandomPointAround(float x, float y, float z, float radius);
++
++    bool m_worldBot = false;
++    bool m_stayInCity = false;
++    bool m_joinSetupDone = false;
++    uint32 m_homeMap = 0;
++    float m_homeX = 0.0f;
++    float m_homeY = 0.0f;
++    float m_homeZ = 0.0f;
++    Team m_homeTeam = TEAM_NONE;
++    float m_homeRadius = 0.0f;
++    uint32 m_lastLevel = 0;
++    uint32 m_lastHuntTime = 0;
++    uint32 m_deadSince = 0;
++    uint32 m_nextWanderTime = 0;
+ };
+ 
+ #endif
+diff --git a/src/game/PlayerBots/PlayerBotAI.cpp b/src/game/PlayerBots/PlayerBotAI.cpp
+index ca773b3c..6ad55a1b 100644
+--- a/src/game/PlayerBots/PlayerBotAI.cpp
++++ b/src/game/PlayerBots/PlayerBotAI.cpp
+@@ -16,6 +16,7 @@
+ 
+ #include "PlayerBotMgr.h"
+ #include "PlayerBotAI.h"
++#include "PartyBotAI.h"
+ #include "Player.h"
+ #include "Log.h"
+ #include "SocialMgr.h"
+@@ -365,12 +366,13 @@ PlayerBotAI* CreatePlayerBotAI(std::string ainame)
+ {
+     if (ainame == "MageOrgrimmarAttackerAI")
+         return new MageOrgrimmarAttackerAI();
++    // HomeCraft : les bots de peuplement sont des bots du monde (PartyBotAI.cpp) ; leur capitale reste leur base.
+     if (ainame == "IronforgePopulationAI")
+-        return new PopulateAreaBotAI(0, -4928.5f, -946.6f, 501.6f, ALLIANCE, 100.0f);
++        return new PartyBotAI(0, -4928.5f, -946.6f, 501.6f, ALLIANCE, 100.0f);
+     if (ainame == "StormwindPopulationAI")
+-        return new PopulateAreaBotAI(0, -8829.5f, 625.6f, 93.9f, ALLIANCE, 50.0f);
++        return new PartyBotAI(0, -8829.5f, 625.6f, 93.9f, ALLIANCE, 50.0f);
+     if (ainame == "OrgrimmarPopulationAI")
+-        return new PopulateAreaBotAI(1, 1568, -4405.87f, 8.13f, HORDE, 150.0f);
++        return new PartyBotAI(1, 1568, -4405.87f, 8.13f, HORDE, 150.0f);
+     if (ainame == "PlayerBotFleeingAI")
+         return new PlayerBotFleeingAI();
+     return new PlayerBotAI();
+diff --git a/src/game/PlayerBots/PlayerBotMgr.cpp b/src/game/PlayerBots/PlayerBotMgr.cpp
+index 4475bdc5..54d36cf6 100644
+--- a/src/game/PlayerBots/PlayerBotMgr.cpp
++++ b/src/game/PlayerBots/PlayerBotMgr.cpp
+@@ -539,6 +539,10 @@ bool PlayerBotMgr::DeleteRandomBot()
+     {
+         if (!iter->second->customBot && !iter->second->isChatBot && iter->second->state == PB_STATE_ONLINE)
+         {
++            // HomeCraft : jamais un bot qui accompagne un joueur réel.
++            if (PartyBotAI const* pWorldBot = dynamic_cast<PartyBotAI const*>(iter->second->ai.get()))
++                if (pWorldBot->IsBusyWithRealPlayer())
++                    continue;
+             onlinePassed++;
+             if (onlinePassed == idDelete)
+             {
+diff --git a/src/shared/Progression.h b/src/shared/Progression.h
+index f9a08bce..f89d1c77 100644
+--- a/src/shared/Progression.h
++++ b/src/shared/Progression.h
+@@ -37,7 +37,7 @@
+ 
+ // This defines which client builds the world server will accept.
+ #if SUPPORTED_CLIENT_BUILD >= CLIENT_BUILD_1_12_1
+-#define EXPECTED_MANGOSD_CLIENT_BUILD        { 5875, 6005, 6141, 0}
++#define EXPECTED_MANGOSD_CLIENT_BUILD        { 5875, 5880, 6005, 6141, 0} // HomeCraft : 5880 (client 1.12.1 frFR)
+ #elif SUPPORTED_CLIENT_BUILD == CLIENT_BUILD_1_11_2
+ #define EXPECTED_MANGOSD_CLIENT_BUILD        { 5464, 0}
+ #elif SUPPORTED_CLIENT_BUILD == CLIENT_BUILD_1_10_2

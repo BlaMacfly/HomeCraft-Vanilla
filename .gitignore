@@ -32,3 +32,7 @@ desktop.ini
 
 # ---- Copie obsolète des instructions de session (autre outil)
 /AGENTS.md
+
+# Sources VMaNGOS (clone de travail ; nos modifications sont dans Build/vmangos-patches)
+Build/vmangos-src/
+Build/vmangos-build/

@@ -87,3 +87,26 @@ VMaNGOS ou de MariaDB, et après `Build/Patch-MangosdBuilds.ps1`, lancer **`Buil
 
 Le launcher est lié à la CRT statique (`Launcher/.cargo/config.toml`). Contrôle : `Tests/Test-Dependencies.ps1` (chaque
 DLL importée par un programme du package doit être une DLL de Windows ou se trouver à côté de lui).
+
+## VMaNGOS compilé par HomeCraft (0.9.18, 2026-10-23)
+
+`mangosd.exe` et `realmd.exe` ne sont plus les binaires officiels : **`Build/Build-Vmangos.ps1`** clone `vmangos/core`
+dans `Build/vmangos-src` (ignoré par git), se place sur le commit figé `53d24d5`, applique
+**`Build/vmangos-patches/homecraft.patch`** et compile en Release x64 (CMake + MSBuild des Build Tools 2022, environ
+1 min 30 en recompilation, quelques minutes la première fois ; aucune dépendance hors du dépôt VMaNGOS). Les binaires
+officiels restent en `.orig` (exclus du package). `Build/Patch-MangosdBuilds.ps1` (patch binaire 6141 → 5880) est
+remplacé par la modification source de `cmake/generators/Progression.h.in` (`{5875, 5880, 6005, 6141, 0}` ; `src/shared/Progression.h` en est généré par CMake, le modifier directement ne sert à rien).
+
+Contenu du patch :
+- **bots du monde** (`PartyBotAI` avec un constructeur « monde », `PlayerBotAI.cpp` : les trois IA de peuplement
+  `*PopulationAI` y sont rattachées) : hors groupe, ville (`HomeCraftBot.CityPercent`, 25 %) ou chasse dans une zone de
+  leur niveau (positions d'apparition de monstres ordinaires hostiles aux joueurs, continents 0 et 1, jamais en zone
+  de la faction adverse, `AreaEntry::Team` / `AreaLevel`) ; invitation d'un joueur réel acceptée (`SMSG_GROUP_INVITE`
+  → `CMSG_GROUP_ACCEPT`), mise au niveau du joueur (`HomeCraftBot.LevelSync`), puis comportement de compagnon ;
+  retour à la vie libre quand le joueur part ; `DeleteRandomBot` ne déconnecte jamais un bot groupé avec un joueur ;
+- protections contre l'absence de groupe dans `PartyBotAI` et `CombatBotBaseAI::AreOthersOnSameTarget` (ces fonctions
+  supposaient toujours un groupe).
+
+Modifier VMaNGOS : travailler dans `Build/vmangos-src`, puis `git -C Build/vmangos-src diff > Build/vmangos-patches/homecraft.patch`
+avant de relancer `Build-Vmangos.ps1` (qui repart du commit propre et réapplique le patch). Le patch est livré dans
+`Sources\Build` du package (GPL-2.0).
