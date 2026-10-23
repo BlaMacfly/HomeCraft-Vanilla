@@ -4,3 +4,5 @@
 *.ico binary
 *.cer binary
 *.sh text eol=lf
+# Patch VMaNGOS : octets exacts (fins de ligne mixtes du dépôt VMaNGOS), sinon git apply échoue
+Build/vmangos-patches/*.patch -text
