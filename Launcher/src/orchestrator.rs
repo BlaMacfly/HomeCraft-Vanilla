@@ -155,7 +155,6 @@ pub enum Command {
     SettingsChanged(Settings),
     InstallTo(PathBuf),
     KillGame,
-    GenerateBots(u32),
     DeleteBots,
     RefreshPatches,
     /// nom logique du patch (ex. patch-3.MPQ), actif ou non
@@ -189,7 +188,7 @@ pub struct Orchestrator {
     mangosd: Option<Mangosd>,
     game: Option<Child>,
     log_file: Option<std::fs::File>,
-    /// MoveMapGenerator en arrière-plan
+    /// MoveMapGen en arrière-plan
     mmaps_job: Option<Child>,
     /// Compteur de `tick` : les ports ne sont sondés qu'une fois toutes les 10 secondes (chaque sondage ouvre une
     /// connexion au serveur, journalisée par mangosd) ; entre deux, seul l'état des processus est contrôlé.
@@ -448,7 +447,6 @@ impl Orchestrator {
                 self.apply_settings_live();
             }
             Command::InstallTo(dest) => self.install_to(&dest),
-            Command::GenerateBots(n) => self.with_world_stopped(|o| o.generate_bots(n)),
             Command::RefreshPatches => self.refresh_patches(),
             Command::PatchBuild(dir) => {
                 let st = self.state();
@@ -640,7 +638,7 @@ impl Orchestrator {
                     return;
                 }
                 Err(e) => {
-                    self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::BOTGEN_FAIL));
+                    self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::BOT_DELETE_FAIL));
                     return;
                 }
             }
@@ -670,42 +668,6 @@ impl Orchestrator {
                 self.shared.lock().unwrap().notice = Some(format!("{k} personnages bots supprimés."));
             }
             Err(e) => self.log(format!("ERREUR suppression des bots : {e}")),
-        }
-        self.refresh_accounts();
-        if was_temp {
-            self.release_temp_db();
-        }
-    }
-
-    /// Génère des personnages bots de peuplement (serveur arrêté : voir `with_world_stopped`).
-    fn generate_bots(&mut self, count: u32) {
-        if self.mangosd.is_some() {
-            return;
-        }
-        let was_temp = self.db.is_none();
-        let prev_msg = self.shared.lock().unwrap().message.clone();
-        let shared = self.shared.clone();
-        let r = self.ensure_db().and_then(|db| {
-            // Installation neuve : les bases ne sont importées qu'au premier démarrage du serveur.
-            if !db.databases_missing()?.is_empty() {
-                return Err(fr::BOTGEN_NEED_FIRST_START.to_string());
-            }
-            crate::botgen::generate(&db, count, &|i, n| shared.lock().unwrap().message = format!("{} {i}/{n}", fr::BOTGEN_PROGRESS))
-        });
-        match r {
-            Ok(rep) => {
-                self.log(format!("{} personnages bots créés ({} Alliance, {} Horde)", rep.created, rep.alliance, rep.horde));
-                let mut s = self.shared.lock().unwrap();
-                s.notice = Some(format!("{} {} ({} Alliance, {} Horde).", rep.created, fr::BOTGEN_DONE, rep.alliance, rep.horde));
-                s.message = prev_msg;
-                drop(s);
-            }
-            Err(e) => {
-                self.log(format!("ERREUR génération des bots : {e}"));
-                let mut s = self.shared.lock().unwrap();
-                s.notice = Some(format!("{} : {e}", fr::BOTGEN_FAIL));
-                s.message = prev_msg;
-            }
         }
         self.refresh_accounts();
         if was_temp {
@@ -791,10 +753,9 @@ impl Orchestrator {
         self.poll_mmaps();
     }
 
-    /// Serveur en marche : réglages appliqués sans redémarrage. `mangosd.conf` est réécrit, puis `reload config`
-    /// (VMaNGOS relit le fichier) et `bot reload` (le gestionnaire de bots relit ses réglages et connecte aussitôt le
-    /// nombre minimal de bots de peuplement). Sans cela, `bot reload` relisait l'ancienne configuration en mémoire et
-    /// rien ne changeait avant le redémarrage suivant.
+    /// Serveur en marche : réglages appliqués sans redémarrage. Les .conf sont réécrits, puis relus : `reload config`
+    /// (mangosd.conf), `rndbot reload` (aiplayerbot.conf : nombre de bots, comportements) et `ahbot reload`.
+    /// Certains réglages (création des comptes de bots, niveaux de départ) ne jouent qu'au démarrage suivant.
     fn apply_settings_live(&mut self) {
         if self.mangosd.is_none() || !self.state().services_up() {
             return;
@@ -804,8 +765,9 @@ impl Orchestrator {
             Ok(()) => {
                 self.console("reload config");
                 std::thread::sleep(Duration::from_millis(800));
-                self.console("bot reload");
-                self.log("réglages appliqués au serveur en marche (reload config, bot reload)");
+                self.console("rndbot reload");
+                self.console("ahbot reload");
+                self.log("réglages appliqués au serveur en marche (reload config, rndbot reload, ahbot reload)");
             }
             Err(e) => self.log(format!("réglages : application à chaud impossible ({e}) ; ils seront pris en compte au prochain démarrage")),
         }
@@ -813,7 +775,7 @@ impl Orchestrator {
 
     // ------------------------------------------------------------------ mmaps en arrière-plan
 
-    /// Lance MoveMapGenerator en arrière-plan si les mmaps manquent (ou toujours si `force`).
+    /// Lance MoveMapGen en arrière-plan si les mmaps manquent (ou toujours si `force`).
     fn start_mmaps(&mut self, force: bool) {
         if self.mmaps_job.is_some() {
             if force {
@@ -872,7 +834,7 @@ impl Orchestrator {
                         self.log("mmaps générées en arrière-plan : installées au prochain démarrage du serveur");
                     }
                 } else {
-                    let e = format!("MoveMapGenerator terminé avec le code {:?}", status.code());
+                    let e = format!("MoveMapGen terminé avec le code {:?}", status.code());
                     s.mmaps = MmapsStatus::Failed(e.clone());
                     drop(s);
                     self.log(format!("ERREUR mmaps : {e}"));
@@ -1048,7 +1010,7 @@ impl Orchestrator {
             None => report.notes.push(fr::RPT_MANIFEST_MISSING.into()),
         }
         report.data = repair::data_status(&self.layout);
-        report.db_ok = self.db.as_ref().filter(|d| d.ping()).map(|d| d.databases_missing().map(|m| m.is_empty()).unwrap_or(false) && d.databases_without_migrations().map(|m| m.is_empty()).unwrap_or(false));
+        report.db_ok = self.db.as_ref().filter(|d| d.ping()).map(|d| d.databases_missing().map(|m| m.is_empty()).unwrap_or(false) && d.databases_incomplete().map(|m| m.is_empty()).unwrap_or(false));
         if !report.files_ok() {
             report.notes.push(fr::RPT_UNREPAIRABLE.into());
         }
@@ -1114,7 +1076,7 @@ impl Orchestrator {
             self.set_message(format!("{} (base de données)", fr::MSG_REPAIR));
             let db = self.ensure_db()?;
             let mut missing = db.databases_missing()?;
-            for d in db.databases_without_migrations()? {
+            for d in db.databases_incomplete()? {
                 if d != "characters" && !missing.iter().any(|m| *m == d.as_str()) {
                     missing.push(match d.as_str() { "realmd" => "realmd", "mangos" => "mangos", "logs" => "logs", _ => continue });
                 }
@@ -1319,16 +1281,6 @@ impl Orchestrator {
         if let Err(e) = server::generate_configs(&self.layout, &db, &self.settings).and_then(|_| server::ensure_realm(&db)) {
             return self.fail_ret("configuration serveur", e);
         }
-        match crate::botgen::fix_phase_mask(&db) {
-            Ok(0) => {}
-            Ok(n) => self.log(format!("personnages bots rendus visibles dans /qui : {n}")),
-            Err(e) => self.log(format!("ERREUR bots (/qui) : {e}")),
-        }
-        match crate::botgen::drop_foreign_entries(&db) {
-            Ok(0) => {}
-            Ok(n) => self.log(format!("peuplement : {n} inscription(s) de bot retirée(s) (elles désignaient un personnage joueur)")),
-            Err(e) => self.log(format!("ERREUR bots (inscriptions) : {e}")),
-        }
         self.db = Some(db);
 
         // Première installation : données du client (dbc, maps, vmaps) extraites si absentes. Les mmaps restent optionnelles.
@@ -1390,6 +1342,7 @@ impl Orchestrator {
             match m.wait_ready(Duration::from_millis(500)) {
                 Ok(()) => break,
                 Err(e) if std::time::Instant::now() > deadline || !m.is_running() => {
+                    let e = if m.is_running() { e } else { "mangosd s'est arrêté pendant le chargement, voir Logs/server/mangosd.console.log".to_string() };
                     // Toujours arrêté ici : il n'est pas encore dans `self.mangosd`, l'arrêt général ne le verrait pas.
                     m.stop(Duration::from_secs(30));
                     return self.fail_ret("chargement du monde", e);
@@ -1533,6 +1486,10 @@ impl Orchestrator {
             return;
         };
         let upper = user.to_ascii_uppercase();
+        if crate::botgen::is_bot_account(user) {
+            self.shared.lock().unwrap().notice = Some(fr::ACC_BOT_PREFIX.into());
+            return;
+        }
         let exists = |db: &MariaDb| {
             db.root_conn()
                 .and_then(|mut c| {
@@ -1581,10 +1538,15 @@ impl Orchestrator {
         let Some(db) = self.db.as_ref() else { return };
         let r = db.root_conn().and_then(|mut c| {
             use mysql::prelude::Queryable;
+            // Comptes du joueur seulement : les comptes de bots aléatoires (RNDBOT…) sont comptés à part (`bot_pool`).
             c.query_map(
-                "SELECT a.username, COALESCE(MAX(aa.gmlevel), a.gmlevel) AS gm, COALESCE(DATE_FORMAT(a.last_login,'%Y-%m-%d %H:%i'),'') AS ll, \
-                 (SELECT COUNT(*) FROM characters.characters ch WHERE ch.account=a.id) AS nb \
-                 FROM realmd.account a LEFT JOIN realmd.account_access aa ON aa.id=a.id GROUP BY a.id ORDER BY a.username",
+                format!(
+                    "SELECT a.username, a.gmlevel, \
+                     COALESCE((SELECT DATE_FORMAT(MAX(l.loginTime),'%Y-%m-%d %H:%i') FROM realmd.account_logons l WHERE l.accountId=a.id),'') AS ll, \
+                     (SELECT COUNT(*) FROM characters.characters ch WHERE ch.account=a.id) AS nb \
+                     FROM realmd.account a WHERE NOT {} ORDER BY a.username",
+                    crate::botgen::bot_account_filter("a.username")
+                ),
                 |(username, gm, ll, nb): (String, u8, String, u64)| AccountRow { username, gmlevel: gm, last_login: ll, characters: nb },
             )
             .map_err(|e| e.to_string())

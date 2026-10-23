@@ -1,5 +1,5 @@
 //! Vérification et réparation : manifeste de fichiers gérés (Build/files-manifest.json, produit par le
-//! développeur), données extraites du client, extracteurs VMaNGOS, export de diagnostic.
+//! développeur), données extraites du client, extracteurs CMaNGOS, export de diagnostic.
 
 use crate::db::CREATE_NO_WINDOW;
 use crate::paths::Layout;
@@ -73,30 +73,36 @@ pub fn verify_files(layout: &Layout, manifest: &FilesManifest, progress: &dyn Fn
     (missing, altered)
 }
 
-/// Présence des données extraites du client (seuils minimaux : 1.12.1 compte 158 DBC, 2 429 cartes).
+/// Marqueurs « données au format CMaNGOS » : les données extraites par l'édition VMaNGOS (Data\5875\dbc, cartes,
+/// vmaps et mmaps d'un autre format) sont illisibles par ce serveur. Sans marqueur, l'extraction est refaite.
+const MARK_DBC_MAPS: &str = ".cmangos-dbc-maps";
+const MARK_VMAPS: &str = ".cmangos-vmaps";
+const MARK_MMAPS: &str = ".cmangos-mmaps";
+
+/// Présence des données extraites du client (seuils minimaux : 1.12.1 compte 158 DBC, 2 429 cartes, 6 080 vmaps).
 pub fn data_status(layout: &Layout) -> Vec<(String, bool)> {
     let d = layout.server_data();
+    let dbc_maps = d.join(MARK_DBC_MAPS).is_file();
     vec![
-        ("dbc".into(), util::dir_file_count(&d.join("5875").join("dbc")) >= 150),
-        ("maps".into(), util::dir_file_count(&d.join("maps")) >= 2000),
-        ("vmaps".into(), util::dir_file_count(&d.join("vmaps")) >= 1000),
+        ("dbc".into(), dbc_maps && util::dir_file_count(&d.join("dbc")) >= 150),
+        ("maps".into(), dbc_maps && util::dir_file_count(&d.join("maps")) >= 2000),
+        ("vmaps".into(), d.join(MARK_VMAPS).is_file() && util::dir_file_count(&d.join("vmaps")) >= 1000),
         // Les versions ≤ 0.9.9 généraient directement dans mmaps : avec leur marqueur, la génération est inachevée.
-        ("mmaps".into(), util::dir_file_count(&d.join("mmaps")) >= 1000 && !legacy_mmaps_marker(layout).exists()),
+        ("mmaps".into(), d.join("mmaps").join(MARK_MMAPS).is_file() && util::dir_file_count(&d.join("mmaps")) >= 1000 && !legacy_mmaps_marker(layout).exists()),
     ]
 }
 
 // Les mmaps sont générées dans un dossier de travail et n'entrent dans Server\Data\mmaps qu'une fois complètes,
-// serveur arrêté. mangosd charge toute tuile présente sur le disque : avec des mmaps partielles (génération en cours,
-// ou installées pendant que des zones sont déjà chargées), le carnet de navigation d'un continent existe sans la
-// tuile d'une capitale, et PopulateAreaBotAI::BeforeAddToMap boucle sans fin sur Map::GetWalkRandomPosition :
-// le monde se fige (joueur bloqué sur « Connecté »).
+// serveur arrêté. mangosd charge toute tuile présente sur le disque : des mmaps partielles (génération en cours, ou
+// installées pendant que des zones sont déjà chargées) donnent des carnets de navigation incomplets (avec VMaNGOS,
+// le monde se figeait).
 
-/// Dossier de travail de MoveMapGenerator (il lit maps et vmaps et écrit mmaps relativement à son dossier courant).
+/// Dossier de travail de MoveMapGen (il lit maps et vmaps et écrit mmaps dans son dossier `--workdir`).
 pub fn mmaps_staging(layout: &Layout) -> PathBuf {
     layout.server_data().join("mmaps-generation")
 }
 
-/// Marqueur « génération des mmaps en cours » (créé au lancement de MoveMapGenerator, retiré s'il réussit).
+/// Marqueur « génération des mmaps en cours » (créé au lancement de MoveMapGen, retiré s'il réussit).
 pub fn mmaps_marker(layout: &Layout) -> PathBuf {
     mmaps_staging(layout).join(".generation-en-cours")
 }
@@ -105,9 +111,9 @@ fn legacy_mmaps_marker(layout: &Layout) -> PathBuf {
     layout.server_data().join("mmaps").join(".generation-en-cours")
 }
 
-/// Tuiles d'un jeu de mmaps complet pour le client 1.12.1 (mesuré le 2026-10-19 : 1 731 tuiles de terrain
-/// et 11 de transports, 41 cartes).
-pub const MMAPS_EXPECTED_TILES: usize = 1742;
+/// Tuiles d'un jeu de mmaps complet pour le client 1.12.1 avec MoveMapGen de CMaNGOS (mesuré le 2026-10-23 :
+/// 1 967 tuiles, 43 cartes, 13 minutes sur 12 threads).
+pub const MMAPS_EXPECTED_TILES: usize = 1967;
 
 /// Tuiles déjà écrites dans le dossier de travail.
 pub fn mmaps_staged_tiles(layout: &Layout) -> usize {
@@ -158,7 +164,7 @@ fn link_dir_files(src: &Path, dst: &Path) -> Result<(), String> {
 
 /// À appeler serveur arrêté, juste avant de lancer mangosd. Installe des mmaps complètes en attente
 /// (renvoie true), et range dans le dossier de travail des mmaps partielles laissées par une ancienne version
-/// (MoveMapGenerator reprend les tuiles déjà faites).
+/// (MoveMapGen reprend les tuiles déjà faites).
 pub fn install_pending_mmaps(layout: &Layout) -> Result<bool, String> {
     let live = layout.server_data().join("mmaps");
     let staging = mmaps_staging(layout);
@@ -183,23 +189,36 @@ pub fn install_pending_mmaps(layout: &Layout) -> Result<bool, String> {
     Ok(true)
 }
 
-/// Lance MoveMapGenerator sans attendre (génération en arrière-plan pendant que le serveur tourne), dans le
-/// dossier de travail. L'appelant surveille le processus, puis appelle `mmaps_finished`.
+/// Arguments de MoveMapGen : dossier de travail, connexions hors maillage et réglages par carte livrés avec l'outil.
+fn mmaps_args(layout: &Layout, workdir: &Path, threads: usize) -> Vec<String> {
+    let ex = layout.extractors_bin();
+    let q = |p: PathBuf| p.to_string_lossy().into_owned();
+    vec![
+        "--workdir".into(), workdir.to_string_lossy().into_owned(),
+        "--offMeshInput".into(), q(ex.join("offmesh.txt")),
+        "--configInputPath".into(), q(ex.join("config.json")),
+        "--threads".into(), threads.to_string(),
+        "--silent".into(),
+    ]
+}
+
+/// Lance MoveMapGen sans attendre (génération en arrière-plan pendant que le serveur tourne), dans le dossier de
+/// travail. L'appelant surveille le processus, puis appelle `mmaps_finished`.
 pub fn spawn_mmaps(layout: &Layout, threads: usize, sink: &Sender<String>) -> Result<std::process::Child, String> {
-    let bin = layout.server_bin();
     let data = layout.server_data();
     let staging = mmaps_staging(layout);
     std::fs::create_dir_all(staging.join("mmaps")).map_err(|e| e.to_string())?;
     link_dir_files(&data.join("maps"), &staging.join("maps"))?;
     link_dir_files(&data.join("vmaps"), &staging.join("vmaps"))?;
     std::fs::write(mmaps_marker(layout), "generation en cours").map_err(|e| e.to_string())?;
-    spawn_tool("MoveMapGenerator", &bin.join("MoveMapGenerator.exe"), &["--threads".into(), threads.to_string(), "--silent".into()], &staging, sink)
+    spawn_tool("MoveMapGen", &layout.extractors_bin().join("MoveMapGen.exe"), &mmaps_args(layout, &staging, threads), &staging, sink)
 }
 
-/// À appeler quand MoveMapGenerator s'est terminé : retire le marqueur si la génération a réussi.
+/// À appeler quand MoveMapGen s'est terminé : retire le marqueur « en cours » et date le format si elle a réussi.
 pub fn mmaps_finished(layout: &Layout, success: bool) {
     if success {
         let _ = std::fs::remove_file(mmaps_marker(layout));
+        let _ = std::fs::write(mmaps_staging(layout).join("mmaps").join(MARK_MMAPS), "CMaNGOS Classic");
     }
 }
 
@@ -293,10 +312,10 @@ fn spawn_tool_with_tail(name: &str, exe: &Path, args: &[String], cwd: &Path, sin
     Ok((child, handle))
 }
 
-/// Extraction des données du client avec les outils VMaNGOS (mêmes étapes que Tools/Extract-ClientData.ps1).
+/// Archives lues pour l'extraction.
 /// Archives officielles du client 1.12.1. Les extracteurs du serveur ouvrent aussi `patch-3.MPQ` à `patch-99.MPQ` :
 /// un patch ajouté (graphismes HD…) y injecterait ses modèles (« Couldn't open RootWmo », collisions fausses, voire
-/// plantage 0xC0000374 de VMapExtractor). L'extraction ne voit donc que ces archives.
+/// plantage de l'extracteur de VMaNGOS). L'extraction ne voit donc que ces archives.
 const OFFICIAL_MPQ: &[&str] = &[
     "backup.MPQ", "base.MPQ", "dbc.MPQ", "fonts.MPQ", "interface.MPQ", "misc.MPQ", "model.MPQ", "patch.MPQ", "patch-2.MPQ",
     "sound.MPQ", "speech.MPQ", "terrain.MPQ", "texture.MPQ", "wmo.MPQ",
@@ -380,45 +399,55 @@ fn prepare_source(layout: &Layout, client_dir: &Path, sink: &Sender<String>) -> 
     Ok(src)
 }
 
+fn remove_if_exists(p: &Path) -> Result<(), String> {
+    if p.is_dir() {
+        std::fs::remove_dir_all(p).map_err(|e| format!("nettoyage de {} : {e}", p.display()))?;
+    } else if p.is_file() {
+        std::fs::remove_file(p).map_err(|e| format!("nettoyage de {} : {e}", p.display()))?;
+    }
+    Ok(())
+}
+
+/// Extraction des données du client avec les extracteurs de CMaNGOS (Server\cmangos\Extractors) : ad (DBC, caméras,
+/// cartes), vmap_extractor puis vmap_assembler (collisions), MoveMapGen (déplacements). Les données d'un autre
+/// format (édition VMaNGOS) sont retirées d'abord ; refaire les cartes ou les vmaps invalide aussi les mmaps.
 pub fn extract(layout: &Layout, client_dir: &Path, steps: &[ExtractStep], sink: &Sender<String>, progress: &dyn Fn(&str)) -> Result<(), String> {
-    let bin = layout.server_bin();
+    let ex = layout.extractors_bin();
     let data = layout.server_data();
     std::fs::create_dir_all(&data).map_err(|e| e.to_string())?;
     let source = prepare_source(layout, client_dir, sink)?;
     let client_dir = source.root.as_path();
     let q = |p: &Path| p.to_string_lossy().into_owned();
+    if steps.contains(&ExtractStep::DbcMaps) || steps.contains(&ExtractStep::Vmaps) {
+        remove_if_exists(&data.join("mmaps"))?;
+        remove_if_exists(&mmaps_staging(layout))?;
+    }
     if steps.contains(&ExtractStep::DbcMaps) {
         progress("extraction des DBC et des cartes");
-        run_tool("MapExtractor", &bin.join("MapExtractor.exe"), &["-i".into(), q(client_dir), "-o".into(), q(&data), "--silent".into()], &data, sink)?;
-        // mangosd attend DataDir/5875/dbc ; MapExtractor écrit <sortie>/dbc.
-        let src = data.join("dbc");
-        if src.is_dir() {
-            let target = data.join("5875").join("dbc");
-            std::fs::create_dir_all(data.join("5875")).map_err(|e| e.to_string())?;
-            if target.exists() {
-                std::fs::remove_dir_all(&target).map_err(|e| e.to_string())?;
-            }
-            std::fs::rename(&src, &target).map_err(|e| e.to_string())?;
+        remove_if_exists(&data.join(MARK_DBC_MAPS))?;
+        for d in ["dbc", "maps", "Cameras", "5875"] {
+            remove_if_exists(&data.join(d))?;
         }
+        run_tool("ad", &ex.join("ad.exe"), &["-i".into(), q(client_dir), "-o".into(), q(&data)], &data, sink)?;
+        std::fs::write(data.join(MARK_DBC_MAPS), "CMaNGOS Classic").map_err(|e| e.to_string())?;
     }
     if steps.contains(&ExtractStep::Vmaps) {
         progress("extraction des modèles de collision (vmaps)");
-        // Dossier de travail de VMapExtractor : s'il reste d'une extraction interrompue (programme bloqué par Windows,
-        // launcher fermé), l'extracteur refuse de repartir (« Your output directory seems to be polluted », code 1).
-        // Il est entièrement régénéré : on le vide toujours avant de commencer.
+        remove_if_exists(&data.join(MARK_VMAPS))?;
+        remove_if_exists(&data.join("vmaps"))?;
+        // Dossier de travail de vmap_extractor : s'il reste d'une extraction interrompue (programme bloqué par Windows,
+        // launcher fermé), l'extracteur refuse de repartir (« Your output directory seems to be polluted »). Il est
+        // entièrement régénéré : on le vide toujours avant de commencer.
         let work = data.join("Buildings");
-        // VMapExtractor plante de façon intermittente (0xC0000374 corruption du tas, 0xC0000005) : la même commande
-        // réussit ensuite (vérifié le 2026-10-19). Jusqu'à trois essais, chacun sur un dossier de travail propre ;
-        // un échec « normal » (code positif) n'est pas retenté.
+        // L'extracteur VMaNGOS plantait de façon intermittente (0xC0000374, 0xC0000005) et réussissait au second essai :
+        // jusqu'à trois essais, chacun sur un dossier de travail propre ; un échec « normal » (code positif) n'est pas retenté.
         let mut attempt = 1;
         loop {
-            if work.exists() {
-                std::fs::remove_dir_all(&work).map_err(|e| format!("nettoyage de {} : {e}", work.display()))?;
-            }
-            match run_tool("VMapExtractor", &bin.join("VMapExtractor.exe"), &["-l".into(), "-d".into(), q(&client_dir.join("Data")), "--silent".into()], &data, sink) {
+            remove_if_exists(&work)?;
+            match run_tool("vmap_extractor", &ex.join("vmap_extractor.exe"), &["-l".into(), "-d".into(), q(&client_dir.join("Data"))], &data, sink) {
                 Ok(()) => break,
                 Err(e) if attempt < 3 && e.contains("(code Some(-") => {
-                    let _ = sink.send(format!("[extraction] VMapExtractor s'est arrêté brutalement (essai {attempt}/3), nouvelle tentative : {e}"));
+                    let _ = sink.send(format!("[extraction] vmap_extractor s'est arrêté brutalement (essai {attempt}/3), nouvelle tentative : {e}"));
                     attempt += 1;
                 }
                 Err(e) => return Err(e),
@@ -426,12 +455,17 @@ pub fn extract(layout: &Layout, client_dir: &Path, steps: &[ExtractStep], sink: 
         }
         std::fs::create_dir_all(data.join("vmaps")).map_err(|e| e.to_string())?;
         progress("assemblage des vmaps");
-        run_tool("VMapAssembler", &bin.join("VMapAssembler.exe"), &["Buildings".into(), "vmaps".into()], &data, sink)?;
+        run_tool("vmap_assembler", &ex.join("vmap_assembler.exe"), &["Buildings".into(), "vmaps".into()], &data, sink)?;
+        // Modèles bruts (environ 260 Mo) : inutiles au serveur une fois assemblés.
+        remove_if_exists(&work)?;
+        std::fs::write(data.join(MARK_VMAPS), "CMaNGOS Classic").map_err(|e| e.to_string())?;
     }
     if steps.contains(&ExtractStep::Mmaps) {
         progress("génération des cartes de déplacement (mmaps, long)");
-        let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).to_string();
-        run_tool("MoveMapGenerator", &bin.join("MoveMapGenerator.exe"), &["--threads".into(), threads, "--silent".into()], &data, sink)?;
+        let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+        std::fs::create_dir_all(data.join("mmaps")).map_err(|e| e.to_string())?;
+        run_tool("MoveMapGen", &ex.join("MoveMapGen.exe"), &mmaps_args(layout, &data, threads), &data, sink)?;
+        std::fs::write(data.join("mmaps").join(MARK_MMAPS), "CMaNGOS Classic").map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -542,7 +576,7 @@ mod tests {
         mmaps_finished(&layout, true);
         assert!(mmaps_pending(&layout));
         assert!(install_pending_mmaps(&layout).unwrap());
-        assert_eq!(util::dir_file_count(&data.join("mmaps")), 1200);
+        assert_eq!(util::dir_file_count(&data.join("mmaps")), 1201, "1200 tuiles et le marqueur de format");
         assert!(!mmaps_staging(&layout).exists());
         assert!(data_status(&layout).iter().any(|(n, ok)| n == "mmaps" && *ok));
         let _ = std::fs::remove_dir_all(&tmp);
@@ -557,12 +591,12 @@ mod progress_tests {
     fn remaining_time_follows_the_observed_rate() {
         // Moins d'une minute : pas d'estimation.
         assert!(mmaps_progress(10, 0, 30).remaining_secs.is_none());
-        // Reprise à 742 tuiles, 100 de plus en 10 min : 900 restantes → 90 min.
-        let p = mmaps_progress(842, 742, 600);
+        // Reprise à 967 tuiles, 100 de plus en 10 min : 900 restantes → 90 min.
+        let p = mmaps_progress(1067, 967, 600);
         assert_eq!(p.remaining_secs, Some(5400));
-        assert!((p.fraction - 842.0 / 1742.0).abs() < 1e-4);
+        assert!((p.fraction - 1067.0 / 1967.0).abs() < 1e-4);
         // Plus de tuiles que prévu : jamais 100 % ni temps négatif tant que le générateur tourne.
-        let p = mmaps_progress(1800, 0, 3600);
+        let p = mmaps_progress(2100, 0, 3600);
         assert!(p.fraction < 1.0 && p.remaining_secs.is_some());
         assert_eq!(crate::i18n::fr::mmaps_running(12, Some(5400)), "génération en cours depuis 12 min, environ 1 h 30 restantes (le jeu reste jouable)");
         assert_eq!(crate::i18n::fr::mmaps_running(3, Some(600)), "génération en cours depuis 3 min, environ 10 min restantes (le jeu reste jouable)");

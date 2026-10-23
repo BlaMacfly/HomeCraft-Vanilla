@@ -1,0 +1,12 @@
+diff --git a/playerbot/RandomPlayerbotMgr.cpp b/playerbot/RandomPlayerbotMgr.cpp
+index c23086cd..b9964c94 100644
+--- a/playerbot/RandomPlayerbotMgr.cpp
++++ b/playerbot/RandomPlayerbotMgr.cpp
+@@ -3472,6 +3472,7 @@ bool RandomPlayerbotMgr::HandlePlayerbotConsoleCommand(ChatHandler* handler, cha
+     std::map<std::string, ConsoleCommandHandler> handlers;
+     handlers["help"] = &RandomPlayerbotMgr::HandleHelp;
+     handlers["reset"] = &RandomPlayerbotMgr::HandleConsoleReset;
++    handlers["reload"] = &RandomPlayerbotMgr::HandleConsoleReload; // HomeCraft : relecture de aiplayerbot.conf depuis la console
+     handlers["stats"] = &RandomPlayerbotMgr::HandleConsoleStats;
+     handlers["update"] = &RandomPlayerbotMgr::HandleConsoleUpdate;
+     handlers["pid "] = &RandomPlayerbotMgr::HandleConsolePid;

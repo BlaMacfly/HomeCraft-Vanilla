@@ -4,21 +4,8 @@
     "updated":  "2026-10-15",
     "components":  [
                        {
-                           "id":  "vmangos-core-windows",
-                           "description":  "VMaNGOS, build de développement Windows x64 (realmd, mangosd, extracteurs, libmySQL.dll, libeay32.dll)",
-                           "source":  "https://github.com/vmangos/core",
-                           "license":  "GPL-2.0",
-                           "commit":  "53d24d5",
-                           "released":  "2026-10-07",
-                           "url":  "https://github.com/vmangos/core/releases/download/latest/dev-windows-amd64-53d24d5.zip",
-                           "file":  "dev-windows-amd64-53d24d5.zip",
-                           "expected_size":  5805632,
-                           "sha256":  "068bc79dc9e08fd62351acb3b798b26c6c7c3c29e5b81ad056f10f9f75cd9e34",
-                           "install_to":  "Server/vmangos"
-                       },
-                       {
                            "id":  "vmangos-db-mysql",
-                           "description":  "VMaNGOS, snapshot de base de données MySQL (mangos, characters, logon, logs + migrations)",
+                           "description":  "VMaNGOS, snapshot de base de données MySQL. Édition CMaNGOS : construction uniquement, source des traductions françaises (colonnes loc2) reprises par Build/Build-CmangosDb.ps1 ; jamais livré dans le package.",
                            "source":  "https://github.com/vmangos/core",
                            "license":  "GPL-2.0 (à confirmer dans l\u0027archive)",
                            "commit":  "4641790",
@@ -82,6 +69,42 @@
                            "install_to":  "Tools/InnoSetup"
                        }
                    ],
+    "sources":  [
+                    {
+                        "id":  "cmangos-classic",
+                        "description":  "CMaNGOS Classic (mangosd, realmd, extracteurs), compilé par Build/Build-Cmangos.ps1 avec Build/cmangos-patches/homecraft.patch",
+                        "source":  "https://github.com/cmangos/mangos-classic",
+                        "license":  "GPL-2.0",
+                        "commit":  "ff53dfc4679cab3521726384e24692fef35d2718",
+                        "released":  "2026-10-22"
+                    },
+                    {
+                        "id":  "cmangos-playerbots",
+                        "description":  "Module playerbots (ike3, celguar et contributeurs), lié à mangosd ; modifié par Build/cmangos-patches/playerbots.patch",
+                        "source":  "https://github.com/cmangos/playerbots",
+                        "license":  "aucune licence publiée : usage personnel ; redistribution soumise à l'accord des auteurs (Documentation/11-Licence-PlayerBots.md)",
+                        "commit":  "39d47006e4aa1658c7e17af15e4f63d47ec5a3eb",
+                        "released":  "2026-10-23"
+                    },
+                    {
+                        "id":  "classic-db",
+                        "description":  "Base monde CMaNGOS Classic, installée par Build/Build-CmangosDb.ps1 (InstallFullDB.sh) puis exportée dans Server/Database/cmangos-sql",
+                        "source":  "https://github.com/cmangos/classic-db",
+                        "license":  "GPL-3.0",
+                        "commit":  "f460448",
+                        "released":  "2026-10-23"
+                    },
+                    {
+                        "id":  "boost-prebuilt",
+                        "description":  "Boost 1.87 précompilé (MSVC 2022, statique), nécessaire à la compilation de CMaNGOS uniquement ; jamais livré",
+                        "source":  "https://github.com/MarkusJx/prebuilt-boost",
+                        "license":  "BSL-1.0",
+                        "commit":  "1.87.0",
+                        "url":  "https://github.com/MarkusJx/prebuilt-boost/releases/download/1.87.0/boost-1.87.0-windows-2022-msvc-static-x86.tar.gz",
+                        "expected_size":  708087716,
+                        "sha256":  "8df50de4ea741789705ac35a74867f493ef73a0cfb46be4f5a02c12bea4445e8"
+                    }
+                ],
     "user_provided":  [
                           {
                               "id":  "wow-client-frfr-1.12.1",

@@ -40,7 +40,6 @@ fn main() -> eframe::Result {
             (Some("repair"), _) => Some(orchestrator::Command::Repair),
             (Some("diagnostic"), _) => Some(orchestrator::Command::ExportDiagnostic),
             (Some("restore"), Some(p)) => Some(orchestrator::Command::Restore(std::path::PathBuf::from(p))),
-            (Some("botgen"), Some(n)) => n.parse().ok().map(orchestrator::Command::GenerateBots),
             (Some("botdel"), _) => Some(orchestrator::Command::DeleteBots),
             (Some("patchoff"), Some(n)) => Some(orchestrator::Command::PatchSetActive(n.clone(), false)),
             (Some("patchon"), Some(n)) => Some(orchestrator::Command::PatchSetActive(n.clone(), true)),
@@ -56,6 +55,8 @@ fn main() -> eframe::Result {
             // Tests : applique un fichier de réglages comme le bouton Enregistrer (après --start : à chaud).
             (Some("applysettings"), Some(p)) => Some(orchestrator::Command::SettingsChanged(settings::Settings::load(std::path::Path::new(p)))),
             (Some("mmaps"), _) => Some(orchestrator::Command::GenerateMmaps),
+            // Tests : commande envoyée à la console du serveur (après --start), par ex. « rndbot stats ».
+            (Some("console"), Some(c)) => Some(orchestrator::Command::Console(c.clone())),
             _ => None,
         };
         if let Some(c) = cmd {

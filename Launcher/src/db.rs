@@ -55,22 +55,25 @@ pub fn port_open(port: u16) -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
 }
 
-/// Tables de `characters` reliées à un personnage par une autre colonne que `guid`.
+/// Tables de `characters` (schéma CMaNGOS Classic et module playerbots) reliées à un personnage par une autre
+/// colonne que `guid`.
 const CHARACTER_LINKS: &[(&str, &str)] = &[
-    ("character_pet", "owner_guid"),
+    ("character_pet", "owner"),
     ("item_instance", "owner_guid"),
     ("item_loot", "owner_guid"),
-    ("corpse", "player_guid"),
+    ("corpse", "player"),
     ("character_social", "friend"),
-    ("character_deleted_items", "player_guid"),
-    ("auction", "seller_guid"),
-    ("group_member", "member_guid"),
-    ("petition_sign", "player_guid"),
-    ("petition", "owner_guid"),
+    ("auction", "itemowner"),
+    ("group_member", "memberGuid"),
+    ("petition_sign", "playerguid"),
+    ("petition", "ownerguid"),
     ("guild_member", "guid"),
-    ("gm_tickets", "guid"),
-    ("gm_surveys", "guid"),
-    ("playerbot", "char_guid"),
+    ("gm_tickets", "author_guid"),
+    ("playerbot_saved_data", "guid"),
+    ("pvpstats_players", "character_guid"),
+    ("ai_playerbot_random_bots", "bot"),
+    ("ai_playerbot_db_store", "guid"),
+    ("ai_playerbot_custom_strategy", "owner"),
 ];
 
 /// Supprime des personnages et ce qui leur appartient dans la base `characters`. Chaque table est désignée par la
@@ -86,8 +89,8 @@ pub fn delete_characters(c: &mut Conn, guids: &[u32]) -> Result<(), String> {
     let columns: Vec<(String, String)> = c.query("SELECT table_name, column_name FROM information_schema.columns WHERE table_schema='characters'").map_err(err)?;
     let has = |t: &str, col: &str| columns.iter().any(|(a, b)| a == t && b == col);
     let mut sql: Vec<String> = Vec::new();
-    if has("character_pet", "owner_guid") {
-        let pets: Vec<u32> = c.query(format!("SELECT id FROM characters.character_pet WHERE owner_guid IN ({list})")).map_err(err)?;
+    if has("character_pet", "owner") {
+        let pets: Vec<u32> = c.query(format!("SELECT id FROM characters.character_pet WHERE owner IN ({list})")).map_err(err)?;
         if !pets.is_empty() {
             let pet_list = pets.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
             for t in ["pet_aura", "pet_spell", "pet_spell_cooldown"] {
@@ -97,11 +100,11 @@ pub fn delete_characters(c: &mut Conn, guids: &[u32]) -> Result<(), String> {
             }
         }
     }
-    if has("mail", "receiver_guid") {
+    if has("mail", "receiver") {
         if has("mail_items", "mail_id") {
-            sql.push(format!("DELETE FROM characters.mail_items WHERE mail_id IN (SELECT id FROM characters.mail WHERE receiver_guid IN ({list}))"));
+            sql.push(format!("DELETE FROM characters.mail_items WHERE mail_id IN (SELECT id FROM characters.mail WHERE receiver IN ({list}))"));
         }
-        sql.push(format!("DELETE FROM characters.mail WHERE receiver_guid IN ({list})"));
+        sql.push(format!("DELETE FROM characters.mail WHERE receiver IN ({list})"));
     }
     let mut own_tables: Vec<&str> = columns.iter().filter(|(t, col)| col == "guid" && t.starts_with("character_")).map(|(t, _)| t.as_str()).collect();
     own_tables.sort_unstable();
@@ -151,6 +154,7 @@ impl MariaDb {
         let l = &self.layout;
         std::fs::create_dir_all(l.db_data()).map_err(|e| e.to_string())?;
         std::fs::create_dir_all(l.logs()).map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(l.server_config()).map_err(|e| e.to_string())?;
         let ini = format!(
             "[mysqld]\nbasedir={base}\ndatadir={data}\nport={port}\nbind-address=127.0.0.1\nskip-name-resolve\n\
 max_allowed_packet=128M\ncharacter-set-server=utf8mb3\ncollation-server=utf8mb3_general_ci\n\
@@ -282,7 +286,10 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
         c.query_first("SELECT COUNT(*) FROM realmd.account").map(|v| v.unwrap_or(0)).map_err(|e| e.to_string())
     }
 
-    pub const ALL_DBS: [(&'static str, &'static str); 4] = [("realmd", "logon.sql"), ("characters", "characters.sql"), ("mangos", "mangos.sql"), ("logs", "logs.sql")];
+    pub const ALL_DBS: [(&'static str, &'static str); 4] = [("realmd", "realmd.sql"), ("characters", "characters.sql"), ("mangos", "mangos.sql"), ("logs", "logs.sql")];
+
+    /// Table de version de chaque base CMaNGOS : son absence signale un schéma incomplet (import interrompu).
+    const VERSION_TABLES: [(&'static str, &'static str); 4] = [("realmd", "realmd_db_version"), ("characters", "character_db_version"), ("mangos", "db_version"), ("logs", "logs_db_version")];
 
     /// Bases absentes parmi les quatre attendues.
     pub fn databases_missing(&self) -> Result<Vec<&'static str>, String> {
@@ -293,12 +300,12 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
         Ok(Self::ALL_DBS.iter().map(|(d, _)| *d).filter(|d| !present.iter().any(|p| p == d)).collect())
     }
 
-    /// Bases dont la table `migrations` manque (schéma incomplet).
-    pub fn databases_without_migrations(&self) -> Result<Vec<String>, String> {
+    /// Bases dont la table de version manque (schéma incomplet).
+    pub fn databases_incomplete(&self) -> Result<Vec<String>, String> {
         let mut c = self.root_conn()?;
         let mut out = Vec::new();
-        for (d, _) in Self::ALL_DBS {
-            let n: Option<u64> = c.query_first(format!("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='{d}' AND table_name='migrations'")).map_err(|e| e.to_string())?;
+        for (d, t) in Self::VERSION_TABLES {
+            let n: Option<u64> = c.query_first(format!("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='{d}' AND table_name='{t}'")).map_err(|e| e.to_string())?;
             if n != Some(1) {
                 out.push(d.to_string());
             }
@@ -362,7 +369,7 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
             .unwrap_or(0)
     }
 
-    /// Import des bases listées depuis les dumps du package (mêmes étapes que Tools/Init-Database.ps1).
+    /// Import des bases listées depuis les dumps du package (Server\Database\cmangos-sql).
     /// Refuse de recréer `characters` si elle contient des personnages : ils ne sont jamais écrasés ici.
     pub fn import_dumps(&self, dbs: &[&str], progress: &dyn Fn(&str)) -> Result<(), String> {
         if dbs.contains(&"characters") && self.characters_count().unwrap_or(0) > 0 {
@@ -385,19 +392,8 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
             for host in ["127.0.0.1", "localhost"] {
                 c.query_drop(format!("GRANT ALL PRIVILEGES ON `{db}`.* TO '{user}'@'{host}'")).map_err(|e| e.to_string())?;
             }
+            // Les traductions françaises sont déjà dans mangos.sql (Build\Build-CmangosDb.ps1).
             self.import_file(db, &self.layout.sql_dumps().join(file))?;
-            // Compléments du projet (ex. auctionhousebot_solo.sql) appliqués à la base monde.
-            if db == "mangos" {
-                let custom = self.layout.root.join("Server").join("Database").join("custom");
-                if let Ok(rd) = std::fs::read_dir(&custom) {
-                    let mut files: Vec<_> = rd.filter_map(Result::ok).map(|e| e.path()).filter(|p| p.extension().map(|x| x == "sql").unwrap_or(false)).collect();
-                    files.sort();
-                    for f in files {
-                        progress(&format!("complément {}", f.file_name().unwrap_or_default().to_string_lossy()));
-                        self.import_file("mangos", &f)?;
-                    }
-                }
-            }
         }
         c.query_drop("FLUSH PRIVILEGES").map_err(|e| e.to_string())?;
         Ok(())
@@ -467,51 +463,62 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
             .map_err(|e| e.to_string())
     }
 
-    /// Faction (55 Alliance / 29 Horde) du dernier personnage joué, pour l'AHBot.
-    pub fn last_played_faction(&self) -> Option<u32> {
-        let mut c = self.root_conn().ok()?;
-        // Personnages du joueur seulement : les bots générés ont une date de déconnexion récente et une faction au hasard.
-        let race: Option<u8> = c
-            .query_first(format!(
-                "SELECT c.race FROM characters.characters c JOIN realmd.account a ON a.id=c.account WHERE a.username<>'{}' ORDER BY c.logout_time DESC LIMIT 1",
-                crate::botgen::BOT_ACCOUNT
-            ))
-            .ok()?;
-        race.map(|r| if matches!(r, 2 | 5 | 6 | 8) { 29 } else { 55 })
-    }
-
-    /// Suppression définitive d'un compte et de ses personnages, serveur arrêté : toutes les tables de la base
-    /// `characters` possédant une colonne `guid` (données du personnage), `item_instance` (owner_guid), `playerbot`,
-    /// puis `realmd.account`, `account_access`, `account_banned`, `realmcharacters`. Renvoie le nombre de personnages supprimés.
+    /// Suppression définitive d'un compte et de ses personnages, serveur arrêté (voir `delete_accounts`).
+    /// Renvoie le nombre de personnages supprimés.
     pub fn delete_account_offline(&self, username: &str) -> Result<u64, String> {
         let mut c = self.root_conn()?;
-        let err = |e: mysql::Error| e.to_string();
         let upper = username.to_ascii_uppercase().replace('\'', "");
-        let Some(id) = c.query_first::<u32, _>(format!("SELECT id FROM realmd.account WHERE UPPER(username)='{upper}'")).map_err(err)? else {
+        let Some(id) = c.query_first::<u32, _>(format!("SELECT id FROM realmd.account WHERE UPPER(username)='{upper}'")).map_err(|e| e.to_string())? else {
             return Err(format!("compte {username} introuvable"));
         };
-        let guids: Vec<u32> = c.query(format!("SELECT guid FROM characters.characters WHERE account={id}")).map_err(err)?;
-        delete_characters(&mut c, &guids)?;
-        for sql in [
-            format!("DELETE FROM realmd.account_access WHERE id={id}"),
-            format!("DELETE FROM realmd.account_banned WHERE id={id}"),
-            format!("DELETE FROM realmd.realmcharacters WHERE acctid={id}"),
-            format!("DELETE FROM realmd.account WHERE id={id}"),
-        ] {
-            let _ = c.query_drop(sql); // tables optionnelles selon le schéma
-        }
-        Ok(guids.len() as u64)
+        delete_accounts(&mut c, &[id])
     }
 
-    /// Personnages bots enregistrés pour le peuplement (RandomBot).
+    /// Personnages des comptes de bots aléatoires (créés par le serveur au démarrage).
     pub fn bot_pool_count(&self) -> Option<u64> {
-        self.root_conn().ok().and_then(|mut c| c.query_first::<u64, _>("SELECT COUNT(*) FROM characters.playerbot").ok().flatten())
-    }
-
-    pub fn ahbot_rows(&self) -> u64 {
-        self.root_conn()
+        self.root_conn().ok().and_then(|mut c| {
+            c.query_first::<u64, _>(format!(
+                "SELECT COUNT(*) FROM characters.characters c JOIN realmd.account a ON a.id=c.account WHERE {}",
+                crate::botgen::bot_account_filter("a.username")
+            ))
             .ok()
-            .and_then(|mut c| c.query_first::<u64, _>("SELECT COUNT(*) FROM mangos.auctionhousebot").ok().flatten())
-            .unwrap_or(0)
+            .flatten()
+        })
     }
+}
+
+/// Supprime des comptes, leurs personnages (`delete_characters`), les guildes et groupes qu'ils dirigeaient, puis
+/// les lignes de `realmd`. Renvoie le nombre de personnages supprimés.
+pub fn delete_accounts(c: &mut Conn, ids: &[u32]) -> Result<u64, String> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let err = |e: mysql::Error| e.to_string();
+    let id_list = ids.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
+    let guids: Vec<u32> = c.query(format!("SELECT guid FROM characters.characters WHERE account IN ({id_list})")).map_err(err)?;
+    if !guids.is_empty() {
+        let list = guids.iter().map(|g| g.to_string()).collect::<Vec<_>>().join(",");
+        // Guildes et groupes dirigés par ces personnages : sans chef, le serveur les rejetterait au chargement.
+        for sql in [
+            format!("DELETE FROM characters.guild_member WHERE guildid IN (SELECT guildid FROM characters.guild WHERE leaderguid IN ({list}))"),
+            format!("DELETE FROM characters.guild_rank WHERE guildid IN (SELECT guildid FROM characters.guild WHERE leaderguid IN ({list}))"),
+            format!("DELETE FROM characters.guild_eventlog WHERE guildid IN (SELECT guildid FROM characters.guild WHERE leaderguid IN ({list}))"),
+            format!("DELETE FROM characters.guild WHERE leaderguid IN ({list})"),
+            format!("DELETE FROM characters.group_member WHERE groupId IN (SELECT groupId FROM characters.`groups` WHERE leaderGuid IN ({list}))"),
+            format!("DELETE FROM characters.`groups` WHERE leaderGuid IN ({list})"),
+            format!("DELETE FROM characters.group_instance WHERE leaderGuid IN ({list})"),
+        ] {
+            c.query_drop(&sql).map_err(|e| format!("{e} ({sql})"))?;
+        }
+    }
+    delete_characters(c, &guids)?;
+    for sql in [
+        format!("DELETE FROM realmd.account_banned WHERE id IN ({id_list})"),
+        format!("DELETE FROM realmd.realmcharacters WHERE acctid IN ({id_list})"),
+        format!("DELETE FROM realmd.account_logons WHERE accountId IN ({id_list})"),
+        format!("DELETE FROM realmd.account WHERE id IN ({id_list})"),
+    ] {
+        c.query_drop(&sql).map_err(|e| format!("{e} ({sql})"))?;
+    }
+    Ok(guids.len() as u64)
 }

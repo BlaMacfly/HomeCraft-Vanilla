@@ -18,7 +18,9 @@ param(
     [string]$Thumbprint,
     [string]$File = (Join-Path (Split-Path -Parent $PSScriptRoot) 'Launcher\target\release\vanilla-solo-launcher.exe'),
     [string]$TimestampUrl = 'http://timestamp.digicert.com',
-    [string]$Description = 'HomeCraft Edition Vanilla'
+    [string]$Description = 'HomeCraft Edition Vanilla',
+    # Signe sans copier à la racine du projet (édition CMaNGOS en développement : la racine garde le launcher en usage)
+    [switch]$NoDeploy
 )
 $ErrorActionPreference = 'Stop'
 
@@ -47,6 +49,7 @@ $sig = Get-AuthenticodeSignature $File
 "Horodatage : $(if ($sig.TimeStamperCertificate) { $sig.TimeStamperCertificate.Subject } else { 'absent' })"
 if (-not $chainOk) { "Chaîne non approuvée par Windows (certificat auto-signé ou autorité inconnue) : Windows affichera « éditeur inconnu »." }
 # Copie à la racine du projet sous le nom définitif (le launcher détecte la racine par la présence de Server/ et Tools/).
+if ($NoDeploy) { "Non déployé à la racine (-NoDeploy)."; exit 0 }
 $deploy = Join-Path (Split-Path -Parent $PSScriptRoot) 'HomeCraft Edition Vanilla.exe'
 try { Copy-Item $File $deploy -Force -ErrorAction Stop; "Déployé : $deploy" } catch { "Déploiement impossible (launcher en cours d'exécution ?) : $($_.Exception.Message) — fermer le launcher puis relancer ce script." }
 exit 0

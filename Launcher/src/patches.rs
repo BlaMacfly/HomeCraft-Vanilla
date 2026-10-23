@@ -2,7 +2,7 @@
 //! Le client 1.12.1 charge, après les archives officielles, les fichiers `patch-X.MPQ` où X est un chiffre (3 à 9)
 //! ou une lettre (A à Z), les suivants ayant priorité. Désactiver = renommer en `.MPQ.off`.
 //! Le launcher ne fournit ni ne télécharge aucun patch : l'utilisateur apporte les siens.
-//! Côté serveur, les extracteurs VMaNGOS ne lisent que model/dbc/terrain/patch/patch-2 : les patchs ajoutés
+//! Côté serveur, les extracteurs du serveur ne lisent que model/dbc/terrain/patch/patch-2 : les patchs ajoutés
 //! n'ont aucun effet sur les données du serveur (modifications client uniquement).
 
 use std::path::{Path, PathBuf};

@@ -5,7 +5,7 @@ use crate::conf_catalog;
 use crate::i18n::fr;
 use crate::orchestrator::{Command, MmapsStatus, Snapshot, State};
 use crate::paths::Layout;
-use crate::settings::{AhFaction, Settings};
+use crate::settings::Settings;
 use crate::util;
 use eframe::egui::{self, Color32, RichText};
 use egui_extras::{Column, TableBuilder};
@@ -69,7 +69,6 @@ pub struct App {
     backup_selected: Option<PathBuf>,
     backup_label: String,
     // PlayerBots
-    botgen_count: u32,
     // Journaux
     console_cmd: String,
     // Paramètres : client détecté dans le dossier saisi (recalculé quand le chemin change), clients trouvés à proximité
@@ -128,7 +127,6 @@ impl App {
             tables_requested_for: None,
             backup_selected: None,
             backup_label: String::new(),
-            botgen_count: 40,
             console_cmd: String::new(),
             client_probe: None,
             discovered: None,
@@ -396,10 +394,10 @@ impl App {
                 ui.add(egui::TextEdit::singleline(&mut self.acc_pass).password(true));
                 ui.end_row();
                 ui.label(fr::ACC_GM);
-                ui.add(egui::Slider::new(&mut self.acc_gm, 0..=6));
+                ui.add(egui::Slider::new(&mut self.acc_gm, 0..=3));
                 ui.end_row();
             });
-            // Limites de VMaNGOS (16 caractères) ; la console sépare les arguments par des espaces.
+            // Limites de CMaNGOS (16 caractères) ; la console sépare les arguments par des espaces.
             let user = self.acc_user.trim();
             let user_ok = (1..=16).contains(&user.len()) && user.chars().all(|c| c.is_ascii_alphanumeric());
             let pass_ok = (4..=16).contains(&self.acc_pass.len()) && self.acc_pass.chars().all(|c| c.is_ascii_graphic());
@@ -586,60 +584,24 @@ impl App {
         }
         ui.add_space(6.0);
         ui.checkbox(&mut self.settings.partybots_enabled, fr::BOT_ENABLE);
-        ui.horizontal_wrapped(|ui| {
-            ui.label(fr::BOT_POOL);
-            match snap.bot_pool {
-                Some(0) | None => { ui.colored_label(WARN, fr::BOT_POOL_NONE); }
-                Some(n) => { ui.label(RichText::new(n.to_string()).strong()); }
-            }
-        });
         ui.group(|ui| {
-            ui.label(RichText::new(fr::BOTGEN_TITLE).strong());
-            ui.small(fr::BOTGEN_HINT);
-            ui.horizontal(|ui| {
-                ui.label(fr::BOTGEN_COUNT);
-                ui.add(egui::Slider::new(&mut self.botgen_count, 10..=conf_catalog::RANDOMBOT_MAX).logarithmic(true));
-                let busy = snap.state.is_busy();
-                let server_up = snap.state.services_up();
-                let run = ui.add_enabled(!busy, egui::Button::new(fr::BOTGEN_RUN));
-                let run = if server_up { run.on_hover_text(fr::BOTGEN_RESTART_HINT) } else { run };
-                if run.clicked() {
-                    let n = self.botgen_count;
-                    self.send(Command::GenerateBots(n));
-                    // Réglages de peuplement cohérents avec le nombre généré (si l'utilisateur ne les a pas fixés plus haut) :
-                    // maximum = tous les personnages bots, minimum = la moitié (connectée d'un coup au démarrage), et bots
-                    // visibles dans /qui (sinon le joueur croit qu'il n'y en a pas).
-                    let total: u32 = snap.bot_pool.unwrap_or(0) as u32 + n;
-                    let target_max = total.min(conf_catalog::RANDOMBOT_MAX);
-                    let cur_max: u32 = self.settings.conf.get("RandomBot.MaxBots").and_then(|v| v.parse().ok()).unwrap_or(0);
-                    if cur_max < target_max {
-                        self.settings.conf.insert("RandomBot.Enable".into(), "1".into());
-                        self.settings.conf.insert("RandomBot.MinBots".into(), (target_max / 2).max(1).to_string());
-                        self.settings.conf.insert("RandomBot.MaxBots".into(), target_max.to_string());
-                    }
-                    self.settings.conf.insert("PlayerBot.ShowInWhoList".into(), "1".into());
-                    self.save_settings();
-                }
-                let del = ui.add_enabled(!busy && snap.bot_pool.unwrap_or(0) > 0, egui::Button::new(fr::BOTGEN_DELETE));
-                let del = if server_up { del.on_hover_text(fr::BOTGEN_RESTART_HINT) } else { del };
-                if del.clicked() {
-                    self.pending = Some(Pending::DeleteBots);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(fr::BOT_POOL);
+                match snap.bot_pool {
+                    Some(0) | None => { ui.colored_label(WARN, fr::BOT_POOL_NONE); }
+                    Some(n) => { ui.label(RichText::new(n.to_string()).strong()); }
                 }
             });
-            ui.small(fr::BOTGEN_AUTO);
-            // Le serveur ne connecte jamais plus de bots qu'il n'existe de personnages bots : le dire au lieu de
-            // laisser croire qu'un réglage à 2 000 donnera 2 000 bots.
-            let conf_n = |k: &str, d: u32| self.settings.conf.get(k).and_then(|v| v.parse::<u32>().ok()).unwrap_or(d);
-            let (min_b, max_b) = (conf_n("RandomBot.MinBots", 0), conf_n("RandomBot.MaxBots", 0));
-            if conf_n("RandomBot.Enable", 0) == 1 {
-                if let Some(pool) = snap.bot_pool.map(|p| p as u32) {
-                    if max_b > pool || min_b > pool {
-                        ui.colored_label(WARN, fr::bot_pool_short(pool, min_b.max(max_b)));
-                    }
-                }
-                if max_b > 1000 {
-                    ui.colored_label(WARN, fr::bot_load(max_b, min_b));
-                }
+            let busy = snap.state.is_busy();
+            let del = ui.add_enabled(!busy && snap.bot_pool.unwrap_or(0) > 0, egui::Button::new(fr::BOT_DELETE));
+            let del = if snap.state.services_up() { del.on_hover_text(fr::BOT_DELETE_HINT) } else { del };
+            if del.clicked() {
+                self.pending = Some(Pending::DeleteBots);
+            }
+            let conf_n = |k: &str| self.settings.conf.get(k).and_then(|v| v.parse::<u32>().ok()).unwrap_or_else(|| conf_catalog::bot_opt(k).default.parse().unwrap_or(0));
+            let (min_b, max_b) = (conf_n("AiPlayerbot.MinRandomBots"), conf_n("AiPlayerbot.MaxRandomBots"));
+            if max_b > 1000 {
+                ui.colored_label(WARN, fr::bot_load(max_b, min_b));
             }
             if let Some(n) = &snap.notice {
                 ui.colored_label(WARN, n);
@@ -663,30 +625,41 @@ impl App {
             ui.add_space(12.0);
             ui.separator();
             ui.strong(fr::BOT_CMDS);
-        egui::Grid::new("bot_cmds").num_columns(2).spacing([16.0, 4.0]).striped(true).show(ui, |ui| {
-            for (cmd, desc) in [
-                (".partybot add tank | healer | dps", "invoque un compagnon de ce rôle, à votre niveau"),
-                (".partybot add guerrier… (warrior, paladin, hunter, rogue, priest, shaman, mage, warlock, druid)", "invoque un compagnon de cette classe"),
-                (".partybot clone", "copie la race et la classe du joueur ciblé"),
-                (".partybot load <nom>", "charge un de vos personnages hors ligne comme compagnon"),
-                (".partybot setrole tank | healer | meleedps | rangedps", "change le rôle du compagnon ciblé"),
-                (".partybot attackstart / attackstop", "tous les compagnons attaquent / cessent d'attaquer la cible"),
-                (".partybot pull [ms]", "le tank engage la cible, les DPS attendent"),
-                (".partybot aoe", "sorts de zone sur la cible"),
-                (".partybot caststart / caststop", "autorise / interdit les sorts (compagnon ciblé ou tous)"),
-                (".partybot ccmark / focusmark <marque>", "marque à contrôler / à focaliser (star, circle, diamond, triangle, moon, square, cross, skull)"),
-                (".partybot clearmarks", "efface les marques"),
-                (".partybot cometome", "le compagnon ciblé (ou tous) vous rejoint"),
-                (".partybot usegobject", "les compagnons utilisent l'objet du monde ciblé"),
-                (".partybot pause [ms] [all] / unpause [all]", "met en pause / reprend"),
-                (".partybot unequip <lien d'objet>", "retire un objet au compagnon ciblé"),
-                (".partybot remove", "renvoie le compagnon ciblé"),
-            ] {
-                ui.monospace(cmd);
-                ui.label(desc);
+            Self::command_grid(ui, "bot_cmds", &[
+                ("/inviter Nom", "invite un bot dans votre groupe (ou clic droit sur son portrait) ; un bot vous propose aussi parfois de grouper"),
+                (".bot add Nom", "connecte un autre personnage de votre compte comme bot, dans votre groupe"),
+                (".bot remove Nom", "déconnecte ce bot"),
+                (".bot group", "complète votre groupe avec des bots de classes complémentaires, à votre niveau"),
+                (".bot list", "liste vos bots connectés"),
+                (".bot prepare Nom", "équipe le bot au mieux et lui donne nourriture, potions et composants"),
+            ]);
+            ui.add_space(8.0);
+            ui.strong(fr::BOT_ORDERS);
+            Self::command_grid(ui, "bot_orders", &[
+                ("follow", "suivez-moi"),
+                ("stay", "restez ici"),
+                ("attack", "attaquez ma cible"),
+                ("flee", "fuyez avec moi (sans combattre)"),
+                ("grind", "chassez librement autour de vous"),
+                ("summon", "le bot vous rejoint (téléportation)"),
+                ("release", "libère l'esprit d'un bot mort"),
+                ("q", "liste les quêtes du bot ; « doquest » lui fait faire une quête"),
+                ("c", "inventaire du bot ; « e [objet] » équipe, « ue [objet] » déséquipe, « s [objet] » vend"),
+                ("talents", "talents du bot"),
+                ("stats", "argent, sacs, réparation, expérience du bot"),
+                ("leave", "le bot quitte le groupe et reprend sa vie"),
+                ("help", "aide complète des bots (en anglais)"),
+            ]);
+        });
+    }
+
+    fn command_grid(ui: &mut egui::Ui, id: &str, rows: &[(&str, &str)]) {
+        egui::Grid::new(id).num_columns(2).spacing([16.0, 4.0]).striped(true).show(ui, |ui| {
+            for (cmd, desc) in rows {
+                ui.monospace(*cmd);
+                ui.label(*desc);
                 ui.end_row();
             }
-        });
         });
     }
 
@@ -1281,12 +1254,7 @@ impl App {
         ui.small(fr::SET_DXVK_HINT);
         ui.add_space(4.0);
         ui.checkbox(&mut self.settings.ahbot_enabled, fr::SET_AHBOT);
-        ui.horizontal(|ui| {
-            ui.label(fr::SET_AH_FACTION);
-            ui.radio_value(&mut self.settings.ah_faction, AhFaction::Auto, fr::SET_AH_AUTO);
-            ui.radio_value(&mut self.settings.ah_faction, AhFaction::Alliance, fr::SET_AH_ALLIANCE);
-            ui.radio_value(&mut self.settings.ah_faction, AhFaction::Horde, fr::SET_AH_HORDE);
-        });
+        ui.small(fr::SET_AHBOT_HINT);
         ui.add_space(4.0);
         ui.checkbox(&mut self.settings.auto_mmaps, fr::SET_AUTO_MMAPS);
         ui.small(fr::SET_AUTO_MMAPS_HINT);
@@ -1350,7 +1318,7 @@ impl App {
         let (title, text, detail) = match p {
             Pending::Restore(_, d) => (fr::BK_RESTORE_CONFIRM_TITLE, fr::BK_RESTORE_CONFIRM, d.clone()),
             Pending::Delete(_, d) => (fr::BK_DELETE_CONFIRM_TITLE, fr::BK_DELETE_CONFIRM, d.clone()),
-            Pending::DeleteBots => (fr::BOTGEN_DELETE_CONFIRM_TITLE, fr::BOTGEN_DELETE_CONFIRM, String::new()),
+            Pending::DeleteBots => (fr::BOT_DELETE_CONFIRM_TITLE, fr::BOT_DELETE_CONFIRM, String::new()),
             Pending::RemovePatch(n) => (fr::PATCH_REMOVE_CONFIRM_TITLE, fr::PATCH_REMOVE_CONFIRM, n.clone()),
             Pending::RemoveAddon(n) => (fr::ADDON_REMOVE_CONFIRM_TITLE, fr::ADDON_REMOVE_CONFIRM, n.clone()),
             Pending::DeleteAccount(_, d) => (fr::ACC_DELETE_CONFIRM_TITLE, fr::ACC_DELETE_CONFIRM, d.clone()),

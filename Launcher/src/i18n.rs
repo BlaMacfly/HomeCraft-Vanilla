@@ -77,7 +77,8 @@ pub mod fr {
     pub const ACC_CREATE: &str = "Créer le compte";
     pub const ACC_REFRESH: &str = "Actualiser";
     pub const ACC_NEED_SERVER: &str = "Le serveur de jeu doit être opérationnel pour créer un compte (création hors ligne : à venir).";
-    pub const ACC_HINT: &str = "Le niveau GM 6 est nécessaire pour invoquer des compagnons (.partybot).";
+    pub const ACC_HINT: &str = "Niveaux GM : 0 joueur, 1 modérateur, 2 maître de jeu, 3 administrateur. À partir de 2, les commandes MJ (.go, .additem, .levelup…) sont disponibles et tous les bots acceptent vos ordres.";
+    pub const ACC_BOT_PREFIX: &str = "Les noms commençant par RNDBOT sont réservés aux comptes des bots aléatoires.";
     pub const ACC_SET_PASS: &str = "Changer le mot de passe";
     pub const ACC_SET_GM: &str = "Appliquer le niveau GM";
     pub const ACC_DELETE: &str = "Supprimer";
@@ -141,7 +142,7 @@ pub mod fr {
     pub const SET_CLIENT_USE: &str = "Utiliser";
     pub const SET_CLIENT_IN_USE: &str = "Utilisé";
     pub const SET_VF_BENILLA: &str = "Sans objet avec Benilla : il a son propre rendu 64 bits (Vulkan / Direct3D 12).";
-    pub const SPAWN_BLOCKED_APP_CONTROL: &str = "Windows a bloqué ce programme : c'est en général le « Contrôle intelligent des applications » de Windows 11, qui refuse les programmes non signés par un éditeur reconnu (les outils du serveur VMaNGOS ne le sont pas). Ouvrez Sécurité Windows > Contrôle des applications et du navigateur > Paramètres du contrôle intelligent des applications, et choisissez Désactivé ; voir le manuel, section Dépannage.";
+    pub const SPAWN_BLOCKED_APP_CONTROL: &str = "Windows a bloqué ce programme : c'est en général le « Contrôle intelligent des applications » de Windows 11, qui refuse les programmes non signés par un éditeur reconnu (les outils du serveur CMaNGOS ne le sont pas). Ouvrez Sécurité Windows > Contrôle des applications et du navigateur > Paramètres du contrôle intelligent des applications, et choisissez Désactivé ; voir le manuel, section Dépannage.";
     pub const SPAWN_BLOCKED_ANTIVIRUS: &str = "L'antivirus a bloqué ce programme : ajoutez le dossier de HomeCraft aux exclusions de l'antivirus, restaurez le fichier depuis la quarantaine, puis utilisez VÉRIFIER LES FICHIERS.";
     pub const EXTRACT_MISSING: &str = "Extraction des données du serveur impossible : il manque";
     pub const EXTRACT_MISSING_HINT: &str = "Les extracteurs du serveur ont besoin de ces archives du client d'origine (Benilla, lui, n'en a pas besoin). Copiez-les depuis votre client 1.12.1 dans ce dossier Data, puis cliquez sur JOUER ou RÉPARER : elles ne gênent pas Benilla.";
@@ -153,10 +154,7 @@ pub mod fr {
     pub const BTN_KILL_GAME: &str = "FERMER LE JEU";
     pub const BTN_KILL_GAME_HINT: &str = "Force la fermeture de WoW.exe (écran noir, jeu figé). Les progrès non enregistrés par le serveur depuis la dernière sauvegarde automatique sont perdus.";
     pub const SET_AHBOT: &str = "Hôtel des ventes approvisionné (AHBot)";
-    pub const SET_AH_FACTION: &str = "Hôtel des ventes servi";
-    pub const SET_AH_AUTO: &str = "Automatique (faction du dernier personnage)";
-    pub const SET_AH_ALLIANCE: &str = "Alliance";
-    pub const SET_AH_HORDE: &str = "Horde";
+    pub const SET_AHBOT_HINT: &str = "Le serveur met en vente et achète des objets dans les trois hôtels des ventes (Alliance, Horde et gobelin).";
     pub const SET_BOTS: &str = "Compagnons PlayerBots (commandes .partybot)";
     pub const SET_RATE_XP: &str = "Multiplicateur d'expérience";
     pub const SET_SAVE: &str = "Enregistrer";
@@ -223,23 +221,19 @@ pub mod fr {
 
     // PlayerBots
     pub const TAB_BOTS: &str = "PlayerBots";
-    pub const BOT_TITLE: &str = "Compagnons PlayerBots";
-    pub const BOT_INTRO: &str = "Les compagnons sont créés dans le jeu, à votre niveau, et rejoignent votre groupe. Serveur en marche, les réglages enregistrés sont appliqués tout de suite (le serveur relit sa configuration) ; quelques-uns ne prennent effet qu'au redémarrage.";
-    pub const BOT_ENABLE: &str = "Autoriser les compagnons (.partybot)";
-    pub const BOT_MAX: &str = "Nombre maximal de compagnons par groupe (0 = illimité, un groupe compte 5 membres)";
-    pub const BOT_SKIP: &str = "Lever les restrictions d'invocation (en combat, en donjon, niveau au choix)";
-    pub const BOT_EQUIP: &str = "Équipement des nouveaux compagnons";
-    pub const BOT_EQUIP_0: &str = "Objets de départ";
-    pub const BOT_EQUIP_1: &str = "Équipement aléatoire adapté au niveau";
-    pub const BOT_EQUIP_2: &str = "Modèle prédéfini";
-    pub const BOT_GEAR_DIFF: &str = "Écart de niveau d'objet toléré (équipement aléatoire)";
-    pub const BOT_UPDATE: &str = "Temps de réaction des compagnons (ms)";
-    pub const BOT_WHO: &str = "Compagnons visibles dans la liste /qui";
-    pub const BOT_BG: &str = "Champs de bataille : compléter automatiquement avec des bots";
-    pub const BOT_BG_EQUIP: &str = "Équipement des bots de champ de bataille";
+    pub const BOT_TITLE: &str = "PlayerBots (module cmangos/playerbots)";
+    pub const BOT_INTRO: &str = "Le monde est peuplé de bots qui jouent comme des joueurs : ils montent de niveau, font leurs quêtes, chassent, vont en donjon et en champ de bataille, forment des groupes et des guildes. Invitez-en un dans votre groupe (clic droit sur son portrait, ou /inviter Nom) : il vous suit, combat avec vous et obéit aux ordres ci-dessous. Serveur en marche, les réglages enregistrés sont appliqués tout de suite ; le nombre de comptes de bots ne change qu'au démarrage suivant.";
+    pub const BOT_ENABLE: &str = "Activer les PlayerBots";
     pub const BOT_SAVE: &str = "Enregistrer les réglages PlayerBots";
-    pub const BOT_CMDS: &str = "Commandes à taper dans le chat du jeu (compte de niveau GM 6)";
-    pub const BOT_RANDOM_NOTE: &str = "Les « bots aléatoires » qui peupleraient le monde n'ont pas d'intelligence dans VMaNGOS : ils ne sont pas proposés.";
+    pub const BOT_POOL: &str = "Personnages des bots aléatoires (comptes RNDBOT, créés par le serveur)";
+    pub const BOT_POOL_NONE: &str = "aucun pour l'instant : ils sont créés au prochain démarrage du serveur (quelques minutes la première fois).";
+    pub const BOT_DELETE: &str = "Supprimer tous les bots aléatoires";
+    pub const BOT_DELETE_HINT: &str = "Serveur en marche : il est arrêté le temps de l'opération puis relancé automatiquement. Au redémarrage, de nouveaux bots sont créés (de niveau 1 ou au hasard selon les réglages), sauf si « Connecter les bots aléatoires » est décoché.";
+    pub const BOT_DELETE_CONFIRM_TITLE: &str = "Supprimer les bots aléatoires";
+    pub const BOT_DELETE_CONFIRM: &str = "Tous les comptes RNDBOT et leurs personnages seront supprimés définitivement (objets, guildes de bots et progression compris). Vos propres comptes et personnages ne sont pas concernés.";
+    pub const BOT_DELETE_FAIL: &str = "Suppression impossible";
+    pub const BOT_CMDS: &str = "Commandes à taper dans le chat du jeu";
+    pub const BOT_ORDERS: &str = "Ordres à donner à vos bots (dans le canal de groupe /g, ou en chuchotant à un bot)";
 
     // Monde
     pub const TAB_WORLD: &str = "Monde";
@@ -249,27 +243,12 @@ pub mod fr {
     pub const OPT_DEFAULT: &str = "Défaut";
     pub const OPT_RESET_ALL: &str = "Tout remettre aux valeurs Vanilla";
     pub const OPT_MODIFIED: &str = "modifié";
-    pub const BOT_POOL: &str = "Personnages bots enregistrés pour le peuplement (table characters.playerbot)";
-    pub const BOT_POOL_NONE: &str = "aucun : générez des personnages bots ci-dessous pour que les bots de peuplement aient quelqu'un à connecter.";
-    pub const BOTGEN_TITLE: &str = "Personnages bots";
-    pub const BOTGEN_HINT: &str = "Crée des personnages (moitié Alliance, moitié Horde, races, classes, niveaux et apparences variés, objets de départ) sur le compte dédié HOMECRAFTBOTS, et les enregistre pour le peuplement des capitales : Hurlevent et Forgefer pour l'Alliance, Orgrimmar pour la Horde. Ils flânent dans la ville, sans combattre.";
-    pub const BOTGEN_COUNT: &str = "Nombre de personnages à générer";
-    pub const BOTGEN_RUN: &str = "Générer les personnages bots";
-    pub const BOTGEN_DELETE: &str = "Supprimer tous les personnages bots";
-    pub const BOTGEN_DELETE_CONFIRM_TITLE: &str = "Supprimer les personnages bots";
-    pub const BOTGEN_DELETE_CONFIRM: &str = "Tous les personnages du compte HOMECRAFTBOTS seront supprimés définitivement (objets et enregistrements de peuplement compris). Vos propres personnages ne sont pas concernés.";
-    pub const BOTGEN_PROGRESS: &str = "Création des personnages bots…";
-    pub const BOTGEN_DONE: &str = "personnages bots créés";
-    pub const BOTGEN_NEED_FIRST_START: &str = "les bases de données ne sont pas encore installées : démarrez le serveur une première fois (JOUER ou DÉMARRER LE SERVEUR), puis générez les bots";
-    pub const BOTGEN_FAIL: &str = "Génération impossible";
-    pub const BOTGEN_AUTO: &str = "Les réglages de peuplement sont ajustés automatiquement (activés, maximum = nombre total de personnages bots, minimum = la moitié, bots visibles dans /qui). Serveur en marche, il est arrêté le temps de la génération puis relancé : les bots se connectent dans la minute. Vérifiez avec .bot info dans le jeu (compte niveau 6). Les bots se retrouvent dans les capitales : quartier commerçant de Hurlevent, Forgefer, Orgrimmar.";
-    pub const BOTGEN_RESTART_HINT: &str = "Serveur en marche : il est arrêté le temps de l'opération puis relancé automatiquement (une minute environ). Le serveur attribue lui-même les numéros des personnages pendant qu'il tourne : des bots ajoutés ou retirés en même temps se mélangeraient avec vos propres personnages.";
 
     // Patchs client
     pub const TAB_PATCHES: &str = "Patchs";
     pub const PATCH_TITLE: &str = "Patchs du client (archives MPQ supplémentaires)";
     pub const PATCH_INTRO: &str = "Le client charge, après ses archives officielles, les fichiers patch-X.MPQ de Client/Data (X : chiffre de 3 à 9 ou lettre de A à Z ; les suivants ont priorité sur les précédents). Vous apportez vos propres patchs (graphismes HD, interface, sons) : le launcher n'en fournit ni n'en télécharge aucun. Désactiver renomme l'archive en .off sans la supprimer.";
-    pub const PATCH_SERVER_NOTE: &str = "Important : les outils d'extraction de VMaNGOS ne lisent que les archives officielles. Un patch n'a donc aucun effet sur le serveur : les modifications purement visuelles ou sonores fonctionnent, mais un patch qui ajoute des races, des objets ou des sorts côté client ne sera pas reconnu par le serveur.";
+    pub const PATCH_SERVER_NOTE: &str = "Important : les outils d'extraction du serveur ne lisent que les archives officielles. Un patch n'a donc aucun effet sur le serveur : les modifications purement visuelles ou sonores fonctionnent, mais un patch qui ajoute des races, des objets ou des sorts côté client ne sera pas reconnu par le serveur.";
     pub const PATCH_NAME: &str = "Archive";
     pub const PATCH_SIZE: &str = "Taille";
     pub const PATCH_STATE: &str = "État";
@@ -336,7 +315,7 @@ pub mod fr {
 
     // Réimport de la base monde
     pub const BTN_WORLD_REIMPORT: &str = "Réimporter la base monde…";
-    pub const WORLD_REIMPORT_HINT: &str = "Recrée la base mangos (quêtes, créatures, objets, hôtel des ventes, traductions) depuis les fichiers du package, sans toucher aux personnages ni aux comptes. Utile après une mise à jour de VMaNGOS ou pour annuler des modifications faites dans l'explorateur de base.";
+    pub const WORLD_REIMPORT_HINT: &str = "Recrée la base mangos (quêtes, créatures, objets, traductions) depuis les fichiers du package, sans toucher aux personnages ni aux comptes. Utile après une mise à jour du serveur ou pour annuler des modifications faites dans l'explorateur de base.";
     pub const WORLD_REIMPORT_CONFIRM_TITLE: &str = "Réimporter la base monde";
     pub const WORLD_REIMPORT_CONFIRM: &str = "La base monde (mangos) sera supprimée puis réimportée depuis le package, compléments HomeCraft compris. Les personnages, comptes et sauvegardes sont conservés. Toute modification faite dans la base monde sera perdue. Le serveur de jeu sera arrêté ; l'opération prend une à deux minutes.";
     pub const WORLD_REIMPORT_PLAYING: &str = "Impossible de réimporter la base monde pendant que le jeu est lancé : fermez le jeu d'abord.";
@@ -361,14 +340,9 @@ pub mod fr {
     pub const MSG_CLIENT_NEEDED: &str = "Le client WoW 1.12.1 est introuvable ou invalide : indiquez son dossier dans PARAMÈTRES (il n'est jamais fourni par ce package).";
     pub const MSG_FIRST_EXTRACT: &str = "Première installation : extraction des données de votre client (quelques minutes)…";
 
-    /// Peuplement demandé au-delà des personnages bots existants (le serveur plafonne au nombre de bots).
-    pub fn bot_pool_short(pool: u32, wanted: u32) -> String {
-        format!("Seuls {pool} personnages bots existent : le serveur n'en connectera pas davantage, même réglé à {wanted}. Générez-en d'autres ci-dessus pour atteindre ce nombre.")
-    }
-
-    /// Estimation mesurée le 2026-10-18 : 1 023 bots connectés = 1,1 Go de mémoire pour mangosd et environ un cœur.
+    /// Beaucoup de bots connectés : chacun a une IA complète (quêtes, déplacements, combat), d'où une charge notable.
     pub fn bot_load(max: u32, min: u32) -> String {
-        format!("{max} bots connectés au plus : comptez environ {:.1} Go de mémoire et {} cœur(s) de processeur pour le serveur. Au démarrage, {min} bots se connectent d'un coup : le monde peut mettre une à plusieurs minutes à devenir fluide.", max as f64 * 1.1 / 1000.0, (max + 999) / 1000)
+        format!("Jusqu'à {max} bots connectés (au moins {min}) : chaque bot a une intelligence complète, le serveur demandera beaucoup de mémoire et de processeur. Réduisez ce nombre si le jeu ou le PC ralentit.")
     }
 
     /// Génération des mmaps : durée écoulée et temps restant estimé.

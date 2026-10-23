@@ -36,3 +36,12 @@ desktop.ini
 # Sources VMaNGOS (clone de travail ; nos modifications sont dans Build/vmangos-patches)
 Build/vmangos-src/
 Build/vmangos-build/
+
+# CMaNGOS (clones de travail, dépendances de compilation)
+Build/cmangos-src/
+Build/cmangos-build/
+Build/classic-db/
+Build/deps/
+Build/cmangos-db/
+/Server/cmangos/
+/Server/Database/cmangos-sql/

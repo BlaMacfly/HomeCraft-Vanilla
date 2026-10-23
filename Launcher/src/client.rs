@@ -23,8 +23,8 @@ pub const BENILLA_MPQ: &[&str] = &[
     "dbc.MPQ", "fonts.MPQ", "interface.MPQ", "misc.MPQ", "model.MPQ", "patch.MPQ", "patch-2.MPQ",
     "sound.MPQ", "speech.MPQ", "terrain.MPQ", "texture.MPQ", "wmo.MPQ",
 ];
-/// Archives ouvertes par les extracteurs VMaNGOS (MapExtractor, VMapExtractor). `base.MPQ` en fait partie :
-/// sans elle VMapExtractor plante (0xC0000005) au milieu des modèles WMO. Benilla, lui, ne la monte jamais.
+/// Archives ouvertes par les extracteurs du serveur (ad, vmap_extractor). `base.MPQ` en fait partie :
+/// sans elle l'extracteur de VMaNGOS plantait (0xC0000005) au milieu des modèles WMO. Benilla, lui, ne la monte jamais.
 pub const EXTRACTION_MPQ: &[&str] = &["base.MPQ", "dbc.MPQ", "misc.MPQ", "model.MPQ", "terrain.MPQ", "texture.MPQ", "wmo.MPQ", "patch.MPQ", "patch-2.MPQ"];
 /// Dossier d'état de Benilla, à côté de son exécutable.
 pub const BENILLA_HOME: &str = "benilla-config";

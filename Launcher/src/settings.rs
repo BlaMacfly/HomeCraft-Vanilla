@@ -3,41 +3,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum AhFaction {
-    Auto,
-    Alliance,
-    Horde,
-}
-
-/// Réglages des PlayerBots VMaNGOS (clés PartyBot.* / PlayerBot.* / BattleBot.* de mangosd.conf).
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[serde(default)]
-pub struct BotSettings {
-    /// 0 = illimité (PartyBot.MaxBots)
-    pub max_party_bots: u32,
-    /// lève les restrictions (combat, instance, niveau) pour les non-GM (PartyBot.SkipChecks)
-    pub skip_checks: bool,
-    /// 0 objets de départ, 1 équipement aléatoire adapté, 2 modèle prédéfini (PartyBot.AutoEquip)
-    pub auto_equip: u8,
-    /// écart de niveau d'objet maximal pour l'équipement aléatoire (PartyBot.RandomGearLevelDifference)
-    pub gear_level_diff: u32,
-    /// période de réflexion des bots en ms (PlayerBot.UpdateMs) : plus bas = plus réactifs
-    pub update_ms: u32,
-    /// bots visibles dans /qui (PlayerBot.ShowInWhoList)
-    pub show_in_who: bool,
-    /// bots de champ de bataille ajoutés automatiquement à l'inscription (BattleBot.AutoJoin)
-    pub battlebot_autojoin: bool,
-    /// équipement des bots de champ de bataille (BattleBot.AutoEquip)
-    pub battlebot_auto_equip: u8,
-}
-
-impl Default for BotSettings {
-    fn default() -> Self {
-        BotSettings { max_party_bots: 0, skip_checks: true, auto_equip: 1, gear_level_diff: 10, update_ms: 1000, show_in_who: true, battlebot_autojoin: true, battlebot_auto_equip: 1 }
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct Settings {
@@ -45,11 +10,10 @@ pub struct Settings {
     pub client_dir: String,
     pub windowed: bool,
     pub ahbot_enabled: bool,
-    pub ah_faction: AhFaction,
+    /// Module playerbots actif (AiPlayerbot.Enabled)
     pub partybots_enabled: bool,
-    pub rate_xp: f32,
-    pub bots: BotSettings,
-    /// Surcharges de mangosd.conf (clé -> valeur), limitées au catalogue `conf_catalog` (onglets PlayerBots et Monde).
+    /// Surcharges de mangosd.conf et aiplayerbot.conf (clé -> valeur), limitées au catalogue `conf_catalog`
+    /// (onglets PlayerBots et Monde).
     pub conf: std::collections::BTreeMap<String, String>,
     /// Lancer le jeu via VanillaFixes (correctif des saccades ; injecte VfPatcher.dll au démarrage)
     pub vanillafixes: bool,
@@ -69,10 +33,7 @@ impl Default for Settings {
             client_dir: String::new(),
             windowed: true, // plus sûr sous Windows 11 (plein écran exclusif D3D9 capricieux) ; modifiable dans Paramètres
             ahbot_enabled: true,
-            ah_faction: AhFaction::Auto,
             partybots_enabled: true,
-            rate_xp: 1.0,
-            bots: BotSettings::default(),
             conf: std::collections::BTreeMap::new(),
             vanillafixes: false,
             dxvk: false,
@@ -85,7 +46,10 @@ impl Default for Settings {
 
 impl Settings {
     pub fn load(path: &Path) -> Settings {
-        std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(t.trim_start_matches('\u{feff}')).ok()).unwrap_or_default()
+        let mut s: Settings = std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(t.trim_start_matches('\u{feff}')).ok()).unwrap_or_default();
+        // Réglages d'une version VMaNGOS (clés PartyBot.*, RandomBot.*, WowPatch…) : sans objet ici.
+        s.conf.retain(|k, _| crate::conf_catalog::is_known(k));
+        s
     }
 
     pub fn save(&self, path: &Path) -> Result<(), String> {

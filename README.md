@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>World of Warcraft 1.12.1 en solo, hors ligne, en français.</strong><br>
-  Un serveur local automatisé, des compagnons contrôlés par l'ordinateur et un launcher à un seul bouton.
+  Un serveur local automatisé, un monde peuplé de bots qui jouent comme des joueurs et un launcher à un seul bouton.
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="https://github.com/BlaMacfly/HomeCraft-Vanilla/releases"><img src="https://img.shields.io/github/v/release/BlaMacfly/HomeCraft-Vanilla?include_prereleases&label=version" alt="Version"></a>
 </p>
 
-> **English summary.** HomeCraft Edition Vanilla is a self-contained, offline, single-player package for World of Warcraft 1.12.1 (Vanilla): a local VMaNGOS server with built-in PartyBots companions, a portable MariaDB database, a stocked auction house and a one-button Rust launcher that configures everything. The game client is **not** included and never will be: you need your own 1.12.1 client (French locale). Interface, documentation and launcher are in French. Source-available under a proprietary licence (personal use; viewing and forking on GitHub allowed; no redistribution of modified or compiled versions).
+> **English summary.** HomeCraft Edition Vanilla is a self-contained, offline, single-player package for World of Warcraft 1.12.1 (Vanilla): a local CMaNGOS Classic server with the playerbots module (a living world of bots that level, quest and group like players), a portable MariaDB database, a stocked auction house and a one-button Rust launcher that configures everything. The game client is **not** included and never will be: you need your own 1.12.1 client (French locale). Interface, documentation and launcher are in French. Source-available under a proprietary licence (personal use; viewing and forking on GitHub allowed; no redistribution of modified or compiled versions).
 
 ---
 
@@ -33,7 +33,7 @@
 - [Fonctionnalités](#fonctionnalités)
 - [Prérequis](#prérequis)
 - [Installation et premier démarrage](#installation-et-premier-démarrage)
-- [Jouer avec des compagnons](#jouer-avec-des-compagnons)
+- [Jouer avec les bots](#jouer-avec-les-bots)
 - [Ce dépôt et ce qu'il ne contient pas](#ce-dépôt-et-ce-quil-ne-contient-pas)
 - [Construire depuis les sources](#construire-depuis-les-sources)
 - [Tests](#tests)
@@ -48,10 +48,10 @@ HomeCraft Edition Vanilla transforme un client World of Warcraft 1.12.1 en jeu s
 
 | Composant | Rôle |
 |---|---|
-| **VMaNGOS** | serveur de jeu fidèle au patch 1.12, avec les **PartyBots** intégrés (compagnons tank, soigneur, DPS) |
-| **MariaDB** portable | base de données du monde et des personnages, sur `127.0.0.1` uniquement |
+| **CMaNGOS Classic** + module **playerbots** | serveur de jeu fidèle au patch 1.12, compilé par HomeCraft, avec des bots qui peuplent le monde et jouent comme des joueurs (quêtes, donjons, champs de bataille, groupes, guildes) |
+| **MariaDB** portable | base de données du monde (classic-db) et des personnages, sur `127.0.0.1` uniquement |
 | **Launcher HomeCraft** (Rust, egui) | démarre tout dans le bon ordre, configure le client, crée les comptes, sauvegarde, répare, et expose les réglages dans des onglets |
-| **Compléments HomeCraft** | hôtel des ventes approvisionné (6 392 objets utiles en solo), traductions françaises complétées (quêtes, dialogues, noms de créatures) |
+| **Compléments HomeCraft** | traductions françaises officielles reprises dans la base CMaNGOS et complétées (quêtes, dialogues, noms de créatures), hôtel des ventes approvisionné |
 
 Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait les données nécessaires au premier démarrage.
 
@@ -60,7 +60,7 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 <table>
   <tr>
     <td align="center"><img src="Documentation/images/launcher-home.png" width="420"><br><sub>Accueil : un bouton JOUER, l'état des services, vérification et réparation</sub></td>
-    <td align="center"><img src="Documentation/images/launcher-bots.png" width="420"><br><sub>PlayerBots : réglages des compagnons, aide-mémoire des commandes, bots de peuplement</sub></td>
+    <td align="center"><img src="Documentation/images/launcher-bots.png" width="420"><br><sub>PlayerBots (capture de l'édition VMaNGOS, à refaire)</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="Documentation/images/launcher-world.png" width="420"><br><sub>Monde : 70 réglages du serveur avec leurs valeurs Vanilla par défaut</sub></td>
@@ -80,14 +80,14 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 
 **Jouer**
 - Un bouton **JOUER** : base de données → authentification → monde → configuration du client (`realmlist.wtf`, fenêtré, résolution bornée à l'écran) → lancement du jeu. Premier démarrage automatique (import des bases, extraction dbc/maps/vmaps), deux à cinq minutes une seule fois.
-- **Compagnons PartyBots** : `.partybot add tank | healer | dps` dans le chat, puis cometome, pull, marques, pause… Toutes les commandes dans le manuel et dans l'onglet PlayerBots.
-- **Bots du monde** : des personnages bots qui vivent dans les capitales ou chassent dans les zones de leur niveau ; invitez-en un et il vous rejoint à votre niveau pour combattre à vos côtés (serveur VMaNGOS compilé avec les modifications HomeCraft, sources fournies).
-- **Hôtel des ventes** approvisionné automatiquement pour votre faction.
-- **Cartes de déplacement (mmaps)** générées en arrière-plan après le premier démarrage, pour des compagnons qui se déplacent correctement en donjon.
+- **Un monde peuplé de bots** (module playerbots de CMaNGOS, le même système que les playerbots d'AzerothCore) : ils montent de niveau, font leurs quêtes, vont en donjon et en champ de bataille, forment des groupes et des guildes, parlent dans les canaux (en français pour un client français).
+- **Grouper** : invitez un bot (il accepte quel que soit votre niveau), `.bot group` pour un groupe complet à votre niveau, `.bot add Nom` pour jouer avec vos autres personnages ; ordres dans le canal de groupe (follow, stay, attack, summon…).
+- **Hôtel des ventes** approvisionné automatiquement (Alliance, Horde et gobelin).
+- **Cartes de déplacement (mmaps)** générées en arrière-plan après le premier démarrage (un quart d'heure environ).
 
 **Régler**
-- Onglet **Monde** : expérience, butin, difficulté des créatures, Alliance et Horde sur le même compte, quêtes de raid en groupe simple, contenu par patch (1.2 → 1.12), mode maître de jeu, etc. Valeurs Vanilla rappelées, retour aux défauts en un clic.
-- Onglet **PlayerBots** : nombre de compagnons, équipement, restrictions d'invocation, visibilité, champs de bataille.
+- Onglet **Monde** : expérience, butin, difficulté des créatures, Alliance et Horde sur le même compte, quêtes de raid en groupe simple, mode maître de jeu, etc. Valeurs Vanilla rappelées, retour aux défauts en un clic.
+- Onglet **PlayerBots** : nombre de bots connectés, niveaux, groupes, guildes, discussions, invitations, performances ; appliqués sans redémarrer.
 - **Patchs** client (`patch-X.MPQ`) : activer, désactiver, ajouter, et construire une archive MPQ depuis un dossier (patchs VanillaHD, par exemple).
 - **AddOns** : installation depuis une archive zip (Questie, pfUI, Bagnon…), activation, suppression.
 - **VanillaFixes** (fluidité) et **DXVK** (rendu Vulkan) en option.
@@ -99,7 +99,7 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 - **Comptes** : création avec niveau GM, changement de mot de passe, suppression avec confirmation (personnages compris).
 - **Base de données** : explorateur natif (grille éditable, structure, SQL avec confirmation d'écriture, historique) et bouton vers HeidiSQL.
 
-**Tout en français** : interface du launcher, manuel, et textes du jeu (traductions officielles d'époque de la base VMaNGOS, complétées par HomeCraft là où elles manquaient : 0 quête réelle, 0 dialogue de PNJ et 0 créature visible sans texte français).
+**Tout en français** : interface du launcher, manuel, et textes du jeu (traductions officielles d'époque reprises de la base VMaNGOS dans la base CMaNGOS, complétées par HomeCraft là où elles manquaient : toutes les quêtes et tous les dialogues ont leur texte français).
 
 ## Prérequis
 
@@ -116,27 +116,27 @@ Le joueur fournit son propre client 1.12.1 en français ; le serveur en extrait 
 1. Téléchargez l'archive de la [dernière release](https://github.com/BlaMacfly/HomeCraft-Vanilla/releases) et décompressez-la dans un dossier de votre disque, par exemple `C:\Jeux\HomeCraft Edition Vanilla\` (pas dans Program Files, pas dans un dossier synchronisé en nuage).
 2. Placez votre client 1.12.1 frFR dans le sous-dossier `Client\`, ou indiquez son emplacement dans Paramètres.
 3. Ouvrez `HomeCraft Edition Vanilla.exe` et cliquez sur **JOUER**. Windows peut afficher « Éditeur inconnu » (certificat de signature personnel) : « Informations complémentaires » puis « Exécuter quand même ».
-4. Créez votre compte dans l'onglet **Comptes** (niveau GM 6 pour les compagnons), connectez-vous dans le jeu, créez un personnage.
+4. Créez votre compte dans l'onglet **Comptes** (niveau GM 3 pour disposer des commandes de maître de jeu), connectez-vous dans le jeu, créez un personnage. Le premier démarrage crée aussi les bots (quelques minutes).
 
 Le [manuel d'utilisation](Documentation/Manuel-Utilisateur.md) détaille chaque étape, chaque onglet et le dépannage.
 
-## Jouer avec des compagnons
+## Jouer avec les bots
 
 ```
-.partybot add tank
-.partybot add healer
-.partybot add dps
-.partybot cometome      .partybot pull      .partybot pause / unpause      .partybot remove
+/inviter Nom        invite un bot croisé dans le monde
+.bot group          complète votre groupe avec des bots de classes complémentaires, à votre niveau
+.bot add Nom        connecte un autre personnage de votre compte comme bot
+/g follow | stay | attack | flee | summon | leave
 ```
 
-Les compagnons sont créés à votre niveau, rejoignent votre groupe, soignent, tankent et attaquent d'eux-mêmes. Liste complète des commandes : [manuel, §9](Documentation/Manuel-Utilisateur.md#9-jouer-en-solo-avec-des-compagnons).
+Les bots suivent, soignent, tankent et attaquent d'eux-mêmes. Liste complète : [manuel, §9](Documentation/Manuel-Utilisateur.md#9-jouer-avec-les-bots).
 
 ## Ce dépôt et ce qu'il ne contient pas
 
 Ce dépôt contient le **code source** du launcher, les scripts de construction, de test et d'exploitation, les compléments de base de données HomeCraft, la documentation et le manuel. Il ne contient **pas** :
 
 - le client World of Warcraft ni aucun fichier qui en dérive (`Client/`, `Server/Data/`, patchs graphiques) : propriété de Blizzard Entertainment, jamais redistribués ;
-- les binaires des composants tiers (VMaNGOS, MariaDB, HeidiSQL, VanillaFixes/DXVK) : ils sont figés par URL, version et empreinte SHA-256 dans [`Build/manifest.json`](Build/manifest.json) et récupérés par `Build/Get-Components.ps1` ; la **release** les inclut, avec leurs licences et les liens vers leurs sources exactes (`LICENCES/SOURCES.md`) ;
+- les binaires des composants tiers (MariaDB, HeidiSQL, VanillaFixes/DXVK) : ils sont figés par URL, version et empreinte SHA-256 dans [`Build/manifest.json`](Build/manifest.json) et récupérés par `Build/Get-Components.ps1` ; le serveur CMaNGOS et ses bases sont construits depuis les commits figés dans la même liste (`Build/Build-Cmangos.ps1`, `Build/Build-CmangosDb.ps1`) ; la **release** les inclut, avec leurs licences et les liens vers leurs sources exactes (`LICENCES/SOURCES.md`) ;
 - les données personnelles (`UserData/`, journaux).
 
 ## Construire depuis les sources
@@ -146,34 +146,36 @@ Prérequis : Windows, [rustup](https://rustup.rs) (toolchain stable MSVC), Visua
 ```bash
 # 1. Composants tiers (téléchargés dans Build/downloads, empreintes vérifiées)
 powershell -ExecutionPolicy Bypass -File Build\Get-Components.ps1
-# puis extraction selon Documentation/02-Construction.md (VMaNGOS -> Server/vmangos, MariaDB -> Server/Database/mariadb,
-# dumps -> Server/Database/sql, HeidiSQL -> Tools/HeidiSQL, VanillaFixes -> Tools/VanillaFixes)
+# puis extraction selon Documentation/02-Construction.md (MariaDB -> Server/Database/mariadb,
+# base VMaNGOS -> Server/Database/sql (source des traductions), HeidiSQL -> Tools/HeidiSQL, VanillaFixes -> Tools/VanillaFixes)
 
-# 2. Launcher
+# 2. Serveur CMaNGOS + playerbots (Boost 1.87 téléchargé et vérifié, ~5 min) puis bases de données (Git Bash requis)
+powershell -ExecutionPolicy Bypass -File Build\Build-Cmangos.ps1
+powershell -ExecutionPolicy Bypass -File Build\Build-CmangosDb.ps1
+
+# 3. Launcher
 cd Launcher
 cargo build --release
 
-# 3. Signature et déploiement à la racine (certificat de signature de code dans le magasin personnel)
-powershell -ExecutionPolicy Bypass -Command "& Build\Sign-Launcher.ps1 -Thumbprint <empreinte>"
-powershell -ExecutionPolicy Bypass -File Build\New-FilesManifest.ps1
+# 4. Signature (certificat de signature de code dans le magasin personnel)
+powershell -ExecutionPolicy Bypass -Command "& Build\Sign-Launcher.ps1 -Thumbprint <empreinte> -NoDeploy"
 
-# 4. Package portable (dossier + zip) et, si besoin, image ISO
+# 5. Package portable (dossier + zip)
 powershell -ExecutionPolicy Bypass -File Build\New-Package.ps1 -Zip
 ```
 
-Le patch de compatibilité du client build 5880 (`Build/Patch-MangosdBuilds.ps1`) et la table de l'hôtel des ventes (`Tools/New-AHBotTable.ps1`) sont reproductibles ; voir `Documentation/02-Construction.md`.
+Les modifications du serveur sont publiées dans `Build/cmangos-patches` (build client 5880, option `-p` de mangosd, commande console `rndbot reload`).
 
 ## Tests
 
-Scripts rejouables dans [`Tests/`](Tests/), tous verts sur la version 0.9.0 :
+Scripts rejouables dans [`Tests/`](Tests/). Validés sur l'édition CMaNGOS (0.10) :
 
 | Script | Vérifie |
 |---|---|
-| `Test-Launcher` | démarrage complet par le launcher, arrêt propre, ports libérés, aucun orphelin, aucune erreur |
-| `Test-Phase5` | sauvegarde, vérification des fichiers, réparation, réimport de la base monde, restauration, diagnostic (20 contrôles) |
-| `Test-Package` | installation vierge depuis le package, premier démarrage, arrêt brutal puis redémarrage, compléments SQL appliqués, ISO |
-| `Test-Localisation` | couverture française des tables du monde, inventaire dans `Documentation/09-Localisation-Inventaire.md` |
-| `Test-Offline` | services sur 127.0.0.1 seulement, aucune connexion sortante, aucune bibliothèque réseau dans le launcher |
+| `Test-Integration` | copie du package : premier démarrage et création des bots, comptes, suppression hors ligne sans toucher aux autres personnages, vie des bots (expérience gagnée), réglages appliqués à chaud, suppression des bots serveur en marche, arrêt sans processus résiduel |
+| `Test-Dependencies` | aucun programme du package ne dépend d'un « Visual C++ Redistributable » installé |
+
+`Test-Launcher`, `Test-Phase5`, `Test-Package`, `Test-Localisation` et `Test-Offline` ont été écrits pour l'édition VMaNGOS (0.9.x) et restent à adapter.
 
 Ne lancez jamais un test qui démarre ou arrête des services pendant que votre launcher est ouvert.
 
@@ -184,10 +186,10 @@ HomeCraft Edition Vanilla.exe     launcher Rust (eframe/egui 0.32, crate mysql p
 ├─ orchestrateur (thread dédié)   machine à états, surveillance, commandes depuis l'interface
 ├─ db.rs / server.rs / client.rs  MariaDB portable, realmd + mangosd (console sur stdin), client (realmlist, Config.wtf)
 ├─ backup.rs / repair.rs          sauvegardes vérifiées, manifeste de fichiers, extraction, mmaps, diagnostic
-├─ conf_catalog.rs                catalogue des réglages mangosd.conf exposés (PlayerBots, Monde)
+├─ conf_catalog.rs                catalogue des réglages exposés (aiplayerbot.conf : PlayerBots ; mangosd.conf : Monde)
 ├─ botgen.rs / patches.rs / addons.rs / mpqbuild.rs
 └─ i18n.rs                        toutes les chaînes, en français
-Server/   VMaNGOS, MariaDB, dumps, compléments SQL, configurations générées, données extraites
+Server/   CMaNGOS (Server/cmangos), MariaDB, dumps (cmangos-sql), configurations générées, données extraites
 UserData/ base vivante, réglages, sauvegardes (à conserver)
 Tools/    scripts PowerShell d'exploitation (Common.ps1 : chemins, ports, SQL), HeidiSQL
 Build/    manifeste des composants, signature, manifeste de fichiers, packaging
@@ -210,6 +212,7 @@ Détails dans `Documentation/04-Launcher-Exigences.md` et `Launcher/README.md`.
 | [08 — Patchs graphiques](Documentation/08-Patchs-Graphiques.md) | VanillaHD, constructeur MPQ, limites côté serveur |
 | [09 — Localisation](Documentation/09-Localisation-Inventaire.md) | couverture française mesurée |
 | [10 — Validation finale](Documentation/10-Validation-Finale.md) | critères, résultats, réserves |
+| [11 — Licence PlayerBots](Documentation/11-Licence-PlayerBots.md) | statut du module playerbots (aucune licence publiée), demande aux auteurs |
 
 ## Communauté et aide
 
@@ -218,5 +221,5 @@ Questions, retours, aide à l'installation : rejoignez le serveur Discord **[dis
 ## Licence et mentions légales
 
 - **HomeCraft Edition Vanilla** (launcher, scripts, documentation, compléments de base de données, nom et logo) : © 2026 BlaMacfly, licence propriétaire [`LICENCE.txt`](LICENCE.txt). Usage personnel autorisé ; consultation et fork sur GitHub autorisés ; reproduction, redistribution (y compris de versions compilées), modification et usage commercial interdits sans accord écrit. Fourni sans garantie.
-- **Composants tiers**, sous leurs licences propres : VMaNGOS (GPL-2.0), MariaDB (GPL-2.0), HeidiSQL (GPL-2.0), VanillaFixes (MIT), DXVK (zlib), bibliothèques Rust (MIT/Apache-2.0 et assimilées). Versions, commits et liens vers les sources dans `Build/manifest.json` et, dans la release, `LICENCES/SOURCES.md`.
+- **Composants tiers**, sous leurs licences propres : CMaNGOS (GPL-2.0), classic-db (GPL-3.0), module playerbots (aucune licence publiée : usage personnel, voir le document 11), OpenSSL (Apache-2.0), MariaDB (GPL-2.0), HeidiSQL (GPL-2.0), VanillaFixes (MIT), DXVK (zlib), bibliothèques Rust (MIT/Apache-2.0 et assimilées). Versions, commits et liens vers les sources dans `Build/manifest.json` et, dans la release, `LICENCES/SOURCES.md`.
 - World of Warcraft et Blizzard Entertainment sont des marques de Blizzard Entertainment, Inc. HomeCraft est une création indépendante, sans lien avec Blizzard Entertainment. Le client du jeu n'est pas fourni : vous devez disposer du vôtre et respecter les conditions qui s'y appliquent.

@@ -1,7 +1,7 @@
-//! Catalogue des réglages de mangosd.conf exposés dans l'interface (onglets PlayerBots et Monde).
-//! Chaque entrée : clé exacte du fichier VMaNGOS, libellé et aide en français, type, valeur par défaut
-//! (celle du modèle mangosd.conf.dist.in du commit figé). Les valeurs modifiées par l'utilisateur sont
-//! stockées dans UserData/settings.json (`conf`) et appliquées à la génération de mangosd.conf.
+//! Catalogue des réglages exposés dans l'interface : onglet PlayerBots (aiplayerbot.conf du module cmangos/playerbots)
+//! et onglet Monde (mangosd.conf). Chaque entrée : clé exacte du fichier CMaNGOS, libellé et aide en français, type,
+//! valeur par défaut (celle du modèle .conf.dist du commit figé, sauf mention HomeCraft). Les valeurs modifiées par
+//! l'utilisateur sont stockées dans UserData/settings.json (`conf`) et appliquées à la génération des .conf.
 //! Seules les clés de ce catalogue peuvent être surchargées : les clés gérées (ports, base, chemins) ne le sont jamais.
 
 #[derive(Clone, Copy)]
@@ -25,40 +25,47 @@ pub struct Opt {
 
 const ON_OFF: Kind = Kind::Bool;
 
-/// Plafond commun du nombre de bots de peuplement : génération (onglet PlayerBots) et nombre connecté.
+/// Plafond du nombre de bots aléatoires connectés réglable dans l'onglet PlayerBots.
 pub const RANDOMBOT_MAX: u32 = 5000;
 
 pub const BOT_OPTIONS: &[Opt] = &[
-    // ---- Compagnons
-    Opt { key: "PartyBot.MaxBots", group: "Compagnons (.partybot)", label: "Compagnons maximum par groupe", help: "0 = illimité. Un groupe compte 5 membres, un raid 40.", kind: Kind::Int { min: 0, max: 39 }, default: "0" },
-    Opt { key: "PartyBot.SkipChecks", group: "Compagnons (.partybot)", label: "Lever les restrictions d'invocation", help: "Permet d'invoquer en combat, en donjon, et de choisir le niveau du compagnon, même sans être GM.", kind: ON_OFF, default: "0" },
-    Opt { key: "PartyBot.AutoEquip", group: "Compagnons (.partybot)", label: "Équipement des nouveaux compagnons", help: "Objets de départ, équipement aléatoire adapté au niveau, ou modèle prédéfini.", kind: Kind::Choice(&[("0", "Objets de départ"), ("1", "Aléatoire adapté au niveau"), ("2", "Modèle prédéfini")]), default: "1" },
-    Opt { key: "PartyBot.RandomGearLevelDifference", group: "Compagnons (.partybot)", label: "Écart de niveau d'objet toléré", help: "Pour l'équipement aléatoire : plus la valeur est basse, plus l'équipement colle au niveau du compagnon.", kind: Kind::Int { min: 0, max: 60 }, default: "10" },
     // ---- Bots aléatoires
-    Opt { key: "RandomBot.Enable", group: "Bots de peuplement (RandomBot)", label: "Activer les bots de peuplement", help: "Connecte automatiquement des personnages bots enregistrés dans la table characters.playerbot (avec une IA de peuplement : StormwindPopulationAI, IronforgePopulationAI, OrgrimmarPopulationAI). Sans personnages bots enregistrés, rien n'apparaît.", kind: ON_OFF, default: "0" },
-    Opt { key: "RandomBot.MinBots", group: "Bots de peuplement (RandomBot)", label: "Nombre minimal de bots connectés", help: "Au démarrage, le serveur connecte d'un coup ce nombre de bots, puis toutes les « intervalle de renouvellement » il en ajoute ou en retire un pour rester entre le minimum et le maximum. Chaque bot coûte environ 1 Mo de mémoire et un peu de processeur : 1 000 bots connectés occupent environ 1 Go et un cœur.", kind: Kind::Int { min: 0, max: RANDOMBOT_MAX as i64 }, default: "0" },
-    Opt { key: "RandomBot.MaxBots", group: "Bots de peuplement (RandomBot)", label: "Nombre maximal de bots connectés", help: "Plafonné par le serveur au nombre de personnages bots enregistrés. Après une génération, le launcher le règle au nombre de personnages bots générés.", kind: Kind::Int { min: 0, max: RANDOMBOT_MAX as i64 }, default: "0" },
-    Opt { key: "HomeCraftBot.CityPercent", group: "Bots de peuplement (RandomBot)", label: "Part des bots restant en ville (%)", help: "Les autres partent chasser dans une zone de leur niveau (monstres ordinaires, jamais en territoire adverse), se reposent et changent de zone quand il n'y a plus rien à chasser. Tous, en ville comme dehors, acceptent votre invitation de groupe.", kind: Kind::Int { min: 0, max: 100 }, default: "25" },
-    Opt { key: "HomeCraftBot.LevelSync", group: "Bots de peuplement (RandomBot)", label: "Bot invité mis à votre niveau", help: "Un bot qui accepte votre invitation prend votre niveau (talents, sorts et équipement adaptés), vous rejoint par téléportation et combat avec vous comme un compagnon. Quand vous le renvoyez du groupe, il reprend sa vie.", kind: ON_OFF, default: "1" },
-    Opt { key: "RandomBot.Refresh", group: "Bots de peuplement (RandomBot)", label: "Intervalle de renouvellement (ms)", help: "Fréquence à laquelle le serveur ajoute ou retire un bot pour rester dans la fourchette.", kind: Kind::Int { min: 5000, max: 3_600_000 }, default: "60000" },
-    // ---- Champs de bataille
-    Opt { key: "BattleBot.AutoJoin", group: "Champs de bataille (BattleBot)", label: "Compléter automatiquement les champs de bataille", help: "À l'inscription d'un joueur, des bots sont ajoutés pour que le champ de bataille démarre (Alterac, Arathi, Warsong).", kind: ON_OFF, default: "0" },
-    Opt { key: "BattleBot.AutoEquip", group: "Champs de bataille (BattleBot)", label: "Équipement des bots de champ de bataille", help: "", kind: Kind::Choice(&[("0", "Objets de départ"), ("1", "Aléatoire adapté au niveau"), ("2", "Modèle prédéfini")]), default: "1" },
-    // ---- Général
-    Opt { key: "PlayerBot.UpdateMs", group: "Général", label: "Temps de réaction des bots (ms)", help: "Période de mise à jour de l'IA : plus court = bots plus réactifs, un peu plus de charge.", kind: Kind::Int { min: 100, max: 5000 }, default: "1000" },
-    Opt { key: "PlayerBot.ShowInWhoList", group: "Général", label: "Bots visibles dans /qui", help: "", kind: ON_OFF, default: "0" },
-    Opt { key: "PlayerBot.AllowSaving", group: "Général", label: "Enregistrer la progression des personnages chargés comme bots", help: "Concerne .partybot load : les changements (niveau, objets) du personnage utilisé comme compagnon sont sauvegardés.", kind: ON_OFF, default: "0" },
-    Opt { key: "PlayerBot.Debug", group: "Général", label: "Informations de débogage des bots dans la console", help: "", kind: ON_OFF, default: "0" },
+    Opt { key: "AiPlayerbot.RandomBotAutologin", group: "Bots aléatoires (monde peuplé)", label: "Connecter les bots aléatoires", help: "Des personnages bots vivent dans le monde : ils montent de niveau, font leurs quêtes, chassent, commercent, forment des groupes et des guildes. Au premier démarrage, le serveur crée leurs comptes et personnages (quelques minutes).", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.MinRandomBots", group: "Bots aléatoires (monde peuplé)", label: "Nombre minimal de bots connectés", help: "Le serveur garde un nombre de bots connectés compris entre le minimum et le maximum, et en renouvelle une partie de temps en temps. Chaque bot coûte de la mémoire et du processeur : 200 bots conviennent à un PC courant, 1 000 demandent une machine puissante. (HomeCraft : 100 ; modèle CMaNGOS : 1000)", kind: Kind::Int { min: 0, max: RANDOMBOT_MAX as i64 }, default: "100" },
+    Opt { key: "AiPlayerbot.MaxRandomBots", group: "Bots aléatoires (monde peuplé)", label: "Nombre maximal de bots connectés", help: "Les comptes de bots (10 personnages chacun) sont créés d'après ce nombre au démarrage du serveur. (HomeCraft : 200 ; modèle CMaNGOS : 1000)", kind: Kind::Int { min: 0, max: RANDOMBOT_MAX as i64 }, default: "200" },
+    Opt { key: "AiPlayerbot.RandomBotMinLevel", group: "Bots aléatoires (monde peuplé)", label: "Niveau minimal des bots", help: "", kind: Kind::Int { min: 1, max: 60 }, default: "1" },
+    Opt { key: "AiPlayerbot.RandomBotMaxLevel", group: "Bots aléatoires (monde peuplé)", label: "Niveau maximal des bots", help: "", kind: Kind::Int { min: 1, max: 60 }, default: "60" },
+    Opt { key: "AiPlayerbot.RandomBotMaxLevelChance", group: "Bots aléatoires (monde peuplé)", label: "Part des bots au niveau maximal", help: "Entre 0 et 1. 0,15 = 15 % des bots sont créés au niveau maximal, les autres à un niveau au hasard.", kind: Kind::Float { min: 0.0, max: 1.0 }, default: "0.15" },
+    Opt { key: "AiPlayerbot.RandomBotJoinLfg", group: "Bots aléatoires (monde peuplé)", label: "Les bots utilisent la recherche de groupe", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.RandomBotJoinBG", group: "Bots aléatoires (monde peuplé)", label: "Les bots rejoignent les champs de bataille", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.RandomBotAutoJoinBG", group: "Bots aléatoires (monde peuplé)", label: "Champs de bataille lancés automatiquement par les bots", help: "Les bots s'inscrivent d'eux-mêmes pour que les champs de bataille tournent en permanence.", kind: ON_OFF, default: "0" },
+    Opt { key: "AiPlayerbot.RandomBotGroupNearby", group: "Bots aléatoires (monde peuplé)", label: "Les bots se groupent entre eux", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.RandomBotGuildNearby", group: "Bots aléatoires (monde peuplé)", label: "Les bots rejoignent des guildes", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.RandomBotFormGuild", group: "Bots aléatoires (monde peuplé)", label: "Les bots fondent des guildes", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.EnableBroadcasts", group: "Bots aléatoires (monde peuplé)", label: "Les bots parlent dans les canaux", help: "Butin, quêtes, recherche de groupe… Les phrases sont traduites en français pour un client français.", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.EnableGreet", group: "Bots aléatoires (monde peuplé)", label: "Les bots saluent les joueurs", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.RandomBotTeleportNearPlayer", group: "Bots aléatoires (monde peuplé)", label: "Faire venir des bots près de vous", help: "Une partie des bots apparaît dans votre zone plutôt qu'au hasard dans le monde.", kind: ON_OFF, default: "0" },
+    // ---- Invitations et groupe
+    Opt { key: "AiPlayerbot.RandomBotInvitePlayer", group: "Invitations et groupe", label: "Les bots vous invitent dans leur groupe", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.LevelCheck", group: "Invitations et groupe", label: "Écart de niveau maximal pour accepter une invitation", help: "Un bot refuse votre invitation si son niveau dépasse le vôtre de plus de ce nombre. 60 = il accepte toujours, quel que soit votre niveau. (HomeCraft : 60 ; modèle CMaNGOS : 30)", kind: Kind::Int { min: 0, max: 60 }, default: "60" },
+    Opt { key: "AiPlayerbot.GearScoreCheck", group: "Invitations et groupe", label: "Refus si votre équipement est trop faible", help: "", kind: ON_OFF, default: "0" },
+    Opt { key: "AiPlayerbot.SyncQuestWithPlayer", group: "Invitations et groupe", label: "Les bots du groupe prennent vos quêtes", help: "", kind: ON_OFF, default: "0" },
+    Opt { key: "AiPlayerbot.AutoDoQuests", group: "Invitations et groupe", label: "Les bots font leurs quêtes d'eux-mêmes", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.AutoEquipUpgradeLoot", group: "Invitations et groupe", label: "Les bots équipent le butin meilleur que le leur", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.AllowGuildBots", group: "Invitations et groupe", label: "Commander les bots de votre guilde", help: "", kind: ON_OFF, default: "1" },
+    Opt { key: "AiPlayerbot.BotCheats", group: "Invitations et groupe", label: "Facilités accordées à vos bots", help: "Liste séparée par des virgules : taxi (vols gratuits), item (composants de sorts et munitions), breath (respiration sous l'eau). Vide = aucune.", kind: Kind::Text, default: "taxi,item,breath" },
+    // ---- Performances
+    Opt { key: "AiPlayerbot.botActiveAlone", group: "Performances", label: "Part des bots actifs loin de vous (%)", help: "Les bots éloignés de tout joueur ne réfléchissent qu'une partie du temps. Plus haut = monde plus vivant, plus de charge.", kind: Kind::Int { min: 0, max: 100 }, default: "10" },
+    Opt { key: "AiPlayerbot.RandomBotsMaxLoginsPerInterval", group: "Performances", label: "Bots connectés par vague", help: "Au démarrage, les bots se connectent par vagues de cette taille.", kind: Kind::Int { min: 1, max: 200 }, default: "10" },
 ];
 
-pub const PATCHES: &[(&str, &str)] = &[
-    ("0", "1.2 — Cœur du Magma"), ("1", "1.3", ), ("2", "1.4 — Honneur"), ("3", "1.5 — Champs de bataille"), ("4", "1.6 — Repaire de l'Aile noire"),
-    ("5", "1.7 — Zul'Gurub"), ("6", "1.8 — Dragons du Cauchemar"), ("7", "1.9 — Ahn'Qiraj"), ("8", "1.10 — Tempêtes"), ("9", "1.11 — Naxxramas"), ("10", "1.12 — Tambours de guerre (complet)"),
-];
+/// Entrée du catalogue des bots par sa clé (clé connue à la compilation).
+pub fn bot_opt(key: &str) -> &'static Opt {
+    BOT_OPTIONS.iter().find(|o| o.key == key).expect("clé du catalogue des bots")
+}
 
 pub const WORLD_OPTIONS: &[Opt] = &[
     // ---- Règles du monde
-    Opt { key: "WowPatch", group: "Règles du monde", label: "Contenu du monde (patch)", help: "Progression VMaNGOS : le contenu, les objets et les événements correspondent au patch choisi. 1.12 = tout Vanilla.", kind: Kind::Choice(PATCHES), default: "10" },
     Opt { key: "GameType", group: "Règles du monde", label: "Type de royaume", help: "Normal : pas de JcJ non consenti.", kind: Kind::Choice(&[("0", "Normal (JcE)"), ("1", "JcJ"), ("6", "Jeu de rôle"), ("8", "Jeu de rôle JcJ")]), default: "1" },
     Opt { key: "Motd", group: "Règles du monde", label: "Message du jour", help: "Affiché dans le chat à la connexion.", kind: Kind::Text, default: "Bienvenue dans HomeCraft Edition Vanilla !" },
     Opt { key: "StartPlayerLevel", group: "Règles du monde", label: "Niveau des nouveaux personnages", help: "", kind: Kind::Int { min: 1, max: 60 }, default: "1" },
@@ -69,7 +76,7 @@ pub const WORLD_OPTIONS: &[Opt] = &[
     Opt { key: "Instance.ResetTimeHour", group: "Règles du monde", label: "Heure de réinitialisation des raids", help: "Heure locale (0-23).", kind: Kind::Int { min: 0, max: 23 }, default: "4" },
     Opt { key: "Quests.LowLevelHideDiff", group: "Règles du monde", label: "Masquer les quêtes trop basses (écart de niveaux)", help: "Les points d'exclamation des quêtes inférieures de plus de N niveaux ne sont plus affichés. -1 = jamais.", kind: Kind::Int { min: -1, max: 60 }, default: "4" },
     Opt { key: "Quests.HighLevelHideDiff", group: "Règles du monde", label: "Masquer les quêtes trop hautes (écart de niveaux)", help: "-1 = jamais.", kind: Kind::Int { min: -1, max: 60 }, default: "7" },
-    Opt { key: "Quests.IgnoreRaid", group: "Règles du monde", label: "Autoriser les quêtes de raid en groupe simple", help: "Utile en solo avec des compagnons.", kind: ON_OFF, default: "0" },
+    Opt { key: "Quests.IgnoreRaid", group: "Règles du monde", label: "Autoriser les quêtes de raid en groupe simple", help: "Utile en solo avec des bots.", kind: ON_OFF, default: "0" },
     Opt { key: "MaxPrimaryTradeSkill", group: "Règles du monde", label: "Métiers principaux maximum", help: "", kind: Kind::Int { min: 0, max: 11 }, default: "2" },
     Opt { key: "MinPetitionSigns", group: "Règles du monde", label: "Signatures requises pour fonder une guilde", help: "0 permet de créer une guilde seul.", kind: Kind::Int { min: 0, max: 9 }, default: "9" },
     // ---- Expérience et progression
@@ -124,10 +131,8 @@ pub const WORLD_OPTIONS: &[Opt] = &[
     Opt { key: "AllowTwoSide.WhoList", group: "Factions et social", label: "/qui commun aux deux factions", help: "", kind: ON_OFF, default: "0" },
     Opt { key: "AllowTwoSide.AddFriend", group: "Factions et social", label: "Amis de l'autre faction", help: "", kind: ON_OFF, default: "0" },
     // ---- Maître de jeu
-    Opt { key: "GM.LoginState", group: "Maître de jeu (compte GM)", label: "Mode MJ à la connexion", help: "Un compte de niveau GM 6 (nécessaire aux compagnons) se connecte en mode MJ selon ce réglage. « Désactivé » conseillé pour jouer normalement : les commandes restent disponibles, le mode MJ s'active avec .gm on.", kind: Kind::Choice(&[("0", "Désactivé"), ("1", "Activé"), ("2", "Dernier état enregistré")]), default: "2" },
+    Opt { key: "GM.LoginState", group: "Maître de jeu (compte GM)", label: "Mode MJ à la connexion", help: "Un compte de niveau MJ (2 ou 3) se connecte en mode MJ selon ce réglage. « Désactivé » conseillé pour jouer normalement : les commandes restent disponibles, le mode MJ s'active avec .gm on.", kind: Kind::Choice(&[("0", "Désactivé"), ("1", "Activé"), ("2", "Dernier état enregistré")]), default: "2" },
     Opt { key: "GM.Visible", group: "Maître de jeu (compte GM)", label: "Visibilité du MJ à la connexion", help: "", kind: Kind::Choice(&[("0", "Invisible"), ("1", "Visible"), ("2", "Dernier état enregistré")]), default: "2" },
-    Opt { key: "GM.CheatGod", group: "Maître de jeu (compte GM)", label: "Invulnérabilité en mode MJ", help: "Ne s'applique qu'en mode MJ actif (.gm on).", kind: ON_OFF, default: "1" },
-    Opt { key: "GM.AllowTrades", group: "Maître de jeu (compte GM)", label: "Échanges, courrier et hôtel des ventes autorisés pour les comptes GM", help: "À laisser activé en solo.", kind: ON_OFF, default: "1" },
     // ---- Technique
     Opt { key: "Visibility.Distance.Continents", group: "Technique", label: "Distance d'affichage en extérieur", help: "En mètres (45 à 333). Plus grand = plus de charge.", kind: Kind::Int { min: 45, max: 333 }, default: "100" },
     Opt { key: "Visibility.Distance.Instances", group: "Technique", label: "Distance d'affichage en instance", help: "", kind: Kind::Int { min: 45, max: 333 }, default: "170" },

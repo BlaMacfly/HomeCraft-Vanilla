@@ -31,12 +31,13 @@ impl Layout {
     }
 
     // Programme (remplaçable à la mise à jour)
-    pub fn server_bin(&self) -> PathBuf { self.root.join("Server").join("vmangos") }
+    pub fn server_bin(&self) -> PathBuf { self.root.join("Server").join("cmangos") }
+    pub fn extractors_bin(&self) -> PathBuf { self.server_bin().join("Extractors") }
     pub fn server_config(&self) -> PathBuf { self.root.join("Server").join("Config") }
     pub fn server_data(&self) -> PathBuf { self.root.join("Server").join("Data") }
     pub fn mariadb_dir(&self) -> PathBuf { self.root.join("Server").join("Database").join("mariadb") }
     pub fn mariadb_bin(&self) -> PathBuf { self.mariadb_dir().join("bin") }
-    pub fn sql_dumps(&self) -> PathBuf { self.root.join("Server").join("Database").join("sql") }
+    pub fn sql_dumps(&self) -> PathBuf { self.root.join("Server").join("Database").join("cmangos-sql") }
     pub fn heidisql_exe(&self) -> PathBuf { self.root.join("Tools").join("HeidiSQL").join("heidisql.exe") }
     pub fn vanillafixes_dir(&self) -> PathBuf { self.root.join("Tools").join("VanillaFixes") }
     pub fn default_client_dir(&self) -> PathBuf { self.root.join("Client") }
@@ -59,8 +60,10 @@ impl Layout {
             ("mangosd.exe", self.server_bin().join("mangosd.exe")),
             ("realmd.exe", self.server_bin().join("realmd.exe")),
             ("mariadbd.exe", self.mariadb_bin().join("mariadbd.exe")),
-            ("mangosd.conf.dist.in", self.server_config().join("mangosd.conf.dist.in")),
-            ("realmd.conf.dist.in", self.server_config().join("realmd.conf.dist.in")),
+            ("mangosd.conf.dist", self.server_bin().join("mangosd.conf.dist")),
+            ("realmd.conf.dist", self.server_bin().join("realmd.conf.dist")),
+            ("aiplayerbot.conf.dist", self.server_bin().join("aiplayerbot.conf.dist")),
+            ("ahbot.conf.dist", self.server_bin().join("ahbot.conf.dist")),
             ("mangos.sql", self.sql_dumps().join("mangos.sql")),
         ];
         checks.iter().map(|(n, p)| (n.to_string(), p.is_file())).collect()
@@ -82,7 +85,7 @@ impl Layout {
         env!("CARGO_PKG_VERSION")
     }
 
-    /// Chemin au format attendu par les .conf de VMaNGOS (séparateurs « / »).
+    /// Chemin au format attendu par les .conf de CMaNGOS (séparateurs « / »).
     pub fn conf_path(p: &Path) -> String {
         p.to_string_lossy().replace('\\', "/")
     }

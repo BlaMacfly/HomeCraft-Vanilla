@@ -2,7 +2,7 @@
 .SYNOPSIS
     Vérifie qu'aucun programme du package ne dépend d'un « Visual C++ Redistributable » installé dans Windows.
 .DESCRIPTION
-    Pour chaque .exe/.dll des dossiers exécutables du package (racine, Server\vmangos, MariaDB) : chaque DLL importée
+    Pour chaque .exe/.dll des dossiers exécutables du package (racine, Server\cmangos et ses extracteurs, MariaDB) : chaque DLL importée
     (dumpbin /dependents) doit être soit une DLL de Windows 10/11 (présente dans System32 et hors runtimes Visual C++),
     soit présente dans le même dossier ; aucune dépendance à un assemblage côte à côte Visual C++ 2005/2008
     (Microsoft.VC80/VC90.CRT) n'est admise. Les redirections d'exportation (couche libmySQL.dll) sont vérifiées aussi.
@@ -23,7 +23,7 @@ $vcRuntime = '^(msvc[pr]\d+|vcruntime\d+|concrt\d+|vcomp\d+|mfc\d+|vccorlib\d+|u
 $sys32 = Join-Path $env:WINDIR 'System32'
 function Step { param([string]$m) Write-Host "[$(Get-Date -Format HH:mm:ss)] $m" }
 
-$dirs = @($Root, (Join-Path $Root 'Server\vmangos'), (Join-Path $Root 'Server\Database\mariadb\bin'))
+$dirs = @($Root, (Join-Path $Root 'Server\cmangos'), (Join-Path $Root 'Server\cmangos\Extractors'), (Join-Path $Root 'Server\Database\mariadb\bin'))
 $failures = New-Object System.Collections.Generic.List[string]
 $checked = 0
 foreach ($d in $dirs) {

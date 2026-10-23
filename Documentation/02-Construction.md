@@ -110,3 +110,57 @@ Contenu du patch :
 Modifier VMaNGOS : travailler dans `Build/vmangos-src`, puis `git -C Build/vmangos-src diff > Build/vmangos-patches/homecraft.patch`
 avant de relancer `Build-Vmangos.ps1` (qui repart du commit propre et réapplique le patch). Le patch est livré dans
 `Sources\Build` du package (GPL-2.0).
+
+## Édition CMaNGOS Classic + playerbots (0.10, branche `cmangos`, 2026-10-23)
+
+Demande de l'utilisateur : des bots qui font « exactement la même chose » que les playerbots d'AzerothCore. Le module
+cmangos/playerbots (lignée ike3 / celguar, la même que mod-playerbots) est lié à CMaNGOS Classic. L'édition VMaNGOS
+reste sur `main` ; le dossier de développement garde ses données VMaNGOS (UserData, Server\Data, launcher à la racine) :
+les essais de cette édition se font dans un dossier isolé (`%TEMP%\hc-cm`, variable `VANILLA_SOLO_ROOT`).
+
+Construction :
+
+- `Build/Build-Cmangos.ps1` : mangos-classic `ff53dfc` et playerbots `39d4700` (clones dans `Build/cmangos-src`, le
+  module dans `src/modules/PlayerBots`, désigné à CMake par `FETCHCONTENT_SOURCE_DIR_PLAYERBOTS` pour qu'il ne
+  télécharge pas une autre version), Boost 1.87 précompilé statique (`Build/deps/boost`, archive figée par SHA-256),
+  options `BUILD_PLAYERBOTS`, `BUILD_AHBOT`, `BUILD_EXTRACTORS`. Compilation Release x64 en 4 à 5 minutes. Installe dans
+  `Server/cmangos` : mangosd, realmd, libmysql.dll (MySQL 8.4), OpenSSL 3.0.14 (libcrypto, libssl, legacy.dll), modèles
+  `.conf.dist`, extracteurs (`Extractors\` : ad, vmap_extractor, vmap_assembler, MoveMapGen, offmesh.txt, config.json)
+  et le runtime Visual C++ 14.44 tiré de MariaDB.
+- Patchs (`Build/cmangos-patches`, appliqués par `git apply`, chaque fichier contrôlé) : `homecraft.patch` (build 5880
+  dans `RealmList.cpp`, `AuthSocket.cpp` et `EXPECTED_MANGOSD_CLIENT_BUILD` ; `mangosd -p` écrivait dans une variable que
+  le module ne lit pas : `_D_AIPLAYERBOT_CONFIG` renseignée aussi) et `playerbots.patch` (commande console
+  `rndbot reload`, déjà écrite dans le module mais non enregistrée).
+- `Build/Build-CmangosDb.ps1` : instance MariaDB temporaire (`Build/cmangos-db`, port 3316, mots de passe jetables),
+  `InstallFullDB.sh -InstallAll` de classic-db `f460448` lancé par Git Bash (base monde, mises à jour du cœur, AHBot,
+  DBC, ScriptDev2, ACID, locales, tables playerbots dans `mangos` et `characters`), puis reprise des colonnes loc2
+  (frFR) de la base VMaNGOS complétée des fichiers `Server/Database/custom/locales_*.sql` (quêtes, créatures, objets,
+  objets du monde, pages, points d'intérêt, options de dialogue ; seules les entrées existant dans CMaNGOS, champs vides
+  seulement), suppression des comptes de démonstration (mots de passe publics), royaume « HomeCraft » 5875/5880, export
+  `mariadb-dump` dans `Server/Database/cmangos-sql` (mangos 117 Mo). Couverture : quêtes 4245/4245, créatures
+  9452/10384, objets 17556/17718, textes diffusés 11104/11104 (déjà en français dans classic-db).
+
+Comportements relevés :
+
+- mangosd force le chemin de recherche des modules OpenSSL sur son **dossier courant**
+  (`OSSL_PROVIDER_set_default_search_path(current_path)`) : il doit tourner dans `Server\cmangos`, sinon « Failed to
+  load Legacy provider » et arrêt immédiat. Les `.conf` (Server\Config) lui sont passés par `-c`, `-a`, `-p`.
+- L'AHBot du module playerbots lit `ahbot.conf` dans le dossier courant (absent : il reste inactif) ; l'AHBot du cœur
+  lit le fichier passé par `-a` et s'active par ses chances d'achat et de vente (0 = inactif).
+- Le module crée lui-même les comptes `RNDBOT<n>` (10 personnages chacun, `RandomBotAccountCount` calculé par le
+  launcher : 12 % du maximum de bots) au premier démarrage ; ce premier démarrage prend 5 à 6 minutes (cache
+  d'équipement, création des personnages), les suivants une vingtaine de secondes. Mot de passe des comptes de bots
+  aléatoire (`RandomBotRandomPassword = 1`). `LLMEnabled` vaut 1 par défaut (service local) : forcé à 0.
+- `MEMORY_MONITOR` est compilé d'office dans le module : `Logs\server\memory.csv` et `heap.csv` grossissent (~10 Mo par
+  jour) ; le launcher les efface à chaque démarrage du serveur.
+- Données du client : `ad -i <client> -o <Data>` (dbc, Cameras, maps directement dans DataDir, pas de sous-dossier de
+  build), `vmap_extractor -l -d <client>\Data` puis `vmap_assembler Buildings vmaps` (6 080 fichiers),
+  `MoveMapGen --workdir … --offMeshInput … --configInputPath …` (1 967 tuiles, 13 min sur 12 threads). Formats
+  différents de VMaNGOS : marqueurs `.cmangos-*` posés par le launcher, données sans marqueur réextraites.
+- Le schéma des personnages diffère de VMaNGOS (`gmlevel` dans `account`, `account_logons`, `character_pet.owner`,
+  `mail.receiver`, `item_instance.itemEntry`…) : correspondances dans `db::CHARACTER_LINKS`. Pas de reprise des
+  personnages de l'édition VMaNGOS.
+
+Licences : CMaNGOS GPL-2.0, classic-db GPL-3.0, OpenSSL Apache-2.0, client MySQL GPL-2.0 avec exception FOSS ; le
+module playerbots n'a **aucune licence publiée** : usage personnel jusqu'à l'accord de ses auteurs
+(`Documentation/11-Licence-PlayerBots.md`).

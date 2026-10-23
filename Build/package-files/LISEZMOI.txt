@@ -1,14 +1,15 @@
 HOMECRAFT EDITION VANILLA — version portable
 =============================================
 
-Édition personnelle de World of Warcraft 1.12.1 jouable en solo, avec des compagnons
-contrôlés par l'ordinateur (PartyBots), un hôtel des ventes approvisionné et une interface
+Édition personnelle de World of Warcraft 1.12.1 jouable en solo, dans un monde peuplé de bots
+qui jouent comme des joueurs (module playerbots), un hôtel des ventes approvisionné et une interface
 en français. Serveur local automatisé : aucun terminal, aucune compilation, aucun port à ouvrir.
 
 CE QUE CONTIENT CE SUPPORT
 --------------------------
 - HomeCraft Edition Vanilla.exe : le launcher (un seul fichier, signé).
-- Server\ : serveur VMaNGOS (realmd, mangosd, extracteurs), MariaDB portable, données du monde.
+- Server\ : serveur CMaNGOS Classic avec le module playerbots (realmd, mangosd, extracteurs),
+  MariaDB portable, données du monde.
 - Tools\HeidiSQL\ : explorateur de base de données externe (bouton dans le launcher).
 - Documentation\ : audit, construction, tests.
 - LICENCES\ : licences de chaque composant et sources (GPL).
@@ -32,28 +33,32 @@ INSTALLATION
    Le premier démarrage prépare la base de données et extrait les données de votre client
    (quelques minutes, une seule fois). Les suivants prennent quelques secondes.
 4. Au premier lancement du jeu, créez votre compte dans l'onglet « Comptes » du launcher
-   (niveau GM 6 pour pouvoir invoquer des compagnons), puis connectez-vous dans le jeu.
+   (niveau GM 2 ou 3 pour disposer des commandes de maître de jeu), puis connectez-vous dans le jeu.
 
 Windows peut afficher « Éditeur inconnu » au premier lancement : le launcher est signé avec
 un certificat auto-signé (voir Documentation\04-Launcher-Exigences.md).
 
 JOUER EN SOLO
 -------------
-Dans le jeu, tapez dans le chat :
-  .partybot add tank      .partybot add healer      .partybot add dps
-  .partybot cometome   .partybot pause   .partybot unpause   .partybot remove (bot sélectionné)
-L'onglet « PlayerBots » du launcher rappelle toutes les commandes, règle les compagnons et permet de
-générer des personnages bots qui peuplent Hurlevent, Forgefer et Orgrimmar.
-Hôtel des ventes : approvisionné automatiquement pour la faction de votre dernier personnage.
+Le monde est peuplé de bots qui jouent comme des joueurs : ils montent de niveau, font leurs
+quêtes, vont en donjon et en champ de bataille, forment des groupes et des guildes. Au premier
+démarrage, le serveur crée leurs comptes et personnages (quelques minutes, une seule fois).
+Invitez un bot dans votre groupe (/inviter Nom) : il vous suit et combat avec vous. Dans le chat :
+  .bot group           complète votre groupe avec des bots de classes complémentaires, à votre niveau
+  .bot add Nom         connecte un autre personnage de votre compte comme bot
+Ordres dans le canal de groupe : follow, stay, attack, flee, summon, leave…
+L'onglet « PlayerBots » du launcher rappelle les commandes et règle le nombre et le comportement des bots.
+Hôtel des ventes : approvisionné automatiquement (Alliance, Horde et gobelin).
 Onglet « Monde » : expérience, butin, difficulté, règles du royaume, etc. (valeurs Vanilla par défaut).
 Onglet « Patchs » : vos propres archives patch-X.MPQ (graphismes HD, etc.), activables à volonté.
 Paramètres : mode fenêtré (recommandé), VanillaFixes (fluidité) et DXVK (rendu Vulkan) en option.
 
 TEXTES EN FRANÇAIS
 ------------------
-Les textes du jeu viennent de la base VMaNGOS (traductions officielles 1.12 frFR). Les quelques
+Les textes du jeu (quêtes, créatures, objets, dialogues) sont les traductions officielles 1.12 frFR,
+reprises de la base VMaNGOS dans la base classic-db de CMaNGOS. Les quelques
 quêtes, dialogues et noms de créatures qui n'y avaient pas de version française ont été complétés
-par HomeCraft (Server\Database\custom\locales_*_homecraft.sql) : ces compléments ne sont PAS des
+par HomeCraft : ces compléments ne sont PAS des
 textes officiels de Blizzard. Les textes officiels existants ne sont jamais modifiés.
 
 EN CAS D'ÉCRAN NOIR OU DE JEU FIGÉ
@@ -68,8 +73,8 @@ par empreinte, restauration avec confirmation et sauvegarde de sécurité automa
 Une sauvegarde automatique est faite à chaque fermeture du jeu (les 10 dernières sont conservées,
 réglable dans Paramètres). Paramètres propose aussi « Réimporter la base monde » (après une mise à
 jour du serveur, sans perdre les personnages) et la génération des cartes de déplacement (mmaps),
-lancée automatiquement en arrière-plan au premier démarrage : les compagnons se déplacent mieux en
-donjon une fois qu'elles sont prêtes (état affiché sur l'accueil).
+lancée automatiquement en arrière-plan au premier démarrage : les bots et les monstres se déplacent mieux
+une fois qu'elles sont prêtes (une quinzaine de minutes ; état affiché sur l'accueil).
 Le dossier UserData\ contient vos personnages : conservez-le lors d'une réinstallation.
 
 VÉRIFIER LA COPIE
@@ -96,7 +101,8 @@ LICENCES
 HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments de base de données,
 nom et logo) : licence d'utilisation propriétaire, voir LICENCE.txt. Usage personnel autorisé ;
 reproduction, diffusion et modification interdites.
-Composants tiers, régis par leurs propres licences : VMaNGOS (GPL-2.0), MariaDB (GPL-2.0),
+Composants tiers, régis par leurs propres licences : CMaNGOS (GPL-2.0), module playerbots (voir
+LICENCESSOURCES.md), classic-db (GPL-3.0), OpenSSL (Apache-2.0), MariaDB (GPL-2.0),
 HeidiSQL (GPL-2.0), VanillaFixes (MIT), DXVK (zlib), bibliothèques Rust (MIT/Apache-2.0…).
 Détail et liens vers les sources exactes : LICENCES\SOURCES.md.
 World of Warcraft est une marque de Blizzard Entertainment, Inc. ; HomeCraft est une création

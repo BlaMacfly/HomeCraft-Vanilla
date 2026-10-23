@@ -2,7 +2,7 @@
 
 Version du manuel : 1.0 (15 octobre 2026), pour le launcher 0.9.0.
 
-HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« Vanilla ») **seul, hors ligne, en français**, sur votre propre ordinateur, avec des compagnons contrôlés par l'ordinateur, un hôtel des ventes approvisionné et des réglages de confort. Tout est piloté par une seule fenêtre : le launcher. Ce manuel décrit tout ce que le launcher sait faire, dans l'ordre où vous en aurez besoin.
+HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« Vanilla ») **seul, hors ligne, en français**, sur votre propre ordinateur, dans un monde peuplé de bots qui jouent comme des joueurs, avec un hôtel des ventes approvisionné et des réglages de confort. Tout est piloté par une seule fenêtre : le launcher. Ce manuel décrit tout ce que le launcher sait faire, dans l'ordre où vous en aurez besoin.
 
 ---
 
@@ -16,7 +16,7 @@ HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« V
 6. [La fenêtre du launcher](#6-la-fenêtre-du-launcher)
 7. [Onglet Accueil](#7-onglet-accueil)
 8. [Onglet Comptes](#8-onglet-comptes)
-9. [Jouer en solo avec des compagnons](#9-jouer-en-solo-avec-des-compagnons)
+9. [Jouer avec les bots](#9-jouer-avec-les-bots)
 10. [Onglet PlayerBots](#10-onglet-playerbots)
 11. [Onglet Monde](#11-onglet-monde)
 12. [Onglet Patchs](#12-onglet-patchs)
@@ -36,13 +36,13 @@ HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« V
 
 ## 1. Ce que c'est, ce que ce n'est pas
 
-**C'est** un serveur de jeu complet (VMaNGOS, fidèle au patch 1.12 de 2006), une base de données (MariaDB) et un programme de pilotage (le launcher), installés dans un seul dossier, sans rien installer dans Windows. Le serveur n'écoute que sur votre propre machine (adresse 127.0.0.1) : personne d'autre ne peut s'y connecter, et rien ne sort vers Internet.
+**C'est** un serveur de jeu complet (CMaNGOS Classic, fidèle au patch 1.12 de 2006, avec le module playerbots), une base de données (MariaDB) et un programme de pilotage (le launcher), installés dans un seul dossier, sans rien installer dans Windows. Le serveur n'écoute que sur votre propre machine (adresse 127.0.0.1) : personne d'autre ne peut s'y connecter, et rien ne sort vers Internet.
 
 **Ce n'est pas** le jeu lui-même. Le client World of Warcraft 1.12.1 (le dossier avec `WoW.exe` et `Data\`) appartient à Blizzard Entertainment et n'est pas fourni : vous apportez le vôtre, en version française. HomeCraft n'est pas un service en ligne, pas un serveur privé partagé, et n'a aucun lien avec Blizzard.
 
 **Ce qu'il apporte au jeu de base**
 
-- des **compagnons** (PlayerBots) que vous invoquez dans le jeu pour former un groupe : tank, soigneur, DPS ;
+- des **bots** (PlayerBots) qui peuplent le monde, font leurs quêtes et rejoignent votre groupe quand vous les invitez ;
 - un **hôtel des ventes** rempli automatiquement (6 392 objets utiles en solo) ;
 - des **bots de peuplement** optionnels qui flânent dans les capitales ;
 - des **réglages** du monde (expérience, butin, difficulté, factions, etc.) sans toucher à un fichier ;
@@ -74,7 +74,7 @@ HomeCraft Edition Vanilla\
 ├─ LISEZMOI.txt                    démarrage rapide
 ├─ LICENCE.txt                     licence d'utilisation de HomeCraft
 ├─ Client\                         VOTRE client 1.12.1 (vide à la livraison)
-├─ Server\                         serveur VMaNGOS, MariaDB, dumps de la base, configurations générées,
+├─ Server\                         serveur CMaNGOS, MariaDB, dumps de la base, configurations générées,
 │                                  données extraites de votre client (Server\Data, créées au premier démarrage)
 ├─ UserData\                       VOS données : base de données (personnages), réglages, sauvegardes, identifiants
 ├─ Logs\                           journaux du launcher et du serveur
@@ -112,7 +112,7 @@ HomeCraft est livré sous forme **portable** : un dossier (ou son archive zip) �
    Au total, le premier démarrage prend de **deux à cinq minutes**. Les suivants prennent quelques secondes.
 3. Quand l'état passe à **PRÊT**, le launcher lance le jeu tout seul (c'est le bouton JOUER qui a été utilisé). Le client est configuré automatiquement : adresse du serveur (`realmlist.wtf`), mode fenêtré et résolution adaptée à votre écran (`Config.wtf`).
 4. **Créez votre compte** dans l'onglet **Comptes** (voir §8), puis connectez-vous dans le jeu avec cet identifiant et ce mot de passe. Créez un personnage et entrez dans le monde.
-5. En arrière-plan, le launcher lance la génération des **cartes de déplacement (mmaps)**, nécessaires aux déplacements fins des compagnons en donjon. Elle dure de plusieurs dizaines de minutes à quelques heures selon votre processeur ; vous pouvez jouer pendant ce temps. L'accueil affiche une barre de progression, le temps écoulé et le temps restant estimé (calculé sur le rythme observé, plus long au début car les continents passent en premier), puis « générées : actives au prochain démarrage du serveur ». Si vous fermez le launcher avant la fin, elle reprend au démarrage suivant.
+5. En arrière-plan, le launcher lance la génération des **cartes de déplacement (mmaps)**, nécessaires aux déplacements fins des bots et des monstres, en donjon notamment. Elle dure d'un quart d'heure à une heure environ selon votre processeur ; vous pouvez jouer pendant ce temps. L'accueil affiche une barre de progression, le temps écoulé et le temps restant estimé (calculé sur le rythme observé, plus long au début car les continents passent en premier), puis « générées : actives au prochain démarrage du serveur ». Si vous fermez le launcher avant la fin, elle reprend au démarrage suivant.
 
 **Quand vous avez fini de jouer :** quittez le jeu normalement (Quitter dans le menu). Le launcher crée une sauvegarde automatique de vos personnages, puis vous pouvez fermer le launcher : il arrête proprement le serveur et la base (quelques secondes, ne forcez pas la fermeture).
 
@@ -162,7 +162,7 @@ Un compte de jeu = un identifiant + un mot de passe, auquel sont rattachés jusq
 
 **Créer un compte** : saisissez l'identifiant (lettres et chiffres, sans espace), le mot de passe, choisissez le **niveau GM** puis « Créer le compte ».
 
-**Niveau GM** : 0 = joueur normal ; **6 = administrateur**, indispensable pour invoquer des compagnons avec les commandes `.partybot`. En solo, mettez 6. Un compte GM joue exactement comme un autre tant que vous n'activez pas le mode maître de jeu dans le jeu (`.gm on`) ; voir le réglage « Mode MJ à la connexion » dans l'onglet Monde.
+**Niveau GM** : 0 = joueur, 1 = modérateur, 2 = maître de jeu, **3 = administrateur**. À partir de 2, les commandes de maître de jeu (`.go`, `.additem`, `.levelup`…) sont disponibles et tous les bots acceptent vos ordres. En solo, mettez 3. Les noms commençant par RNDBOT sont réservés aux comptes des bots (ils n'apparaissent pas dans la liste). Un compte GM joue exactement comme un autre tant que vous n'activez pas le mode maître de jeu dans le jeu (`.gm on`) ; voir le réglage « Mode MJ à la connexion » dans l'onglet Monde.
 
 **Liste des comptes** : identifiant, niveau GM, dernière connexion, nombre de personnages. Sélectionnez un compte pour :
 
@@ -174,81 +174,66 @@ Un compte de jeu = un identifiant + un mot de passe, auquel sont rattachés jusq
 
 **Se connecter dans le jeu** : à l'écran de connexion du jeu, saisissez l'identifiant et le mot de passe tels que créés ici. Le royaume s'appelle « HomeCraft » et apparaît seul dans la liste.
 
-## 9. Jouer en solo avec des compagnons
+## 9. Jouer avec les bots
 
-Les compagnons sont des personnages contrôlés par le serveur qui rejoignent votre groupe, combattent avec un rôle (tank, soigneur, DPS), vous suivent et ramassent leur butin. Ils sont créés à la volée, **à votre niveau**, et disparaissent quand vous les renvoyez ou vous déconnectez.
+Le monde est peuplé de **bots** (module playerbots de CMaNGOS) : des personnages contrôlés par le serveur qui jouent comme des joueurs. Ils montent de niveau, font leurs quêtes, chassent, commercent, vont en donjon et en champ de bataille, forment des groupes et fondent des guildes. Vous les croisez partout, sur les deux continents.
 
-Toutes les commandes se tapent dans le **chat du jeu**, précédées d'un point, avec un compte de niveau GM 6.
+Au **premier démarrage**, le serveur crée leurs comptes (RNDBOT0, RNDBOT1…, dix personnages chacun) et leurs personnages : comptez quelques minutes de plus que d'habitude. Ensuite, il en garde un certain nombre connectés (réglable dans l'onglet PlayerBots, 100 à 200 par défaut) et en renouvelle une partie de temps en temps.
 
-**Former un groupe type (tank, soigneur, DPS)**
+**Grouper avec un bot** : invitez-le (clic droit sur son portrait, ou `/inviter Nom`). Il accepte quel que soit votre niveau (réglage « Écart de niveau maximal pour accepter une invitation »), sauf s'il est déjà occupé (groupe plein, file d'attente d'un champ de bataille). Il vous suit, attaque votre cible, soigne s'il est soigneur et vous accompagne en donjon. Les bots vous proposent aussi parfois de grouper.
 
-```
-.partybot add tank
-.partybot add healer
-.partybot add dps
-```
+**Former un groupe en un instant**
 
-Vous pouvez ajouter jusqu'à quatre compagnons (un groupe compte cinq membres) ou plus en raid si le réglage « Compagnons maximum par groupe » le permet.
-
-**Toutes les commandes**
-
-| Commande | Effet |
+| Commande (chat du jeu) | Effet |
 |---|---|
-| `.partybot add tank` / `healer` / `dps` | invoque un compagnon de ce rôle, classe choisie automatiquement |
-| `.partybot add warrior` (ou `paladin`, `hunter`, `rogue`, `priest`, `shaman`, `mage`, `warlock`, `druid`) | invoque un compagnon de cette classe |
-| `.partybot clone` | copie la race et la classe du joueur ciblé |
-| `.partybot load <nom>` | charge un de **vos** personnages hors ligne comme compagnon (sa progression n'est enregistrée que si le réglage « Enregistrer la progression des personnages chargés » est activé) |
-| `.partybot setrole tank` / `healer` / `meleedps` / `rangedps` | change le rôle du compagnon ciblé |
-| `.partybot attackstart` / `attackstop` | tous les compagnons attaquent / cessent d'attaquer votre cible |
-| `.partybot pull [ms]` | le tank engage la cible, les DPS attendent le délai indiqué |
-| `.partybot aoe` | sorts de zone sur la cible |
-| `.partybot caststart` / `caststop` | autorise / interdit les sorts (compagnon ciblé ou tous) |
-| `.partybot ccmark <marque>` / `focusmark <marque>` | marque à contrôler / à focaliser (`star`, `circle`, `diamond`, `triangle`, `moon`, `square`, `cross`, `skull`) |
-| `.partybot clearmarks` | efface les marques |
-| `.partybot cometome` | le compagnon ciblé (ou tous) vous rejoint |
-| `.partybot usegobject` | les compagnons utilisent l'objet du monde ciblé (levier, porte) |
-| `.partybot pause [ms] [all]` / `unpause [all]` | met en pause / reprend (le compagnon ciblé, ou tous avec `all`) |
-| `.partybot unequip <lien d'objet>` | retire un objet au compagnon ciblé |
-| `.partybot remove` | renvoie le compagnon ciblé |
+| `.bot group` | complète votre groupe avec des bots de classes complémentaires (tank, soigneur, DPS), **à votre niveau** ; ils disparaissent au redémarrage du serveur |
+| `.bot add Nom` | connecte un autre personnage **de votre compte** comme bot, dans votre groupe (vous jouez ainsi avec vos propres personnages) |
+| `.bot remove Nom` | déconnecte ce bot |
+| `.bot list` | liste vos bots connectés |
+| `.bot prepare Nom` | équipe le bot au mieux et lui donne nourriture, potions et composants |
 
-L'onglet PlayerBots du launcher rappelle cette liste.
+**Donner des ordres** : tapez-les dans le **canal de groupe** (`/g`), pour tous vos bots, ou en **chuchotant** à un bot (`/w Nom`), pour lui seul. Ils sont en anglais.
+
+| Ordre | Effet |
+|---|---|
+| `follow` | suivez-moi |
+| `stay` | restez ici |
+| `attack` | attaquez ma cible |
+| `flee` | fuyez avec moi, sans combattre |
+| `grind` | chassez librement autour de vous |
+| `summon` | le bot vous rejoint (téléportation) |
+| `release` | un bot mort libère son esprit |
+| `q` | liste ses quêtes ; `doquest` lui fait faire une quête |
+| `c` | son inventaire ; `e [objet]` équipe, `ue [objet]` déséquipe, `s [objet]` vend |
+| `talents`, `stats` | ses talents ; son argent, ses sacs, l'état de son équipement |
+| `leave` | il quitte le groupe et reprend sa vie |
+| `help` | aide complète des bots (en anglais) |
+
+L'onglet PlayerBots du launcher rappelle ces commandes.
 
 **Conseils de jeu**
 
-- Ciblez un compagnon (clic sur son portrait) avant une commande qui ne concerne que lui (`setrole`, `cometome`, `remove`).
-- En donjon, laissez le tank engager (`.partybot pull`) puis attaquez. Les compagnons soignent et attaquent d'eux-mêmes.
-- Les compagnons ont besoin des **cartes de déplacement (mmaps)** pour contourner les obstacles en intérieur. Tant qu'elles ne sont pas générées puis prises en compte (redémarrage du serveur), ils peuvent rester bloqués derrière un mur : utilisez `.partybot cometome`.
-- L'hôtel des ventes de votre faction est approvisionné automatiquement toutes les minutes ; vous y trouverez composants, recettes, armes et armures de tous niveaux à des prix raisonnables.
-- En solo, pensez aux réglages de l'onglet Monde (§11) : quêtes de raid autorisées en groupe simple, Alliance et Horde sur le même compte, dégâts des créatures légèrement réduits, cinématiques, etc.
+- Un compte de niveau GM 2 ou 3 (onglet Comptes) peut commander n'importe quel bot ; un compte joueur commande les bots de son groupe et de sa guilde.
+- Les bots ont besoin des **cartes de déplacement (mmaps)** pour contourner les obstacles en intérieur. Tant qu'elles ne sont pas générées puis prises en compte (redémarrage du serveur), ils peuvent rester bloqués derrière un mur : utilisez `summon`.
+- L'hôtel des ventes est approvisionné automatiquement (Alliance, Horde et gobelin) ; les bots y achètent et vendent aussi.
+- En solo, pensez aux réglages de l'onglet Monde (§11) : quêtes de raid autorisées en groupe simple, Alliance et Horde sur le même compte, dégâts des créatures, cinématiques, etc.
 
 ## 10. Onglet PlayerBots
 
-Cet onglet règle les compagnons et les bots de peuplement. Les réglages sont **appliqués au prochain démarrage du serveur** (bouton « Enregistrer les réglages PlayerBots »).
+Cet onglet règle le module playerbots. Serveur en marche, les réglages enregistrés (bouton « Enregistrer les réglages PlayerBots ») sont **appliqués tout de suite** ; le nombre de comptes de bots, lui, ne change qu'au démarrage suivant.
 
-**Compagnons (.partybot)**
+- *Activer les PlayerBots* : coche générale (sans elle, aucun bot, ni dans le monde ni dans votre groupe).
+- **Personnages des bots aléatoires** : leur nombre, et le bouton **« Supprimer tous les bots aléatoires »**. La suppression retire, après confirmation, tous les comptes RNDBOT, leurs personnages et leurs guildes ; vos comptes et personnages ne sont jamais concernés. Si le serveur tourne, le launcher l'arrête le temps de l'opération puis le relance (refusé si un de vos personnages est en jeu : revenez à la sélection des personnages). Au redémarrage, des bots neufs sont créés.
 
-- *Autoriser les compagnons* : coche générale.
-- *Compagnons maximum par groupe* : 0 = illimité ; un groupe compte 5 membres, un raid 40.
-- *Lever les restrictions d'invocation* : permet d'invoquer en combat, en donjon, et de choisir le niveau.
-- *Équipement des nouveaux compagnons* : objets de départ, équipement aléatoire adapté au niveau (conseillé) ou modèle prédéfini ; *Écart de niveau d'objet toléré* affine l'aléatoire.
+**Bots aléatoires (monde peuplé)** : connexion des bots, nombre minimal et maximal de bots connectés, niveaux minimal et maximal, part des bots créés au niveau maximal, recherche de groupe, champs de bataille, groupes, guildes, discussions dans les canaux, salutations, bots qui viennent près de vous.
 
-**Bots de peuplement (RandomBot), ou bots du monde** : des personnages bots se connectent et vivent dans le monde. Une partie reste dans les capitales (*Part des bots restant en ville*, 25 %% par défaut) ; les autres partent **chasser dans une zone de leur niveau** : ils combattent les monstres ordinaires avec les sorts de leur classe, se reposent, gagnent de l'expérience et changent de zone quand il n'y a plus rien à chasser. Ils ne vont jamais en territoire adverse et ne touchent pas aux monstres déjà engagés par quelqu'un d'autre.
+**Combien de bots ?** Le serveur occupe à lui seul environ 2 Go de mémoire, même avec peu de bots (caches du module : équipements, trajets). Chaque bot connecté a ensuite une intelligence complète (quêtes, déplacements, combat) : c'est plus coûteux que de simples figurants. 100 à 200 bots conviennent à un PC courant ; au-delà de 1 000, l'onglet signale la charge à prévoir. Réduisez le nombre si le jeu ou le PC ralentit.
 
-1. Dans la section **Personnages bots**, choisissez un nombre (20 pour commencer) et cliquez « Générer les personnages bots ». Ils sont créés sur un compte technique `HOMECRAFTBOTS` (moitié Alliance, moitié Horde, races, classes, niveaux et apparences variés). Les réglages de peuplement sont ajustés automatiquement (activés, minimum = la moitié, maximum = le total).
-2. Si le serveur tourne, le launcher l'arrête le temps de l'opération puis le relance (une minute environ) ; c'est refusé si un de vos personnages est en jeu (revenez à la sélection des personnages). Pendant qu'il tourne, le serveur attribue lui-même les numéros des personnages : des bots ajoutés en même temps prendraient ceux de vos prochains personnages. Les bots se connectent au redémarrage. Vérifiez avec `.bot info` dans le jeu (compte de niveau 6) : la ligne « Online » donne le nombre de bots connectés.
-3. « Supprimer tous les personnages bots » retire tout, après confirmation ; vos propres personnages ne sont jamais concernés.
+**Invitations et groupe** : les bots vous invitent-ils, écart de niveau maximal pour accepter votre invitation (60 = toujours), refus si votre équipement est trop faible, bots qui prennent vos quêtes ou font les leurs, équipement automatique du butin, commande des bots de votre guilde, facilités accordées à vos bots (vols gratuits, composants, respiration sous l'eau).
 
-Les autres réglages (nombre minimal / maximal de bots, intervalle de renouvellement) sont modifiables ensuite.
+**Performances** : part des bots actifs loin de vous, taille des vagues de connexion au démarrage.
 
-**Combien de bots ?** Générer beaucoup de personnages bots ne coûte rien : seuls les bots **connectés** consomment des ressources. Au démarrage, le serveur connecte d'un coup le « nombre minimal », puis toutes les minutes il en ajoute ou en retire un pour rester entre le minimum et le maximum. Mesure sur ce projet : 1 023 bots connectés occupent environ 1,1 Go de mémoire et un cœur de processeur. On peut générer jusqu'à 5 000 personnages bots en une fois, et régler jusqu'à 5 000 bots connectés. Après une génération, le launcher règle le maximum sur le nombre total de personnages bots, le minimum sur la moitié, et rend les bots visibles dans `/qui`. Le serveur ne connecte jamais plus de bots qu'il n'existe de personnages bots : si vous réglez un nombre plus élevé, l'onglet PlayerBots vous le signale. Au-delà de 1 000 bots connectés, il affiche aussi la mémoire et le processeur à prévoir.
-
-**Où sont-ils ?** Les bots qui restent en ville flânent dans leur capitale : le **quartier commerçant de Hurlevent** (humains et elfes de la nuit), **Forgefer** (nains et gnomes) ou **Orgrimmar** (orcs, morts-vivants, taurens et trolls). Les autres sont dans les zones de leur niveau, sur les deux continents : vous les croiserez en jouant.
-
-**Jouer avec un bot** : invitez-le dans votre groupe (clic droit sur son portrait, ou `/inviter <nom>`). Il accepte **toujours**, quel que soit son niveau, sauf s'il accompagne déjà quelqu'un. Il prend alors votre niveau (talents, sorts et équipement adaptés ; réglage *Bot invité mis à votre niveau*), vous rejoint par téléportation où que vous soyez et combat à vos côtés exactement comme un compagnon : il vous suit, attaque votre cible, soigne s'il est soigneur, vous accompagne en donjon. Les commandes `.partybot` (rôle, marques, `cometome`…) fonctionnent aussi sur lui. Renvoyez-le du groupe (ou quittez le groupe) et il reprend sa vie de chasseur. Les bots ne font pas encore de quêtes par eux-mêmes.
-
-**Champs de bataille (BattleBot)** : à l'inscription à un champ de bataille, des bots complètent les deux camps pour qu'il démarre.
-
-**Général** : temps de réaction des bots (plus court = plus réactifs), **« Bots visibles dans /qui »** (désactivé par défaut : les bots de peuplement sont alors comptés par le launcher dans « Personnages en ligne » mais n'apparaissent pas dans la liste `/qui` du jeu ; cochez pour les y voir, enregistrez, redémarrez le serveur), enregistrement de la progression des personnages chargés avec `.partybot load`, informations de débogage.
+**Les bots dans `/qui`** : ce sont des personnages comme les autres, visibles dans `/qui` et comptés dans « Personnages en ligne » sur l'accueil.
 
 ## 11. Onglet Monde
 
@@ -344,7 +329,7 @@ Cliquez **Enregistrer** après vos modifications ; les réglages liés au serveu
 
 **Rendu DXVK** : traduit Direct3D 9 en Vulkan (copie `d3d9.dll` à côté de `WoW.exe`). À essayer si l'affichage pose problème sous Windows 11 ; nécessite un pilote Vulkan à jour. Décocher retire le fichier.
 
-**Hôtel des ventes approvisionné (AHBot)** et **Hôtel des ventes servi** : Automatique (faction du dernier personnage connecté), Alliance ou Horde.
+**Hôtel des ventes approvisionné (AHBot)** : le serveur met en vente et achète des objets dans les trois hôtels des ventes (Alliance, Horde et gobelin).
 
 **Générer les cartes de déplacement (mmaps) en arrière-plan** : activé par défaut ; voir §5. **Générer les mmaps** relance la génération à la main (utile après une réinstallation du client ou si l'accueil signale un échec).
 
@@ -368,7 +353,7 @@ Le champ **Commande console mangosd** envoie une commande directement à la cons
 | `announce <texte>` | message à tous les joueurs |
 | `server exit` | arrêt du serveur (préférez ARRÊTER LE SERVEUR) |
 
-Dans le jeu, avec un compte GM 6, les commandes commencent par un point : `.gm on` / `.gm off` (mode maître de jeu, invulnérable), `.gm visible on`, `.levelup 5`, `.modify money 100000` (10 pièces d'or), `.tele Stormwind` (téléportation ; les noms de lieux sont en anglais : `.lookup tele <début du nom>` pour chercher), `.additem <id>`, `.unaura all`, `.revive`, `.commands` (liste). Ces commandes modifient votre partie : utilisez-les en connaissance de cause.
+Dans le jeu, avec un compte GM 2 ou 3, les commandes commencent par un point : `.gm on` / `.gm off` (mode maître de jeu, invulnérable), `.gm visible on`, `.levelup 5`, `.modify money 100000` (10 pièces d'or), `.tele Stormwind` (téléportation ; les noms de lieux sont en anglais : `.lookup tele <début du nom>` pour chercher), `.additem <id>`, `.unaura all`, `.revive`, `.commands` (liste). Ces commandes modifient votre partie : utilisez-les en connaissance de cause.
 
 ## 17. Vérifier et réparer l'installation
 
@@ -410,19 +395,19 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **Identifiant ou mot de passe refusé** : identifiant et mot de passe sont insensibles à la casse sur ce serveur ; vérifiez l'absence d'espace ou de caractère accentué, ou changez le mot de passe dans l'onglet Comptes.
 
-**« Vous n'avez pas la permission » sur `.partybot`** : le compte n'est pas de niveau GM 6 ; corrigez dans Comptes puis reconnectez-vous. Vérifiez aussi que « Autoriser les compagnons » est coché dans PlayerBots.
+**« Vous n'avez pas la permission » sur une commande** : le compte n'a pas le niveau GM requis (2 ou 3) ; corrigez dans Comptes puis reconnectez-vous. Pour les commandes `.bot`, vérifiez aussi que « Activer les PlayerBots » est coché dans PlayerBots.
+
+**Un bot refuse mon invitation** : il est sans doute déjà occupé (groupe plein, file d'attente d'un champ de bataille ou de la recherche de groupe), ou son niveau dépasse le vôtre de plus que l'« Écart de niveau maximal pour accepter une invitation » (PlayerBots ; 60 = il accepte toujours). Il vous le dit en chuchotant.
 
 **Le jeu reste sur « Connecté » avec beaucoup de bots de peuplement** (versions 0.9.8 et antérieures) : chaque bot compte comme un joueur et le serveur était limité à 100 joueurs ; au-delà, vous étiez mis en file d'attente. Corrigé en 0.9.9 (limite supprimée). Avec une version plus ancienne, gardez moins de 100 bots en ligne.
 
 **Le jeu reste sur « Connecté » pendant la génération des mmaps** (versions 0.9.9 et antérieures) : avec des cartes de déplacement à moitié générées, le serveur se figeait en plaçant les bots de peuplement dans les capitales. Depuis 0.9.10, les mmaps sont générées à part et n'entrent en service qu'une fois complètes, au démarrage suivant du serveur. Si cela vous arrive avec une ancienne version : arrêtez le serveur, désactivez le peuplement (PlayerBots) jusqu'à ce que l'accueil indique les mmaps « générées », puis redémarrez.
 
-**Les compagnons restent bloqués ou traversent les murs** : les cartes de déplacement ne sont pas encore générées ou pas encore prises en compte (redémarrez le serveur une fois l'accueil passé à « générées »). En attendant : `.partybot cometome`.
+**Les bots restent bloqués ou traversent les murs** : les cartes de déplacement ne sont pas encore générées ou pas encore prises en compte (redémarrez le serveur une fois l'accueil passé à « générées »). En attendant : ordre `summon` dans le canal de groupe.
 
-**Aucun bot de peuplement en ville** : dans l'ordre, vérifiez que (1) des personnages bots ont été générés (PlayerBots > Personnages bots), (2) les réglages ont été **enregistrés** (serveur en marche, ils s'appliquent aussitôt ; en cas de doute, arrêtez puis relancez le serveur), (3) vous êtes au bon endroit : quartier commerçant de Hurlevent, Forgefer ou Orgrimmar (pas dans une zone de départ), (4) « Activer les bots de peuplement » est coché avec un nombre minimal supérieur à 0 (PlayerBots), et (5) dans le jeu, `.bot info` (compte niveau 6) indique des bots en ligne. Si vous les cherchez avec `/qui`, cochez « Bots visibles dans /qui ». Le compteur « Personnages en ligne » de l'accueil inclut les bots : s'il est élevé, ils sont bien connectés.
+**Aucun bot dans le monde** : dans l'ordre, vérifiez que (1) « Activer les PlayerBots » et « Connecter les bots aléatoires » sont cochés, avec un nombre minimal supérieur à 0 (PlayerBots), (2) les réglages ont été **enregistrés**, (3) le premier démarrage, qui crée les bots, est allé à son terme (accueil : serveur prêt ; « Personnages des bots aléatoires » non nul dans PlayerBots). Le compteur « Personnages en ligne » de l'accueil inclut les bots : s'il est élevé, ils sont bien connectés. `/qui` ne montre que votre faction, sauf si « /qui commun aux deux factions » est activé dans Monde ; un compte de niveau 2 ou 3 voit les deux.
 
-**Le launcher annonce N personnages en ligne mais `/qui` n'affiche personne** : les bots de peuplement sont cachés de la liste `/qui` par défaut. PlayerBots > Général > « Bots visibles dans /qui », Enregistrer, puis redémarrez le serveur. Rappel : `/qui` ne montre que votre faction, et les bots sont de toute façon visibles physiquement dans les capitales.
-
-**« Bots visibles dans /qui » est coché mais `/qui` n'affiche toujours aucun bot** (versions 0.9.12 et antérieures) : les personnages bots étaient créés avec un masque de phase à 0, que `/qui` écarte. Corrigé en 0.9.13 : les nouveaux bots sont créés correctement et les anciens sont corrigés au démarrage suivant du serveur. Avec un compte joueur ordinaire (niveau 0), `/qui` ne montre que votre faction, sauf si « /qui commun aux deux factions » est activé dans Monde ; un compte de niveau 6 voit les deux.
+**Le serveur met plusieurs minutes à démarrer la première fois** : c'est normal, il crée les comptes et les personnages des bots aléatoires (et d'autres au démarrage suivant si vous augmentez le nombre maximal de bots). Les démarrages suivants prennent une vingtaine de secondes.
 
 **Un personnage tout juste créé est déconnecté dès son entrée dans le monde** (versions 0.9.13 et antérieures) : des bots avaient été générés pendant que le serveur tournait ; le serveur, qui attribue les numéros de personnages à partir d'un compteur lu au démarrage, a redonné à votre personnage le numéro d'un bot, puis l'a refusé à la connexion (« personnage d'un autre compte », journal `LogsserverAnticheat.log`). Depuis 0.9.15, le launcher arrête le serveur le temps de générer ou supprimer des bots, et le démarrage du serveur retire les inscriptions de bots qui désignent un personnage joueur. Après la mise à jour, redémarrez simplement le serveur : vos personnages se connectent normalement.
 
@@ -436,7 +421,7 @@ Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($
 
 **L'antivirus a supprimé un fichier** : rétablissez-le depuis la quarantaine, ajoutez le dossier aux exclusions, puis VÉRIFIER LES FICHIERS.
 
-**« Une stratégie de contrôle d'application a bloqué ce fichier » (os error 4551)** : Windows 11 refuse de lancer un programme du serveur. C'est le **Contrôle intelligent des applications** (Smart App Control), actif sur certaines installations neuves de Windows 11 : il bloque tout programme qui n'est pas signé par un éditeur reconnu, et les programmes du serveur VMaNGOS (`MapExtractor`, `VMapExtractor`, `realmd`, `mangosd`…) ne sont pas signés par leurs auteurs. Contrairement à l'avertissement SmartScreen, aucun bouton « Exécuter quand même » n'existe ; les exclusions de l'antivirus n'y changent rien. Pour jouer à HomeCraft sur ce PC :
+**« Une stratégie de contrôle d'application a bloqué ce fichier » (os error 4551)** : Windows 11 refuse de lancer un programme du serveur. C'est le **Contrôle intelligent des applications** (Smart App Control), actif sur certaines installations neuves de Windows 11 : il bloque tout programme qui n'est pas signé par un éditeur reconnu, et les programmes du serveur CMaNGOS (`ad`, `vmap_extractor`, `realmd`, `mangosd`…) ne sont pas signés par leurs auteurs. Contrairement à l'avertissement SmartScreen, aucun bouton « Exécuter quand même » n'existe ; les exclusions de l'antivirus n'y changent rien. Pour jouer à HomeCraft sur ce PC :
 
 1. Ouvrez **Sécurité Windows** > **Contrôle des applications et du navigateur** > **Paramètres du contrôle intelligent des applications**.
 2. Choisissez **Désactivé**. Sur certaines versions de Windows 11, ce réglage ne peut plus être réactivé ensuite sans réinitialiser Windows : décidez en connaissance de cause. L'antivirus Microsoft Defender, lui, reste actif.
@@ -460,7 +445,7 @@ Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diag
 
 **Puis-je utiliser des patchs HD et des AddOns ?** Oui, voir §12 et §15. HomeCraft n'en fournit aucun.
 
-**Mes sauvegardes sont-elles compatibles entre versions de HomeCraft ?** Oui tant que la version du serveur VMaNGOS n'a pas changé de schéma de base ; dans ce cas la documentation de la version l'indique.
+**Mes sauvegardes sont-elles compatibles entre versions de HomeCraft ?** Oui au sein d'une même édition, tant que le serveur n'a pas changé de schéma de base ; dans ce cas la documentation de la version l'indique. Les personnages de l'édition VMaNGOS (0.9.x) ne se restaurent pas dans l'édition CMaNGOS (0.10 et suivantes) : bases de structure différente.
 
 **HomeCraft se connecte-t-il à Internet ?** Jamais. Aucun téléchargement, aucune télémétrie, aucune mise à jour automatique.
 
@@ -468,7 +453,7 @@ Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diag
 
 **Combien de personnages ?** 10 par compte et par royaume (réglable dans Monde), comptes illimités.
 
-**Que compte « Personnages en ligne » sur l'accueil ?** Tous les personnages connectés au serveur : le vôtre et les bots de peuplement. Les compagnons invoqués par `.partybot` sont aussi comptés tant qu'ils sont dans votre groupe.
+**Que compte « Personnages en ligne » sur l'accueil ?** Tous les personnages connectés au serveur : le vôtre et les bots (aléatoires, et ceux de votre groupe).
 
 ## 21. Où sont mes fichiers ?
 
@@ -499,7 +484,7 @@ Ports utilisés, sur 127.0.0.1 uniquement : 3315 (base de données), 3724 (authe
 - **Compagnon / PartyBot** : personnage contrôlé par le serveur qui rejoint votre groupe.
 - **DBC, maps, vmaps, mmaps** : données extraites du client dont le serveur a besoin (tables du jeu, relief, collisions, cartes de déplacement).
 - **DXVK** : couche qui traduit Direct3D 9 en Vulkan.
-- **GM / MJ** : maître de jeu ; le niveau GM 6 donne accès aux commandes d'administration.
+- **GM / MJ** : maître de jeu ; les niveaux GM 2 et 3 donnent accès aux commandes d'administration.
 - **HeidiSQL** : outil externe de consultation de base de données, fourni.
 - **MariaDB** : le serveur de base de données qui stocke le monde et vos personnages.
 - **MPQ** : format d'archive de Blizzard ; les patchs sont des archives MPQ.
@@ -509,12 +494,12 @@ Ports utilisés, sur 127.0.0.1 uniquement : 3315 (base de données), 3724 (authe
 - **realmd / mangosd** : les deux programmes du serveur (authentification / monde).
 - **Royaume** : le serveur de jeu tel qu'il apparaît dans la liste du client (« HomeCraft »).
 - **VanillaFixes** : correctif de fluidité du client 1.12.1.
-- **VMaNGOS** : le logiciel de serveur, fidèle au patch 1.12.
+- **CMaNGOS** : le logiciel de serveur (édition Classic), fidèle au patch 1.12 ; **playerbots** : son module de bots.
 
 ## 23. Mentions légales
 
 HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments de base de données, nom et logo) est concédé selon la **licence d'utilisation** figurant dans `LICENCE.txt` : usage personnel autorisé ; reproduction, diffusion et modification interdites ; aucune garantie ; voir le texte complet.
 
-Les composants tiers (VMaNGOS, MariaDB, HeidiSQL sous GPL-2.0 ; VanillaFixes sous MIT ; DXVK sous zlib ; bibliothèques Rust) restent sous leurs licences propres, reproduites dans `LICENCES\`, avec les liens vers leurs sources dans `LICENCES\SOURCES.md`.
+Les composants tiers (CMaNGOS, MariaDB, HeidiSQL sous GPL-2.0 ; classic-db sous GPL-3.0 ; OpenSSL sous Apache-2.0 ; module playerbots, sans licence publiée, utilisé avec l'accord demandé à ses auteurs ; VanillaFixes sous MIT ; DXVK sous zlib ; bibliothèques Rust) restent sous leurs licences propres, reproduites dans `LICENCES\`, avec les liens vers leurs sources dans `LICENCES\SOURCES.md`.
 
 World of Warcraft et Blizzard Entertainment sont des marques de Blizzard Entertainment, Inc. HomeCraft est une création indépendante, sans lien avec Blizzard Entertainment, Inc. Le client du jeu n'est pas fourni : vous devez disposer du vôtre et respecter les conditions qui s'y appliquent.

@@ -1,5 +1,23 @@
 # Journal des versions
 
+## 0.10.0 — 23 octobre 2026 (édition CMaNGOS, en développement)
+
+**Nouveau serveur : CMaNGOS Classic avec le module playerbots**, le même système de bots que les playerbots d'AzerothCore (lignée ike3 / celguar). L'édition VMaNGOS (0.9.18) reste disponible ; cette édition est développée à part.
+
+- **Un monde peuplé de bots qui jouent comme des joueurs** : ils montent de niveau, font leurs quêtes, chassent, commercent, vont en donjon et en champ de bataille, forment des groupes et fondent des guildes. Le serveur crée lui-même leurs comptes (RNDBOT…) et leurs personnages au premier démarrage, puis en connecte entre le minimum et le maximum réglés (100 à 200 par défaut). Mesuré sur un test de 10 minutes avec 40 bots : déplacements vers leurs zones de niveau, la moitié avec de l'expérience gagnée, 20 guildes fondées.
+- **Invitations** : un bot accepte votre invitation quel que soit votre niveau (réglage « Écart de niveau maximal », 60 par défaut, au lieu de 30 dans CMaNGOS), vous suit, combat avec vous et obéit aux ordres du canal de groupe (follow, stay, attack, flee, summon, leave…). `.bot group` complète votre groupe avec des bots de classes complémentaires à votre niveau ; `.bot add Nom` connecte un autre personnage de votre compte comme bot.
+- **Textes en français** : les traductions officielles 1.12 de la base VMaNGOS sont reprises dans la base CMaNGOS (quêtes 100 %, objets 99 %, créatures 91 %, dialogues 100 %) ; les phrases des bots sont aussi traduites.
+- **Onglet PlayerBots** refait : nombre de bots, niveaux, groupes, guildes, discussions, invitations, performances ; réglages appliqués à chaud (`rndbot reload`). Bouton de suppression des bots aléatoires (serveur arrêté puis relancé automatiquement).
+- **Comptes** : niveaux GM 0 à 3 (joueur, modérateur, maître de jeu, administrateur) ; les comptes RNDBOT sont réservés aux bots et masqués de la liste.
+- **Hôtel des ventes** : AHBot du cœur CMaNGOS, approvisionne les trois hôtels des ventes.
+- **Données du client** : extraites avec les outils CMaNGOS (ad, vmap_extractor, vmap_assembler, MoveMapGen). Des données d'une édition VMaNGOS sont reconnues et réextraites automatiquement. Cartes de déplacement complètes en 13 minutes (12 threads).
+
+Construction : `Build\Build-Cmangos.ps1` (commits figés, Boost 1.87, runtime Visual C++ local) et `Build\Build-CmangosDb.ps1` (installateur officiel classic-db, traductions, comptes de démonstration supprimés). Modifications publiées dans `Build\cmangos-patches` : build client 5880, option `-p` de mangosd réellement prise en compte par le module, console `rndbot reload`.
+
+**Licence** : le module playerbots ne publie aucune licence. Cette édition reste à usage personnel tant que ses auteurs n'ont pas donné leur accord (demande préparée dans `Documentation\11-Licence-PlayerBots.md`).
+
+Personnages : les personnages de l'édition VMaNGOS ne sont pas repris (schéma de base différent).
+
 ## 0.9.18 — 23 octobre 2026
 
 **Bots du monde.** Le serveur VMaNGOS est désormais compilé par HomeCraft (même commit 53d24d5, modifications publiées dans `Sources\Build\vmangos-patches\homecraft.patch`, GPL-2.0), pour donner une vraie vie aux bots de peuplement :
