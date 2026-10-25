@@ -11,6 +11,33 @@ index ff41d3fe0..105bd8a90 100644
  
  // Max creature level (included some bosses and elite)
  #define DEFAULT_MAX_CREATURE_LEVEL 70
+diff --git a/src/game/MotionGenerators/MoveMap.cpp b/src/game/MotionGenerators/MoveMap.cpp
+index 19bd97add..6ccf4079c 100644
+--- a/src/game/MotionGenerators/MoveMap.cpp
++++ b/src/game/MotionGenerators/MoveMap.cpp
+@@ -168,7 +168,9 @@ namespace MMAP
+     void MMapManager::loadAllMapTiles(std::string const& basePath, uint32 mapId)
+     {
+         auto itr = loadedMMaps.find(mapId);
+-        MANGOS_ASSERT(itr != loadedMMaps.end());
++        // HomeCraft : carte sans fichier .mmap (mmaps pas encore générées) : rien à charger, au lieu d'arrêter le serveur.
++        if (itr == loadedMMaps.end())
++            return;
+         const auto& mmapData = itr->second;
+ 
+         if (mmapData->fullLoaded)
+@@ -199,7 +201,10 @@ namespace MMAP
+     {
+         // get this mmap data
+         auto itr = loadedMMaps.find(mapId);
+-        MANGOS_ASSERT(itr != loadedMMaps.end()); // must not occur here as it would not be thread safe - only in loadMapData through loadMapInstance
++        // HomeCraft : loadMapData n'a rien chargé pour cette carte (fichier .mmap absent, mmaps désactivées ou pas encore
++        // générées) : pas de navigation pour cette tuile. L'assertion d'origine arrêtait le serveur au premier démarrage.
++        if (itr == loadedMMaps.end())
++            return false;
+ 
+         const auto& mmapData = itr->second;
+ 
 diff --git a/src/mangosd/Main.cpp b/src/mangosd/Main.cpp
 index 01aae80db..f38171f8f 100644
 --- a/src/mangosd/Main.cpp

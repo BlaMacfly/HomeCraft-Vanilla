@@ -129,7 +129,10 @@ Construction :
   et le runtime Visual C++ 14.44 tiré de MariaDB.
 - Patchs (`Build/cmangos-patches`, appliqués par `git apply`, chaque fichier contrôlé) : `homecraft.patch` (build 5880
   dans `RealmList.cpp`, `AuthSocket.cpp` et `EXPECTED_MANGOSD_CLIENT_BUILD` ; `mangosd -p` écrivait dans une variable que
-  le module ne lit pas : `_D_AIPLAYERBOT_CONFIG` renseignée aussi) et `playerbots.patch` (commande console
+  le module ne lit pas : `_D_AIPLAYERBOT_CONFIG` renseignée aussi ; `MoveMap.cpp` : `loadMap` et `loadAllMapTiles`
+  assertaient que les données de la carte étaient chargées, or `GridMap` demande les tuiles même avec
+  `mmap.enabled = 0` : sans fichiers .mmap (installation neuve), arrêt du serveur au chargement des cartes ; renvoient
+  maintenant « rien à charger », trouvé par l'utilisateur sur la 0.10.0) et `playerbots.patch` (commande console
   `rndbot reload`, déjà écrite dans le module mais non enregistrée).
 - `Build/Build-CmangosDb.ps1` : instance MariaDB temporaire (`Build/cmangos-db`, port 3316, mots de passe jetables),
   `InstallFullDB.sh -InstallAll` de classic-db `f460448` lancé par Git Bash (base monde, mises à jour du cœur, AHBot,

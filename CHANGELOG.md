@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 0.10.1 — 25 octobre 2026 (édition CMaNGOS)
+
+- **Correction : le serveur ne démarrait pas sur une installation neuve** (« chargement du monde : mangosd s'est arrêté pendant le chargement »). Les cartes de déplacement (mmaps) ne sont générées qu'après le premier démarrage, et CMaNGOS s'arrêtait net en leur absence (« Critical Error … MMapManager::loadMap »), même désactivées : il demande toujours les tuiles de navigation et considérait l'absence de données comme impossible. Corrigé dans le serveur (`homecraft.patch` : carte sans mmaps = pas de navigation, comme le prévoit déjà le reste du code) et dans le launcher (mmaps activées seulement présentes et complètes ; celles générées en arrière-plan sont installées avant l'écriture de la configuration du démarrage suivant).
+- Test d'intégration : premier démarrage sans mmaps (cas d'une vraie installation), puis avec.
+
 ## 0.10.0 — 23 octobre 2026 (édition CMaNGOS, en développement)
 
 **Nouveau serveur : CMaNGOS Classic avec le module playerbots**, le même système de bots que les playerbots d'AzerothCore (lignée ike3 / celguar). L'édition VMaNGOS (0.9.18) reste disponible ; cette édition est développée à part.

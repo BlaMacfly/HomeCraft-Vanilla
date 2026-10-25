@@ -51,7 +51,9 @@ robocopy $pkg $Root /E /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy : code $LASTEXITCODE" }
 Set-Content (Join-Path $Root '.hc-integration') 'dossier de test' -Encoding UTF8
 Step "liens physiques vers les données CMaNGOS ($DataDir) et le client du dossier de développement"
-Link-Tree $DataDir (Join-Path $Root 'Server\Data') -SkipDirs @('Buildings', 'mmaps-generation', 'extraction-client')
+# Sans mmaps d'abord, comme une installation neuve (elles ne sont générées qu'après le premier démarrage) : en 0.10.0,
+# mmap.enabled = 1 sans fichier .mmap arrêtait mangosd au chargement des cartes. Ajoutées avant la phase 3.
+Link-Tree $DataDir (Join-Path $Root 'Server\Data') -SkipDirs @('Buildings', 'mmaps-generation', 'extraction-client', 'mmaps')
 Link-Tree (Join-Path $dev 'Client') (Join-Path $Root 'Client') -SkipDirs @('WTF', 'Cache', 'Logs', 'Screenshots') -CopySmall
 New-Item -ItemType Directory -Force (Join-Path $Root 'UserData') | Out-Null
 Write-Settings '{"windowed":true,"auto_mmaps":false,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"20","AiPlayerbot.MaxRandomBots":"30"}}'
@@ -91,10 +93,19 @@ function Close-Launcher {
     return $true
 }
 
+# Erreur imprévue (base injoignable après un échec du serveur…) : le launcher de test est fermé avant de sortir,
+# sinon il reste ouvert et le test suivant refuse de démarrer.
+trap {
+    if ($script:lastProcess -and -not $script:lastProcess.HasExited) { $script:lastProcess.CloseMainWindow() | Out-Null; $script:lastProcess.WaitForExit(180000) | Out-Null }
+    Step "TEST INTERROMPU : $_ (dossier conservé : $Root)"
+    exit 1
+}
+
 # ---- 1. Premier démarrage : import, bots aléatoires créés par le serveur, compte joueur MJ
 Step "1. premier démarrage (création des bots aléatoires) et création du compte AUDITA"
 $t = Run-Launcher -LauncherArgs @('--start', '--do', 'acccreate', 'AUDITA', 'Motdepasse1', '3') -Until 'compte AUDITA créé|création du compte impossible' -ExtraSec 30
-$results['1. monde opérationnel au premier démarrage'] = $t -match 'monde opérationnel'
+$results['1. monde opérationnel au premier démarrage (sans mmaps)'] = $t -match 'monde opérationnel'
+$results['1. mmaps désactivées tant qu''elles manquent'] = [bool](Select-String -Path (Join-Path $Root 'Server\Config\mangosd.conf') -Pattern '^mmap\.enabled = 0' -Quiet)
 $results['1. compte créé avec le niveau 3'] = $t -match 'compte AUDITA créé \(niveau 3\)'
 $results['1. niveau 3 en base'] = (& $q "SELECT gmlevel FROM realmd.account WHERE username='AUDITA'") -eq 3
 $builds = "$(Invoke-Sql -AsRoot -Query "SELECT realmbuilds FROM realmd.realmlist WHERE id=1")".Trim()
@@ -136,8 +147,10 @@ $startXp = & $q "SELECT COALESCE(SUM(c.xp),0) $botChars"
 & (Join-Path $scripts 'Stop-MariaDB.ps1') | Out-Null
 
 # ---- 3. Vie des bots : 5 minutes de jeu, puis expérience et déplacements lus en base (sauvegardés à l'arrêt)
-Step "3. bots aléatoires pendant 5 minutes"
+Step "3. mmaps ajoutées, bots aléatoires pendant 5 minutes"
+Link-Tree (Join-Path $DataDir 'mmaps') (Join-Path $Root 'Server\Data\mmaps')
 $t = Run-Launcher -LauncherArgs @('--start') -Until 'monde opérationnel' -ExtraSec 300
+$results['3. mmaps activées une fois présentes'] = [bool](Select-String -Path (Join-Path $Root 'Server\Config\mangosd.conf') -Pattern '^mmap\.enabled = 1' -Quiet)
 $mangosd = Get-Process mangosd -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
 $cpu1 = if ($mangosd) { $mangosd.TotalProcessorTime.TotalSeconds } else { 0 }
 Start-Sleep 20

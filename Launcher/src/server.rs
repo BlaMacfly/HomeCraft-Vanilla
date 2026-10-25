@@ -86,7 +86,11 @@ pub fn generate_configs(layout: &Layout, db: &MariaDb, settings: &Settings) -> R
     set_conf_value(&mut m, "Console.Enable", "1")?;
     set_conf_value(&mut m, "Ra.Enable", "0")?;
     set_conf_value(&mut m, "SOAP.Enabled", "0")?;
-    set_conf_value(&mut m, "mmap.enabled", "1")?;
+    // Cartes de déplacement : seulement si elles sont présentes et complètes. Avec mmap.enabled = 1 et sans fichier
+    // .mmap (installation neuve : elles sont générées en arrière-plan après le premier démarrage), CMaNGOS s'arrête
+    // sur « Critical Error … MMapManager::loadMap ». Elles sont prises en compte au démarrage qui suit leur génération.
+    let mmaps = crate::repair::data_status(layout).iter().any(|(n, ok)| n == "mmaps" && *ok);
+    set_conf_value(&mut m, "mmap.enabled", if mmaps { "1" } else { "0" })?;
     // Chaque bot connecté ouvre une session : avec la limite du modèle (100), au-delà de 100 bots le joueur était
     // mis en file d'attente (le client restait sur « Connecté »). 0 = pas de limite.
     set_conf_value(&mut m, "PlayerLimit", "0")?;

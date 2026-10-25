@@ -1278,6 +1278,11 @@ impl Orchestrator {
             Ok(_) => {}
             Err(e) => return self.fail_ret("contrôle des bases", e),
         }
+        // Serveur arrêté : seul moment où des mmaps neuves peuvent entrer sans être chargées à moitié. Avant la
+        // génération des .conf : mmap.enabled dépend de leur présence.
+        if self.mmaps_job.is_none() {
+            self.install_mmaps();
+        }
         if let Err(e) = server::generate_configs(&self.layout, &db, &self.settings).and_then(|_| server::ensure_realm(&db)) {
             return self.fail_ret("configuration serveur", e);
         }
@@ -1328,10 +1333,6 @@ impl Orchestrator {
         self.log(format!("realmd opérationnel sur 127.0.0.1:{REALMD_PORT}"));
 
         self.set(State::StartingWorld, fr::MSG_WORLD, 0.7);
-        // Serveur arrêté : seul moment où des mmaps neuves peuvent entrer sans être chargées à moitié.
-        if self.mmaps_job.is_none() {
-            self.install_mmaps();
-        }
         let mut m = match Mangosd::start(&self.layout, self.log_tx.clone()) {
             Ok(m) => m,
             Err(e) => return self.fail_ret("démarrage mangosd", e),
