@@ -40,6 +40,7 @@ Build/vmangos-build/
 # CMaNGOS (clones de travail, dépendances de compilation)
 Build/cmangos-src/
 Build/cmangos-build/
+Build/cmangos-build-pdb/
 Build/classic-db/
 Build/deps/
 Build/cmangos-db/

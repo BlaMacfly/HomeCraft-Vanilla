@@ -199,6 +199,10 @@ pub struct Orchestrator {
     ports_up: (bool, bool),
     /// Échecs consécutifs de surveillance : base, authentification, monde
     misses: [u8; 3],
+    /// Fermeture demandée pendant une opération longue (génération des mmaps) : la boucle principale s'arrête ensuite
+    quit: bool,
+    /// Commandes reçues pendant la génération des mmaps (création de compte, console…) : exécutées ensuite, dans l'ordre
+    deferred: VecDeque<Command>,
 }
 
 pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sender<Command>, std::thread::JoinHandle<()>) {
@@ -240,7 +244,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         .name("orchestrateur".into())
         .spawn(move || {
             let log_file = std::fs::create_dir_all(layout.logs()).ok().and_then(|_| std::fs::OpenOptions::new().create(true).append(true).open(layout.launcher_log()).ok());
-            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None, ticks: 0, ports_up: (false, false), misses: [0; 3] };
+            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None, ticks: 0, ports_up: (false, false), misses: [0; 3], quit: false, deferred: VecDeque::new() };
             o.run();
         })
         .expect("thread orchestrateur");
@@ -318,7 +322,23 @@ impl Orchestrator {
                     self.abort_mmaps();
                     break;
                 }
-                Ok(cmd) => self.handle(cmd),
+                Ok(cmd) => {
+                    self.handle(cmd);
+                    // Commandes arrivées pendant la génération des mmaps : traitées une fois le démarrage terminé.
+                    while !self.quit {
+                        let Some(next) = self.deferred.pop_front() else { break };
+                        if matches!(next, Command::Shutdown) {
+                            self.quit = true;
+                            break;
+                        }
+                        self.handle(next);
+                    }
+                    if self.quit {
+                        self.stop_all();
+                        self.abort_mmaps();
+                        break;
+                    }
+                }
                 Err(mpsc::RecvTimeoutError::Timeout) => self.tick(),
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     self.stop_all();
@@ -1372,6 +1392,13 @@ impl Orchestrator {
             self.log("données du client extraites");
         }
 
+        // Cartes de déplacement : le module playerbots suppose qu'elles existent (sans elles, mangosd plantait au bout
+        // de quelques dizaines de secondes, 0xC0000005 dans dtNavMeshQuery, ou s'arrêtait sur une assertion). Générées
+        // ici avant le premier démarrage du serveur, une seule fois.
+        if !repair::data_status(&self.layout).iter().any(|(n, ok)| n == "mmaps" && *ok) && !self.generate_mmaps_before_start() {
+            return false;
+        }
+
         self.set(State::StartingAuth, fr::MSG_AUTH, 0.55);
         let leftovers = server::stop_leftovers(&self.layout);
         if !leftovers.is_empty() {
@@ -1416,10 +1443,94 @@ impl Orchestrator {
             self.shared.lock().unwrap().mmaps = MmapsStatus::Unknown;
         }
         self.refresh_mmaps_status();
-        if self.settings.auto_mmaps {
-            self.start_mmaps(false);
-        }
         true
+    }
+
+    /// Génère les mmaps serveur arrêté et attend la fin (première installation) : tous les cœurs, reprise des tuiles
+    /// déjà faites (dossier de travail), progression sur l'accueil. Fermer le launcher ou arrêter interrompt la
+    /// génération, qui reprendra au démarrage suivant. Renvoie false si elle n'a pas abouti (état déjà positionné).
+    fn generate_mmaps_before_start(&mut self) -> bool {
+        self.set(State::Initializing, fr::MSG_FIRST_MMAPS, 0.45);
+        if repair::mmaps_pending(&self.layout) {
+            self.install_mmaps();
+            if repair::data_status(&self.layout).iter().any(|(n, ok)| n == "mmaps" && *ok) {
+                return true;
+            }
+        }
+        if self.mmaps_job.is_none() {
+            let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+            match repair::spawn_mmaps(&self.layout, threads, &self.log_tx) {
+                Ok(child) => {
+                    self.log(format!("première installation : génération des cartes de déplacement ({threads} threads)"));
+                    self.mmaps_job = Some(child);
+                    let t = repair::mmaps_staged_tiles(&self.layout);
+                    self.shared.lock().unwrap().mmaps = MmapsStatus::Running { since: std::time::Instant::now(), start_tiles: t, tiles: t };
+                }
+                Err(e) => return self.fail_ret("cartes de déplacement", e),
+            }
+        }
+        loop {
+            self.drain_server_logs();
+            match self.rx.recv_timeout(Duration::from_secs(2)) {
+                Ok(Command::Shutdown) => {
+                    self.abort_mmaps();
+                    self.quit = true;
+                    self.stop_services_quiet();
+                    return false;
+                }
+                Ok(Command::StopAll) => {
+                    self.abort_mmaps();
+                    self.stop_services_quiet();
+                    self.set(State::Installed, fr::MSG_STOPPED, 0.0);
+                    return false;
+                }
+                Ok(other) => self.deferred.push_back(other),
+                Err(_) => {}
+            }
+            let tiles = repair::mmaps_staged_tiles(&self.layout);
+            let since = match &mut self.shared.lock().unwrap().mmaps {
+                MmapsStatus::Running { tiles: t, since, start_tiles } => {
+                    *t = tiles;
+                    Some((*since, *start_tiles))
+                }
+                _ => None,
+            };
+            if let Some((since, start_tiles)) = since {
+                let p = repair::mmaps_progress(tiles, start_tiles, since.elapsed().as_secs());
+                let mut s = self.shared.lock().unwrap();
+                s.progress = 0.45 + 0.1 * p.fraction;
+                s.message = fr::mmaps_first_install((p.fraction * 100.0) as u32, p.remaining_secs);
+            }
+            let Some(job) = self.mmaps_job.as_mut() else { return self.fail_ret("cartes de déplacement", "génération interrompue".into()) };
+            match job.try_wait() {
+                Ok(None) => {}
+                Ok(Some(status)) => {
+                    self.mmaps_job = None;
+                    repair::mmaps_finished(&self.layout, status.success());
+                    if !status.success() {
+                        self.shared.lock().unwrap().mmaps = MmapsStatus::Failed(format!("code {:?}", status.code()));
+                        return self.fail_ret("cartes de déplacement", format!("MoveMapGen terminé avec le code {:?}", status.code()));
+                    }
+                    self.install_mmaps();
+                    self.refresh_mmaps_status();
+                    if repair::data_status(&self.layout).iter().any(|(n, ok)| n == "mmaps" && *ok) {
+                        self.log("cartes de déplacement générées et installées");
+                        // mangosd.conf a été écrit avant la génération (mmap.enabled = 0) : réécrit pour ce démarrage.
+                        if let Some(db) = self.db.clone() {
+                            if let Err(e) = server::generate_configs(&self.layout, &db, &self.settings) {
+                                return self.fail_ret("configuration serveur", e);
+                            }
+                        }
+                        return true;
+                    }
+                    return self.fail_ret("cartes de déplacement", "génération terminée mais cartes incomplètes".into());
+                }
+                Err(e) => {
+                    self.mmaps_job = None;
+                    return self.fail_ret("cartes de déplacement", e.to_string());
+                }
+            }
+        }
     }
 
     fn fail_ret(&mut self, context: &str, err: String) -> bool {

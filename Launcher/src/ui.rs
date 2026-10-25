@@ -1256,9 +1256,6 @@ impl App {
         ui.checkbox(&mut self.settings.ahbot_enabled, fr::SET_AHBOT);
         ui.small(fr::SET_AHBOT_HINT);
         ui.add_space(4.0);
-        ui.checkbox(&mut self.settings.auto_mmaps, fr::SET_AUTO_MMAPS);
-        ui.small(fr::SET_AUTO_MMAPS_HINT);
-        ui.add_space(4.0);
         ui.checkbox(&mut self.settings.auto_backup, fr::SET_AUTO_BACKUP);
         ui.horizontal(|ui| {
             ui.label(fr::SET_AUTO_BACKUP_KEEP);

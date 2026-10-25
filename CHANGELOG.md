@@ -1,8 +1,15 @@
 # Journal des versions
 
+## 0.10.3 — 25 octobre 2026 (édition CMaNGOS)
+
+- **Correction : plantage de mangosd quelques dizaines de secondes après le démarrage** (« service interrompu : serveur de jeu ne répond plus »). Analyse des vidages mémoire de Windows : violation d'accès dans `dtNavMeshQuery::queryPolygons`, appelée par l'action des bots `SetAvoidAreaAction` (zones de monstres à éviter) via `PathFinder::setArea`, sur une carte **sans cartes de déplacement chargées**. Le module playerbots suppose que les mmaps existent ; or, sur une installation neuve, le serveur démarrait avant leur génération. Avec 100 à 200 bots (réglage par défaut), le plantage survenait en moins d'une minute.
+  - Les cartes de déplacement sont désormais **générées pendant la première installation, avant le premier démarrage du serveur** (tous les cœurs, une quinzaine à une trentaine de minutes, une seule fois, progression affichée). Fermer le launcher l'interrompt ; elle reprend au démarrage suivant. Le réglage « générer les mmaps en arrière-plan » disparaît.
+  - Serveur (`homecraft.patch`) : `PathFinder::setArea`, `getArea` et `getFlags` ne plantent plus sur une carte sans navigation ; module (`playerbots.patch`) : `WorldPosition::ClosestCorrectPoint` renvoie « pas de point » au lieu d'arrêter le serveur.
+- Test d'intégration avec les réglages par défaut (100 à 200 bots) et génération des mmaps au premier démarrage.
+
 ## 0.10.2 — 25 octobre 2026 (édition CMaNGOS)
 
-- **Correction : le serveur s'arrêtait une vingtaine de secondes après le démarrage** (« service interrompu : serveur de jeu ne répond plus »), pendant la génération des cartes de déplacement en arrière-plan. Le serveur fonctionnait, mais la surveillance du launcher le déclarait perdu dès qu'une seule connexion d'essai (délai de 0,4 s) n'aboutissait pas, et arrêtait tout. Désormais : délai de 2 s, et un service n'est déclaré perdu qu'après trois échecs consécutifs (chaque échec est noté dans le journal) ; un processus qui s'arrête reste détecté à la seconde.
+- **Surveillance plus tolérante** : une seule connexion d'essai (délai de 0,4 s) sans réponse suffisait à déclarer le serveur perdu et à tout arrêter. *Ce n'était pas la cause des arrêts constatés après le démarrage : mangosd plantait réellement, voir 0.10.3.* Désormais : délai de 2 s, et un service n'est déclaré perdu qu'après trois échecs consécutifs (chaque échec est noté dans le journal) ; un processus qui s'arrête reste détecté à la seconde.
 - La génération des mmaps tourne en priorité « inférieure à la normale » : le serveur et le jeu passent avant.
 - **Après une fermeture forcée du launcher** (plantage, fin de tâche), realmd, mangosd et MariaDB restaient en marche et le démarrage suivant échouait (« le port 3724 est déjà utilisé »). Le launcher arrête désormais les serveurs restés en marche **depuis le dossier de cette installation** (jamais un autre serveur du PC) et reprend en main sa propre MariaDB.
 - **Un seul launcher par installation** : un second launcher ouvert sur le même dossier affiche un message et se ferme, au lieu de risquer d'arrêter les services du premier.

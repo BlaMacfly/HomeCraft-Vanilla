@@ -105,7 +105,7 @@ $src = Join-Path $out 'Sources\Launcher'
 CopyTree (Join-Path $root 'Launcher\src') (Join-Path $src 'src')
 CopyTree (Join-Path $root 'Launcher\assets') (Join-Path $src 'assets')
 foreach ($f in 'Cargo.toml', 'Cargo.lock', 'README.md', 'build.rs') { Copy-Item (Join-Path $root "Launcher\$f") (Join-Path $src $f) }
-CopyTree $PSScriptRoot (Join-Path $out 'Sources\Build') -Exclude @('package\*', 'downloads\*', 'tmp\*', 'files-manifest.json', 'installer-assets\*', 'vmangos-src\*', 'vmangos-build\*', 'cmangos-src\*', 'cmangos-build\*', 'cmangos-db\*', 'classic-db\*', 'deps\*', '*.log')
+CopyTree $PSScriptRoot (Join-Path $out 'Sources\Build') -Exclude @('package\*', 'downloads\*', 'tmp\*', 'files-manifest.json', 'installer-assets\*', 'vmangos-src\*', 'vmangos-build\*', 'cmangos-src\*', 'cmangos-build\*', 'cmangos-build-pdb\*','cmangos-db\*', 'classic-db\*', 'deps\*', '*.log')
 
 Step "autorun.inf"
 Set-Content -Path (Join-Path $out 'autorun.inf') -Encoding ASCII -Value "[autorun]`r`nopen=HomeCraft Edition Vanilla.exe`r`nicon=HomeCraft Edition Vanilla.exe,0`r`nlabel=HomeCraft Edition Vanilla`r`n"

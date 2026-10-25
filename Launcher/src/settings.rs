@@ -19,8 +19,6 @@ pub struct Settings {
     pub vanillafixes: bool,
     /// Rendu Direct3D 9 traduit en Vulkan par DXVK (d3d9.dll copié dans le dossier du client)
     pub dxvk: bool,
-    /// Cartes de déplacement (mmaps) générées automatiquement en arrière-plan après le démarrage du serveur si absentes
-    pub auto_mmaps: bool,
     /// Sauvegarde automatique des personnages à chaque fermeture du jeu
     pub auto_backup: bool,
     /// Nombre de sauvegardes automatiques conservées (les plus anciennes sont supprimées)
@@ -37,7 +35,6 @@ impl Default for Settings {
             conf: std::collections::BTreeMap::new(),
             vanillafixes: false,
             dxvk: false,
-            auto_mmaps: true,
             auto_backup: true,
             auto_backup_keep: 10,
         }

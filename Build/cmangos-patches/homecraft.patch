@@ -38,6 +38,40 @@ index 19bd97add..6ccf4079c 100644
  
          const auto& mmapData = itr->second;
  
+diff --git a/src/game/MotionGenerators/PathFinder.cpp b/src/game/MotionGenerators/PathFinder.cpp
+index 5badca4ec..5b5a76b1b 100644
+--- a/src/game/MotionGenerators/PathFinder.cpp
++++ b/src/game/MotionGenerators/PathFinder.cpp
+@@ -190,6 +190,9 @@ void PathFinder::setArea(uint32 mapId, float x, float y, float z, uint32 area, f
+     dtNavMeshQuery const* query = mmap->GetNavMeshQuery(mapId, m_defaultInstanceId);
+     dtNavMesh const* cnavMesh = mmap->GetNavMesh(mapId);
+     dtNavMesh* navMesh = const_cast<dtNavMesh*> (cnavMesh);
++    // HomeCraft : carte sans cartes de déplacement chargées (mmaps absentes) : GetNavMeshQuery renvoie nullptr.
++    if (!query || !navMesh)
++        return;
+     dtQueryFilter m_filter;
+ 
+     uint16 includeFlags = 0;
+@@ -246,6 +249,9 @@ uint32 PathFinder::getArea(uint32 mapId, float x, float y, float z)
+     dtNavMeshQuery const* query = mmap->GetNavMeshQuery(mapId, m_defaultInstanceId);
+     dtNavMesh const* cnavMesh = mmap->GetNavMesh(mapId);
+     dtNavMesh* navMesh = const_cast<dtNavMesh*> (cnavMesh);
++    // HomeCraft : carte sans cartes de déplacement chargées (mmaps absentes) : GetNavMeshQuery renvoie nullptr.
++    if (!query || !navMesh)
++        return 99;
+     dtQueryFilter m_filter;
+     dtPolyRef polyRef = INVALID_POLYREF;
+ 
+@@ -276,6 +282,9 @@ unsigned short PathFinder::getFlags(uint32 mapId, float x, float y, float z)
+     dtNavMeshQuery const* query = mmap->GetNavMeshQuery(mapId, 0);
+     dtNavMesh const* cnavMesh = mmap->GetNavMesh(mapId);
+     dtNavMesh* navMesh = const_cast<dtNavMesh*> (cnavMesh);
++    // HomeCraft : carte sans cartes de déplacement chargées (mmaps absentes) : GetNavMeshQuery renvoie nullptr.
++    if (!query || !navMesh)
++        return 0;
+     dtQueryFilter m_filter;
+     dtPolyRef polyRef = INVALID_POLYREF;
+ 
 diff --git a/src/mangosd/Main.cpp b/src/mangosd/Main.cpp
 index 01aae80db..f38171f8f 100644
 --- a/src/mangosd/Main.cpp

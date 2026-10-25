@@ -297,16 +297,14 @@ pub mod fr {
     pub const ADDON_NONE: &str = "Aucun AddOn installé.";
 
     // Cartes de déplacement (mmaps) en arrière-plan
-    pub const SET_AUTO_MMAPS: &str = "Générer les cartes de déplacement (mmaps) en arrière-plan si elles manquent";
-    pub const SET_AUTO_MMAPS_HINT: &str = "Lancé après le démarrage du serveur, sur la moitié des cœurs du processeur. Les compagnons suivent et se déplacent correctement en donjon une fois les mmaps en place (prises en compte au redémarrage suivant du serveur).";
     pub const HOME_MMAPS: &str = "Cartes de déplacement (mmaps)";
     pub const HOME_MMAPS_PRESENT: &str = "présentes";
-    pub const HOME_MMAPS_ABSENT: &str = "absentes (déplacement des compagnons dégradé)";
+    pub const HOME_MMAPS_ABSENT: &str = "absentes : générées au prochain démarrage du serveur";
     pub const HOME_MMAPS_RUNNING: &str = "génération en cours depuis";
     pub const HOME_MMAPS_DONE_RESTART: &str = "générées : actives au prochain démarrage du serveur";
     pub const HOME_MMAPS_FAILED: &str = "échec de la génération :";
     pub const MMAPS_ALREADY_RUNNING: &str = "La génération des mmaps est déjà en cours.";
-    pub const BTN_MMAPS_HINT: &str = "Régénère les cartes de déplacement en arrière-plan (long : de plusieurs dizaines de minutes à quelques heures).";
+    pub const BTN_MMAPS_HINT: &str = "Régénère les cartes de déplacement en arrière-plan (15 à 30 minutes), prises en compte au démarrage suivant du serveur.";
 
     // Sauvegarde automatique
     pub const SET_AUTO_BACKUP: &str = "Sauvegarder automatiquement les personnages à chaque fermeture du jeu";
@@ -340,10 +338,21 @@ pub mod fr {
     pub const SET_BROWSE: &str = "Parcourir…";
     pub const MSG_CLIENT_NEEDED: &str = "Le client WoW 1.12.1 est introuvable ou invalide : indiquez son dossier dans PARAMÈTRES (il n'est jamais fourni par ce package).";
     pub const MSG_FIRST_EXTRACT: &str = "Première installation : extraction des données de votre client (quelques minutes)…";
+    pub const MSG_FIRST_MMAPS: &str = "Première installation : génération des cartes de déplacement, une seule fois (15 à 30 minutes) :";
 
     /// Beaucoup de bots connectés : chacun a une IA complète (quêtes, déplacements, combat), d'où une charge notable.
     pub fn bot_load(max: u32, min: u32) -> String {
         format!("Jusqu'à {max} bots connectés (au moins {min}) : chaque bot a une intelligence complète, le serveur demandera beaucoup de mémoire et de processeur. Réduisez ce nombre si le jeu ou le PC ralentit.")
+    }
+
+    /// Première installation : génération des mmaps avant le démarrage du serveur.
+    pub fn mmaps_first_install(percent: u32, remaining_secs: Option<u64>) -> String {
+        let rest = match remaining_secs {
+            None => "estimation du temps restant en cours…".to_string(),
+            Some(s) if s < 60 => "presque terminé".to_string(),
+            Some(s) => format!("environ {} min restantes", (s + 59) / 60),
+        };
+        format!("{MSG_FIRST_MMAPS} {percent} %, {rest}")
     }
 
     /// Génération des mmaps : durée écoulée et temps restant estimé.

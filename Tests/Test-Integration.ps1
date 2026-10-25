@@ -51,12 +51,11 @@ robocopy $pkg $Root /E /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy : code $LASTEXITCODE" }
 Set-Content (Join-Path $Root '.hc-integration') 'dossier de test' -Encoding UTF8
 Step "liens physiques vers les données CMaNGOS ($DataDir) et le client du dossier de développement"
-# Sans mmaps d'abord, comme une installation neuve (elles ne sont générées qu'après le premier démarrage) : en 0.10.0,
-# mmap.enabled = 1 sans fichier .mmap arrêtait mangosd au chargement des cartes. Ajoutées avant la phase 3.
+# Sans mmaps, comme une installation neuve : le launcher doit les générer avant le premier démarrage du serveur.
 Link-Tree $DataDir (Join-Path $Root 'Server\Data') -SkipDirs @('Buildings', 'mmaps-generation', 'extraction-client', 'mmaps')
 Link-Tree (Join-Path $dev 'Client') (Join-Path $Root 'Client') -SkipDirs @('WTF', 'Cache', 'Logs', 'Screenshots') -CopySmall
 New-Item -ItemType Directory -Force (Join-Path $Root 'UserData') | Out-Null
-Write-Settings '{"windowed":true,"auto_mmaps":true,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"20","AiPlayerbot.MaxRandomBots":"30"}}'
+Write-Settings '{"windowed":true,"auto_backup":false}'
 
 $exe = Join-Path $Root 'HomeCraft Edition Vanilla.exe'
 $log = Join-Path $Root 'Logs\launcher.log'
@@ -109,21 +108,21 @@ trap {
 }
 
 # ---- 1. Premier démarrage : import, bots aléatoires créés par le serveur, compte joueur MJ
-Step "1. premier démarrage (création des bots aléatoires) et création du compte AUDITA"
-$t = Run-Launcher -LauncherArgs @('--start', '--do', 'acccreate', 'AUDITA', 'Motdepasse1', '3') -Until 'compte AUDITA créé|création du compte impossible' -ExtraSec 90
-$results['1. monde opérationnel au premier démarrage (sans mmaps)'] = $t -match 'monde opérationnel'
-$results['1. mmaps désactivées tant qu''elles manquent'] = [bool](Select-String -Path (Join-Path $Root 'Server\Config\mangosd.conf') -Pattern '^mmap\.enabled = 0' -Quiet)
-# En 0.10.1, une connexion d'essai trop lente pendant la génération des mmaps faisait tout arrêter au bout de 20 s.
-$results['1. génération des mmaps lancée en arrière-plan'] = $t -match 'mmaps absentes : génération en arrière-plan'
-$results['1. serveur resté en service 90 s pendant la génération'] = $t -notmatch 'service interrompu'
-$results['1. MoveMapGen en priorité réduite'] = [bool](Get-Process MoveMapGen -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) -and $_.PriorityClass -eq 'BelowNormal' })
+Step "1. premier démarrage (génération des mmaps, création des bots aléatoires) et création du compte AUDITA"
+$t = Run-Launcher -LauncherArgs @('--start', '--do', 'acccreate', 'AUDITA', 'Motdepasse1', '3') -Until 'compte AUDITA créé|création du compte impossible' -TimeoutSec 3000 -ExtraSec 180
+# Jusqu'en 0.10.2, le serveur démarrait sans mmaps et plantait (0xC0000005, dtNavMeshQuery appelé par les bots) au
+# bout de quelques dizaines de secondes avec 100 à 200 bots : elles sont désormais générées avant le premier démarrage.
+$results['1. mmaps générées avant le premier démarrage'] = $t -match '(?s)cartes de déplacement générées et installées.*monde opérationnel'
+$results['1. monde opérationnel au premier démarrage'] = $t -match 'monde opérationnel'
+$results['1. mmaps actives'] = [bool](Select-String -Path (Join-Path $Root 'Server\Config\mangosd.conf') -Pattern '^mmap\.enabled = 1' -Quiet)
+$results['1. serveur resté en service 3 min avec 100 à 200 bots'] = $t -notmatch 'service interrompu'
 $results['1. compte créé avec le niveau 3'] = $t -match 'compte AUDITA créé \(niveau 3\)'
 $results['1. niveau 3 en base'] = (& $q "SELECT gmlevel FROM realmd.account WHERE username='AUDITA'") -eq 3
 $builds = "$(Invoke-Sql -AsRoot -Query "SELECT realmbuilds FROM realmd.realmlist WHERE id=1")".Trim()
 $results["1. build client 5880 dans le royaume ($builds)"] = ($builds -split '\s+') -contains '5880'
 $results['1. aucun compte de démonstration'] = (& $q "SELECT COUNT(*) FROM realmd.account WHERE username IN ('ADMINISTRATOR','GAMEMASTER','MODERATOR','PLAYER')") -eq 0
 $accounts = & $q "SELECT COUNT(*) FROM $botAccounts"
-$results["1. comptes de bots créés par le serveur ($accounts, attendu 4 pour 30 bots)"] = $accounts -eq 4
+$results["1. comptes de bots créés par le serveur ($accounts, attendu 24 pour 200 bots)"] = $accounts -eq 24
 $online = & $q "SELECT COUNT(*) $botChars AND c.online=1"
 $results["1. bots aléatoires connectés ($online)"] = $online -ge 15
 $results['1. aiplayerbot.conf lu (option -p)'] = -not (Select-String -Path (Join-Path $Root 'Logs\server\mangosd.console.log') -Pattern 'Unable to open configuration file aiplayerbot.conf' -SimpleMatch -Quiet)
@@ -158,8 +157,7 @@ $startXp = & $q "SELECT COALESCE(SUM(c.xp),0) $botChars"
 & (Join-Path $scripts 'Stop-MariaDB.ps1') | Out-Null
 
 # ---- 3. Vie des bots : 5 minutes de jeu, puis expérience et déplacements lus en base (sauvegardés à l'arrêt)
-Step "3. mmaps ajoutées, bots aléatoires pendant 5 minutes"
-Link-Tree (Join-Path $DataDir 'mmaps') (Join-Path $Root 'Server\Data\mmaps')
+Step "3. bots aléatoires pendant 5 minutes"
 $t = Run-Launcher -LauncherArgs @('--start') -Until 'monde opérationnel' -ExtraSec 300
 $results['3. mmaps activées une fois présentes'] = [bool](Select-String -Path (Join-Path $Root 'Server\Config\mangosd.conf') -Pattern '^mmap\.enabled = 1' -Quiet)
 $mangosd = Get-Process mangosd -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
@@ -190,7 +188,7 @@ $results['3b. serveur resté en marche après la fermeture forcée'] = (Remainin
 # ---- 4. Réglages appliqués à chaud, puis suppression des bots serveur en marche (arrêt et relance automatiques)
 Step "4. réglages à chaud puis suppression des bots serveur en marche"
 $hot = Join-Path $Root 'UserData\reglages-test.json'
-[IO.File]::WriteAllText($hot, '{"windowed":true,"auto_mmaps":false,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"10","AiPlayerbot.MaxRandomBots":"30"}}', (New-Object Text.UTF8Encoding $false))
+[IO.File]::WriteAllText($hot, '{"windowed":true,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"10","AiPlayerbot.MaxRandomBots":"30"}}', (New-Object Text.UTF8Encoding $false))
 $t = Run-Launcher -LauncherArgs @('--start', '--do', 'applysettings', $hot) -Until 'réglages appliqués au serveur en marche' -ExtraSec 5
 $results['4. restes de la fermeture forcée arrêtés au démarrage'] = $t -match 'serveur resté en marche après une fermeture forcée, arrêté'
 $results['4. réglages appliqués à chaud (rndbot reload)'] = ($t -match 'réglages appliqués au serveur en marche') -and ((Get-Content (Join-Path $Root 'Logs\server\mangosd.console.log') -Raw) -match 'Playerbot config reloaded')
