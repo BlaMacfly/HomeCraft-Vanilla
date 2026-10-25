@@ -21,6 +21,22 @@ mod util;
 
 fn main() -> eframe::Result {
     let layout = paths::Layout::detect();
+    // Un seul launcher par installation : un second arrêterait les services du premier (MariaDB, serveur restés en
+    // marche après une fermeture forcée sont repris ou arrêtés au démarrage). Verrou exclusif tenu jusqu'à la sortie.
+    let _instance_lock = {
+        use std::os::windows::fs::OpenOptionsExt;
+        let _ = std::fs::create_dir_all(layout.user_data());
+        match std::fs::OpenOptions::new().create(true).write(true).share_mode(0).open(layout.user_data().join(".launcher.lock")) {
+            Ok(f) => Some(f),
+            // ERROR_SHARING_VIOLATION : un autre launcher de cette installation est ouvert.
+            Err(e) if e.raw_os_error() == Some(32) => {
+                rfd::MessageDialog::new().set_title(i18n::fr::WINDOW_TITLE).set_description(i18n::fr::ALREADY_RUNNING).set_level(rfd::MessageLevel::Warning).show();
+                return Ok(());
+            }
+            // Support en lecture seule : pas de verrou possible (le launcher propose alors la copie sur le disque).
+            Err(_) => None,
+        }
+    };
     let settings = settings::Settings::load(&layout.settings_file());
     let (shared, tx, orchestrator_thread) = orchestrator::spawn(layout.clone(), settings.clone());
 

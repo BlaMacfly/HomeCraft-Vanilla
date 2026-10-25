@@ -56,7 +56,7 @@ Step "liens physiques vers les données CMaNGOS ($DataDir) et le client du dossi
 Link-Tree $DataDir (Join-Path $Root 'Server\Data') -SkipDirs @('Buildings', 'mmaps-generation', 'extraction-client', 'mmaps')
 Link-Tree (Join-Path $dev 'Client') (Join-Path $Root 'Client') -SkipDirs @('WTF', 'Cache', 'Logs', 'Screenshots') -CopySmall
 New-Item -ItemType Directory -Force (Join-Path $Root 'UserData') | Out-Null
-Write-Settings '{"windowed":true,"auto_mmaps":false,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"20","AiPlayerbot.MaxRandomBots":"30"}}'
+Write-Settings '{"windowed":true,"auto_mmaps":true,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"20","AiPlayerbot.MaxRandomBots":"30"}}'
 
 $exe = Join-Path $Root 'HomeCraft Edition Vanilla.exe'
 $log = Join-Path $Root 'Logs\launcher.log'
@@ -87,8 +87,15 @@ function Run-Launcher { param([string[]]$LauncherArgs, [string]$Until, [int]$Tim
 }
 function Close-Launcher {
     $p = $script:lastProcess
-    if (-not $p.HasExited) { $p.CloseMainWindow() | Out-Null }
-    if (-not $p.WaitForExit(180000)) { $p.Kill(); return $false }
+    # Demande de fermeture répétée toutes les 5 s : un seul CloseMainWindow est parfois perdu (fenêtre pas encore
+    # reconnue comme fenêtre principale), le launcher restait alors ouvert jusqu'à l'arrêt forcé.
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    while (-not $p.HasExited -and $sw.Elapsed.TotalSeconds -lt 180) {
+        $p.Refresh()
+        $p.CloseMainWindow() | Out-Null
+        $p.WaitForExit(5000) | Out-Null
+    }
+    if (-not $p.HasExited) { $p.Kill(); return $false }
     Start-Sleep 2
     return $true
 }
@@ -103,9 +110,13 @@ trap {
 
 # ---- 1. Premier démarrage : import, bots aléatoires créés par le serveur, compte joueur MJ
 Step "1. premier démarrage (création des bots aléatoires) et création du compte AUDITA"
-$t = Run-Launcher -LauncherArgs @('--start', '--do', 'acccreate', 'AUDITA', 'Motdepasse1', '3') -Until 'compte AUDITA créé|création du compte impossible' -ExtraSec 30
+$t = Run-Launcher -LauncherArgs @('--start', '--do', 'acccreate', 'AUDITA', 'Motdepasse1', '3') -Until 'compte AUDITA créé|création du compte impossible' -ExtraSec 90
 $results['1. monde opérationnel au premier démarrage (sans mmaps)'] = $t -match 'monde opérationnel'
 $results['1. mmaps désactivées tant qu''elles manquent'] = [bool](Select-String -Path (Join-Path $Root 'Server\Config\mangosd.conf') -Pattern '^mmap\.enabled = 0' -Quiet)
+# En 0.10.1, une connexion d'essai trop lente pendant la génération des mmaps faisait tout arrêter au bout de 20 s.
+$results['1. génération des mmaps lancée en arrière-plan'] = $t -match 'mmaps absentes : génération en arrière-plan'
+$results['1. serveur resté en service 90 s pendant la génération'] = $t -notmatch 'service interrompu'
+$results['1. MoveMapGen en priorité réduite'] = [bool](Get-Process MoveMapGen -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase) -and $_.PriorityClass -eq 'BelowNormal' })
 $results['1. compte créé avec le niveau 3'] = $t -match 'compte AUDITA créé \(niveau 3\)'
 $results['1. niveau 3 en base'] = (& $q "SELECT gmlevel FROM realmd.account WHERE username='AUDITA'") -eq 3
 $builds = "$(Invoke-Sql -AsRoot -Query "SELECT realmbuilds FROM realmd.realmlist WHERE id=1")".Trim()
@@ -168,11 +179,20 @@ Step "   expérience totale des bots : $startXp -> $endXp ; bots avec de l'expé
 $results["3. les bots gagnent de l'expérience ($withXp bots)"] = ($endXp -gt $startXp) -and ($withXp -ge 5)
 & (Join-Path $scripts 'Stop-MariaDB.ps1') | Out-Null
 
+# ---- 3b. Launcher fermé de force serveur en marche : realmd et mangosd restent ; le démarrage suivant doit les arrêter
+Step "3b. fermeture forcée du launcher serveur en marche"
+$t = Run-Launcher -LauncherArgs @('--start') -Until 'monde opérationnel' -ExtraSec 5
+$script:lastProcess.Kill()
+$script:lastProcess.WaitForExit(30000) | Out-Null
+Start-Sleep 2
+$results['3b. serveur resté en marche après la fermeture forcée'] = (Remaining-Processes) -gt 0
+
 # ---- 4. Réglages appliqués à chaud, puis suppression des bots serveur en marche (arrêt et relance automatiques)
 Step "4. réglages à chaud puis suppression des bots serveur en marche"
 $hot = Join-Path $Root 'UserData\reglages-test.json'
 [IO.File]::WriteAllText($hot, '{"windowed":true,"auto_mmaps":false,"auto_backup":false,"conf":{"AiPlayerbot.MinRandomBots":"10","AiPlayerbot.MaxRandomBots":"30"}}', (New-Object Text.UTF8Encoding $false))
 $t = Run-Launcher -LauncherArgs @('--start', '--do', 'applysettings', $hot) -Until 'réglages appliqués au serveur en marche' -ExtraSec 5
+$results['4. restes de la fermeture forcée arrêtés au démarrage'] = $t -match 'serveur resté en marche après une fermeture forcée, arrêté'
 $results['4. réglages appliqués à chaud (rndbot reload)'] = ($t -match 'réglages appliqués au serveur en marche') -and ((Get-Content (Join-Path $Root 'Logs\server\mangosd.console.log') -Raw) -match 'Playerbot config reloaded')
 Close-Launcher | Out-Null
 & (Join-Path $scripts 'Start-MariaDB.ps1') | Out-Null

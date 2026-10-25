@@ -20,6 +20,9 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+/// Échecs de surveillance consécutifs (une seconde d'écart) avant de déclarer un service perdu et de tout arrêter.
+const MISSES_BEFORE_DOWN: u8 = 3;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
     NotInstalled,
@@ -194,6 +197,8 @@ pub struct Orchestrator {
     /// connexion au serveur, journalisée par mangosd) ; entre deux, seul l'état des processus est contrôlé.
     ticks: u64,
     ports_up: (bool, bool),
+    /// Échecs consécutifs de surveillance : base, authentification, monde
+    misses: [u8; 3],
 }
 
 pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sender<Command>, std::thread::JoinHandle<()>) {
@@ -235,7 +240,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         .name("orchestrateur".into())
         .spawn(move || {
             let log_file = std::fs::create_dir_all(layout.logs()).ok().and_then(|_| std::fs::OpenOptions::new().create(true).append(true).open(layout.launcher_log()).ok());
-            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None, ticks: 0, ports_up: (false, false) };
+            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None, ticks: 0, ports_up: (false, false), misses: [0; 3] };
             o.run();
         })
         .expect("thread orchestrateur");
@@ -705,12 +710,49 @@ impl Orchestrator {
 
     /// Contrôle périodique : santé réelle des services, fin du jeu, plantages.
     fn tick(&mut self) {
-        let db_up = self.db.as_ref().map(|d| d.ping()).unwrap_or(false);
+        let db_alive = self.db.as_ref().map(|d| d.ping()).unwrap_or(false);
         let realmd_alive = self.realmd.as_mut().map(|r| r.is_running()).unwrap_or(false);
         let world_alive = self.mangosd.as_mut().map(|m| m.is_running()).unwrap_or(false);
-        // Sondage des ports toutes les 10 s (ou dès qu'un processus redémarre) ; un processus arrêté est vu à la seconde.
-        if self.ticks % 10 == 0 || (realmd_alive && !self.ports_up.0) || (world_alive && !self.ports_up.1) {
-            self.ports_up = (realmd_alive && db::port_open(REALMD_PORT), world_alive && db::port_open(WORLD_PORT));
+        // Base : une requête par seconde ; elle n'est déclarée perdue qu'après MISSES_BEFORE_DOWN échecs de suite.
+        let db_up = if db_alive {
+            self.misses[0] = 0;
+            true
+        } else if self.db.is_some() {
+            self.misses[0] = self.misses[0].saturating_add(1);
+            if self.misses[0] < MISSES_BEFORE_DOWN {
+                self.log(format!("base de données sans réponse ({}/{MISSES_BEFORE_DOWN})", self.misses[0]));
+            }
+            self.misses[0] < MISSES_BEFORE_DOWN
+        } else {
+            false
+        };
+        // Ports : sondés toutes les 10 s, chaque seconde pendant un démarrage ou après un échec. Un processus arrêté
+        // est vu à la seconde ; un port sans réponse doit échouer MISSES_BEFORE_DOWN fois de suite (avec la génération
+        // des mmaps, une seule connexion d'essai trop lente arrêtait tout le serveur, en 0.10.1).
+        let probe = self.ticks % 10 == 0 || self.misses[1] > 0 || self.misses[2] > 0 || (realmd_alive && !self.ports_up.0) || (world_alive && !self.ports_up.1);
+        if probe {
+            for (i, alive, port, name) in [(1usize, realmd_alive, REALMD_PORT, "authentification"), (2, world_alive, WORLD_PORT, "monde")] {
+                let was_up = if i == 1 { self.ports_up.0 } else { self.ports_up.1 };
+                let now_up = if !alive {
+                    self.misses[i] = 0;
+                    false
+                } else {
+                    match db::port_responds(port, Duration::from_secs(2)) {
+                        Ok(()) => {
+                            self.misses[i] = 0;
+                            true
+                        }
+                        // Pas encore ouvert (démarrage) : rien à compter.
+                        Err(_) if !was_up => false,
+                        Err(e) => {
+                            self.misses[i] = self.misses[i].saturating_add(1);
+                            self.log(format!("port {port} ({name}) sans réponse ({}/{MISSES_BEFORE_DOWN}) : {e}", self.misses[i]));
+                            self.misses[i] < MISSES_BEFORE_DOWN
+                        }
+                    }
+                };
+                if i == 1 { self.ports_up.0 = now_up } else { self.ports_up.1 = now_up }
+            }
         }
         if self.ticks % 10 == 0 && self.mmaps_job.is_some() {
             let n = repair::mmaps_staged_tiles(&self.layout);
@@ -1255,7 +1297,12 @@ impl Orchestrator {
             Ok(s) => s,
             Err(e) => return self.fail_ret("démarrage MariaDB", e),
         };
-        self.db_owned = started || already_ours;
+        // Resté en marche après une fermeture forcée de ce launcher : repris en main (sinon jamais arrêté).
+        let leftover = !started && !already_ours && db.running_from_this_install();
+        if leftover {
+            self.log("MariaDB de cette installation restée en marche après une fermeture forcée : reprise en main");
+        }
+        self.db_owned = started || already_ours || leftover;
         self.db_annex = false;
         // Connue tout de suite : un échec plus loin (import, configuration, monde) l'arrête avec le reste.
         self.db = Some(db.clone());
@@ -1326,6 +1373,10 @@ impl Orchestrator {
         }
 
         self.set(State::StartingAuth, fr::MSG_AUTH, 0.55);
+        let leftovers = server::stop_leftovers(&self.layout);
+        if !leftovers.is_empty() {
+            self.log(format!("serveur resté en marche après une fermeture forcée, arrêté : {}", leftovers.join(", ")));
+        }
         match Realmd::start(&self.layout, Duration::from_secs(30)) {
             Ok(r) => self.realmd = Some(r),
             Err(e) => return self.fail_ret("démarrage realmd", e),

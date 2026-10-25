@@ -4,6 +4,7 @@
 pub mod fr {
     pub const TITLE: &str = "HOMECRAFT EDITION VANILLA";
     pub const WINDOW_TITLE: &str = "HomeCraft Edition Vanilla";
+    pub const ALREADY_RUNNING: &str = "HomeCraft Edition Vanilla est déjà ouvert pour cette installation. Utilisez la fenêtre déjà ouverte (elle est peut-être réduite dans la barre des tâches).";
 
     // Composants
     pub const COMP_CLIENT: &str = "Client";

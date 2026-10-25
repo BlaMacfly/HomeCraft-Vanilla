@@ -1,5 +1,13 @@
 # Journal des versions
 
+## 0.10.2 — 25 octobre 2026 (édition CMaNGOS)
+
+- **Correction : le serveur s'arrêtait une vingtaine de secondes après le démarrage** (« service interrompu : serveur de jeu ne répond plus »), pendant la génération des cartes de déplacement en arrière-plan. Le serveur fonctionnait, mais la surveillance du launcher le déclarait perdu dès qu'une seule connexion d'essai (délai de 0,4 s) n'aboutissait pas, et arrêtait tout. Désormais : délai de 2 s, et un service n'est déclaré perdu qu'après trois échecs consécutifs (chaque échec est noté dans le journal) ; un processus qui s'arrête reste détecté à la seconde.
+- La génération des mmaps tourne en priorité « inférieure à la normale » : le serveur et le jeu passent avant.
+- **Après une fermeture forcée du launcher** (plantage, fin de tâche), realmd, mangosd et MariaDB restaient en marche et le démarrage suivant échouait (« le port 3724 est déjà utilisé »). Le launcher arrête désormais les serveurs restés en marche **depuis le dossier de cette installation** (jamais un autre serveur du PC) et reprend en main sa propre MariaDB.
+- **Un seul launcher par installation** : un second launcher ouvert sur le même dossier affiche un message et se ferme, au lieu de risquer d'arrêter les services du premier.
+- Test d'intégration : premier démarrage avec la génération des mmaps en cours, 90 secondes de fonctionnement sous charge.
+
 ## 0.10.1 — 25 octobre 2026 (édition CMaNGOS)
 
 - **Correction : le serveur ne démarrait pas sur une installation neuve** (« chargement du monde : mangosd s'est arrêté pendant le chargement »). Les cartes de déplacement (mmaps) ne sont générées qu'après le premier démarrage, et CMaNGOS s'arrêtait net en leur absence (« Critical Error … MMapManager::loadMap »), même désactivées : il demande toujours les tuiles de navigation et considérait l'absence de données comme impossible. Corrigé dans le serveur (`homecraft.patch` : carte sans mmaps = pas de navigation, comme le prévoit déjà le reste du code) et dans le launcher (mmaps activées seulement présentes et complètes ; celles générées en arrière-plan sont installées avant l'écriture de la configuration du démarrage suivant).

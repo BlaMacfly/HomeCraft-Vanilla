@@ -151,6 +151,34 @@ pub fn ensure_realm(db: &MariaDb) -> Result<(), String> {
     Ok(())
 }
 
+/// realmd ou mangosd restés en marche après une fermeture forcée du launcher (plantage, fin de tâche) : ils gardent
+/// leurs ports et le démarrage suivant échouait (« le port 3724 est déjà utilisé »). Seuls les processus lancés
+/// depuis le dossier Server\cmangos de cette installation sont arrêtés, jamais un autre serveur du PC.
+/// Renvoie les processus arrêtés (« realmd 1234 »).
+pub fn stop_leftovers(layout: &Layout) -> Vec<String> {
+    if !port_open(REALMD_PORT) && !port_open(WORLD_PORT) {
+        return Vec::new();
+    }
+    let prefix = layout.server_bin().to_string_lossy().trim_end_matches('\\').replace('\'', "''");
+    let script = format!(
+        "Get-Process -Name realmd,mangosd -ErrorAction SilentlyContinue | Where-Object {{ $_.Path -and $_.Path.StartsWith('{prefix}\\', [StringComparison]::OrdinalIgnoreCase) }} | ForEach-Object {{ \"$($_.Name) $($_.Id)\"; Stop-Process -Id $_.Id -Force }}"
+    );
+    let out = Command::new("powershell.exe")
+        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &script])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdin(Stdio::null())
+        .output();
+    let stopped: Vec<String> = out.map(|o| String::from_utf8_lossy(&o.stdout).lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect()).unwrap_or_default();
+    if !stopped.is_empty() {
+        // Le temps que Windows libère les ports.
+        let start = Instant::now();
+        while (port_open(REALMD_PORT) || port_open(WORLD_PORT)) && start.elapsed() < Duration::from_secs(10) {
+            std::thread::sleep(Duration::from_millis(300));
+        }
+    }
+    stopped
+}
+
 pub struct Realmd {
     child: Child,
 }

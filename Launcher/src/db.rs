@@ -51,8 +51,13 @@ pub fn is_read_statement(sql: &str) -> bool {
 }
 
 pub fn port_open(port: u16) -> bool {
+    port_responds(port, Duration::from_millis(400)).is_ok()
+}
+
+/// Connexion d'essai sur 127.0.0.1:`port` ; l'erreur (délai dépassé, refus…) sert au journal de surveillance.
+pub fn port_responds(port: u16, timeout: Duration) -> std::io::Result<()> {
     let addr: SocketAddr = ([127, 0, 0, 1], port).into();
-    TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
+    TcpStream::connect_timeout(&addr, timeout).map(|_| ())
 }
 
 /// Tables de `characters` (schéma CMaNGOS Classic et module playerbots) reliées à un personnage par une autre
@@ -248,6 +253,22 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
             std::thread::sleep(Duration::from_millis(500));
         }
         Err("la base de données ne répond pas dans le délai imparti".into())
+    }
+
+    /// Un mariadbd lancé depuis le dossier MariaDB de cette installation tourne-t-il ? (resté en marche après une
+    /// fermeture forcée du launcher : il est alors à nous, et doit être arrêté à la fermeture comme les autres services.)
+    pub fn running_from_this_install(&self) -> bool {
+        let prefix = self.layout.mariadb_bin().to_string_lossy().trim_end_matches('\\').replace('\'', "''");
+        let script = format!(
+            "@(Get-Process -Name mariadbd -ErrorAction SilentlyContinue | Where-Object {{ $_.Path -and $_.Path.StartsWith('{prefix}\\', [StringComparison]::OrdinalIgnoreCase) }}).Count"
+        );
+        Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdin(Stdio::null())
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().parse::<u32>().unwrap_or(0) > 0)
+            .unwrap_or(false)
     }
 
     /// Arrêt propre par la commande SQL SHUTDOWN (jamais de kill).

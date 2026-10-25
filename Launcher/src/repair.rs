@@ -231,7 +231,7 @@ pub enum ExtractStep {
 
 fn run_tool(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>) -> Result<(), String> {
     let tail = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
-    let (mut child, reader) = spawn_tool_with_tail(name, exe, args, cwd, sink, Some(tail.clone()))?;
+    let (mut child, reader) = spawn_tool_with_tail(name, exe, args, cwd, sink, Some(tail.clone()), 0)?;
     let status = child.wait().map_err(|e| e.to_string())?;
     if let Some(r) = reader {
         let _ = r.join();
@@ -250,15 +250,19 @@ fn is_error_line(line: &str) -> bool {
     l.contains("error") || l.contains("fatal") || l.contains("polluted") || l.contains("could not") || l.contains("couldn't") || l.contains("not found") || l.contains("unable")
 }
 
+/// Priorité « inférieure à la normale » de Windows : le serveur et le jeu passent avant.
+const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
+
+/// Outil lancé en arrière-plan pendant que le serveur et le jeu tournent (génération des mmaps) : priorité réduite.
 fn spawn_tool(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>) -> Result<std::process::Child, String> {
-    spawn_tool_with_tail(name, exe, args, cwd, sink, None).map(|(c, _)| c)
+    spawn_tool_with_tail(name, exe, args, cwd, sink, None, BELOW_NORMAL_PRIORITY_CLASS).map(|(c, _)| c)
 }
 
-fn spawn_tool_with_tail(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>, tail: Option<std::sync::Arc<std::sync::Mutex<Vec<String>>>>) -> Result<(std::process::Child, Option<std::thread::JoinHandle<()>>), String> {
+fn spawn_tool_with_tail(name: &str, exe: &Path, args: &[String], cwd: &Path, sink: &Sender<String>, tail: Option<std::sync::Arc<std::sync::Mutex<Vec<String>>>>, extra_flags: u32) -> Result<(std::process::Child, Option<std::thread::JoinHandle<()>>), String> {
     let mut child = Command::new(exe)
         .args(args)
         .current_dir(cwd)
-        .creation_flags(CREATE_NO_WINDOW)
+        .creation_flags(CREATE_NO_WINDOW | extra_flags)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
