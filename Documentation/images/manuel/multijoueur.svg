@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <title>HomeCraft Multijoueur : comment l'invité joue sur le serveur de l'hôte</title>
+  <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <rect width="960" height="520" fill="#fff"/>
+  <text x="480" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">Multijoueur : l'invité joue « en local » sur le serveur de l'hôte</text>
+
+  <!-- PC invité -->
+  <rect x="20" y="60" width="300" height="300" rx="14" fill="#f7f7f7" stroke="#999"/>
+  <text x="170" y="86" text-anchor="middle" font-weight="bold" font-size="16">PC de l'invité</text>
+  <rect x="50" y="104" width="240" height="60" rx="10" fill="#e4f5e4" stroke="#3e8e41" stroke-width="2"/>
+  <text x="170" y="128" text-anchor="middle" font-weight="bold">Client WoW</text>
+  <text x="170" y="148" text-anchor="middle" font-size="12">se connecte à 127.0.0.1 (comme en solo)</text>
+  <line x1="170" y1="166" x2="170" y2="200" stroke="#3e8e41" stroke-width="2" marker-end="url(#f)"/>
+  <rect x="50" y="202" width="240" height="132" rx="10" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+  <text x="170" y="226" text-anchor="middle" font-weight="bold">Launcher de l'invité</text>
+  <text x="170" y="248" text-anchor="middle" font-size="12">écoute 127.0.0.1:3724 et :8085</text>
+  <text x="170" y="266" text-anchor="middle" font-size="12">serveur local arrêté</text>
+  <text x="170" y="288" text-anchor="middle" font-size="12">chiffre avec la clé de</text>
+  <text x="170" y="304" text-anchor="middle" font-size="12">SON invitation (Noise)</text>
+  <text x="170" y="324" text-anchor="middle" font-size="11" fill="#777">aucun port ouvert chez l'invité</text>
+
+  <!-- Internet -->
+  <rect x="360" y="150" width="240" height="120" rx="60" fill="#eef3f8" stroke="#7a8ea6"/>
+  <text x="480" y="196" text-anchor="middle" font-weight="bold" fill="#3c4d61">Internet</text>
+  <text x="480" y="218" text-anchor="middle" font-size="12" fill="#3c4d61">ou le même réseau local</text>
+  <text x="480" y="238" text-anchor="middle" font-size="12" fill="#3c4d61">(trafic chiffré de bout en bout)</text>
+  <line x1="292" y1="268" x2="362" y2="226" stroke="#c0504d" stroke-width="3" marker-end="url(#f)"/>
+
+  <!-- Box hôte -->
+  <rect x="630" y="170" width="70" height="80" rx="8" fill="#ddd" stroke="#777"/>
+  <text x="665" y="204" text-anchor="middle" font-size="12" font-weight="bold">Box</text>
+  <text x="665" y="222" text-anchor="middle" font-size="11">port</text>
+  <text x="665" y="236" text-anchor="middle" font-size="11">11010</text>
+  <line x1="600" y1="210" x2="628" y2="210" stroke="#c0504d" stroke-width="3" marker-end="url(#f)"/>
+  <line x1="702" y1="210" x2="736" y2="230" stroke="#c0504d" stroke-width="3" marker-end="url(#f)"/>
+
+  <!-- PC hôte -->
+  <rect x="720" y="60" width="220" height="300" rx="14" fill="#f7f7f7" stroke="#999"/>
+  <text x="830" y="86" text-anchor="middle" font-weight="bold" font-size="16">PC de l'hôte</text>
+  <rect x="738" y="104" width="184" height="96" rx="10" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+  <text x="830" y="126" text-anchor="middle" font-weight="bold">Launcher de l'hôte</text>
+  <text x="830" y="146" text-anchor="middle" font-size="12">vérifie l'invitation</text>
+  <text x="830" y="162" text-anchor="middle" font-size="12">(inconnue, expirée,</text>
+  <text x="830" y="178" text-anchor="middle" font-size="12">révoquée : refusée)</text>
+  <line x1="830" y1="202" x2="830" y2="226" stroke="#3b6fb6" stroke-width="2" marker-end="url(#f)"/>
+  <rect x="738" y="228" width="184" height="58" rx="10" fill="#e3eefc" stroke="#3b6fb6" stroke-width="2"/>
+  <text x="830" y="250" text-anchor="middle" font-size="12" font-weight="bold">realmd 127.0.0.1:3724</text>
+  <text x="830" y="270" text-anchor="middle" font-size="12" font-weight="bold">mangosd 127.0.0.1:8085</text>
+  <rect x="738" y="296" width="184" height="50" rx="10" fill="#eee" stroke="#aaa" stroke-dasharray="5 3"/>
+  <text x="830" y="316" text-anchor="middle" font-size="12" fill="#666">MariaDB, console, fichiers :</text>
+  <text x="830" y="334" text-anchor="middle" font-size="12" fill="#666">inaccessibles aux invités</text>
+
+  <!-- Étapes -->
+  <rect x="20" y="380" width="920" height="124" rx="10" fill="#fafafa" stroke="#ccc"/>
+  <text x="40" y="406" font-weight="bold">Comment le port 11010 de l'hôte devient joignable, sans rien régler dans la box :</text>
+  <text x="40" y="430" font-size="13">1. UPnP : le launcher de l'hôte demande lui-même à la box d'ouvrir le port (Livebox, Freebox… si l'UPnP est activé), et le referme en fin de partie.</text>
+  <text x="40" y="452" font-size="13">2. Sinon, perçage de NAT : l'invité envoie son code de réponse HCR-… à l'hôte ; les deux launchers se joignent en même temps (voir le schéma suivant).</text>
+  <text x="40" y="474" font-size="13">3. En dernier recours : redirection manuelle du port 11010 (TCP) vers le PC de l'hôte dans la box.</text>
+  <text x="40" y="494" font-size="12" fill="#777">Le serveur voit chaque invité comme une connexion locale (127.0.0.1) : aucun réglage de royaume, de realmlist ni de client.</text>
+</svg>

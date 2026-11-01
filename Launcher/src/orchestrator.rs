@@ -5,7 +5,7 @@ use crate::backup::{self, BackupInfo};
 use crate::client::{self, ClientInfo};
 use crate::credentials;
 use crate::db::{self, MariaDb, QueryResult};
-use crate::i18n::fr;
+use crate::tr;
 use crate::paths::{Layout, MARIADB_PORT, REALMD_PORT, WORLD_PORT};
 use crate::repair::{self, ExtractStep, VerifyReport};
 use crate::server::{self, Mangosd, Realmd};
@@ -42,18 +42,18 @@ pub enum State {
 impl State {
     pub fn label(self) -> &'static str {
         match self {
-            State::NotInstalled => fr::STATE_NOT_INSTALLED,
-            State::Installed => fr::STATE_INSTALLED,
-            State::Verifying => fr::STATE_VERIFYING,
-            State::Initializing => fr::STATE_INITIALIZING,
-            State::StartingDb => fr::STATE_STARTING_DB,
-            State::StartingAuth => fr::STATE_STARTING_AUTH,
-            State::StartingWorld => fr::STATE_STARTING_WORLD,
-            State::Ready => fr::STATE_READY,
-            State::Playing => fr::STATE_PLAYING,
-            State::Stopping => fr::STATE_STOPPING,
-            State::Error => fr::STATE_ERROR,
-            State::Repairing => fr::STATE_REPAIRING,
+            State::NotInstalled => tr!(STATE_NOT_INSTALLED),
+            State::Installed => tr!(STATE_INSTALLED),
+            State::Verifying => tr!(STATE_VERIFYING),
+            State::Initializing => tr!(STATE_INITIALIZING),
+            State::StartingDb => tr!(STATE_STARTING_DB),
+            State::StartingAuth => tr!(STATE_STARTING_AUTH),
+            State::StartingWorld => tr!(STATE_STARTING_WORLD),
+            State::Ready => tr!(STATE_READY),
+            State::Playing => tr!(STATE_PLAYING),
+            State::Stopping => tr!(STATE_STOPPING),
+            State::Error => tr!(STATE_ERROR),
+            State::Repairing => tr!(STATE_REPAIRING),
         }
     }
     pub fn is_busy(self) -> bool {
@@ -105,6 +105,8 @@ pub struct Snapshot {
     pub mmaps: MmapsStatus,
     /// settings.json remplacé par une restauration : l'interface doit relire ses réglages (sinon elle réécrirait les anciens)
     pub settings_reloaded: bool,
+    /// Clients ouverts : (profil, libellé)
+    pub games: Vec<(Option<String>, String)>,
 }
 
 /// État des cartes de déplacement (mmaps), générées en arrière-plan.
@@ -133,6 +135,10 @@ pub struct TableView {
 pub enum Command {
     StartAll,
     Play,
+    /// Lance un client avec le préremplissage d'un profil (un client par profil)
+    PlayProfile(crate::profiles::Profile),
+    /// Invité d'une partie multijoueur : client lancé sans serveur local (connexion à l'hôte par le réseau)
+    PlayGuest(Option<crate::profiles::Profile>),
     StopAll,
     Verify,
     Repair,
@@ -172,7 +178,17 @@ pub enum Command {
     AddonRemove(String),
     /// Recrée la base monde (mangos) depuis le package ; personnages et comptes conservés
     ReimportWorld,
+    /// Réglages de l'IA des bots enregistrés (UserDatai-settings.json) : pont relancé, serveur en marche reconfiguré
+    AiSettingsChanged,
     Shutdown,
+}
+
+/// Un client de jeu lancé par le launcher.
+struct GameProc {
+    /// Profil utilisé (None : lancement simple)
+    profile: Option<String>,
+    label: String,
+    child: Child,
 }
 
 pub struct Orchestrator {
@@ -189,7 +205,8 @@ pub struct Orchestrator {
     db_annex: bool,
     realmd: Option<Realmd>,
     mangosd: Option<Mangosd>,
-    game: Option<Child>,
+    /// Clients lancés par ce launcher (un par profil au plus ; plusieurs pour le multiboxing)
+    games: Vec<GameProc>,
     log_file: Option<std::fs::File>,
     /// MoveMapGen en arrière-plan
     mmaps_job: Option<Child>,
@@ -208,7 +225,7 @@ pub struct Orchestrator {
 pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sender<Command>, std::thread::JoinHandle<()>) {
     let shared = Arc::new(Mutex::new(Snapshot {
         state: State::Installed,
-        message: fr::MSG_IDLE.into(),
+        message: tr!(MSG_IDLE).into(),
         error: None,
         progress: 0.0,
         db_up: false,
@@ -236,6 +253,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         table_dirty: false,
         mmaps: MmapsStatus::Unknown,
         settings_reloaded: false,
+        games: Vec::new(),
     }));
     let (tx, rx) = mpsc::channel();
     let (log_tx, log_rx) = mpsc::channel();
@@ -244,7 +262,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         .name("orchestrateur".into())
         .spawn(move || {
             let log_file = std::fs::create_dir_all(layout.logs()).ok().and_then(|_| std::fs::OpenOptions::new().create(true).append(true).open(layout.launcher_log()).ok());
-            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, game: None, log_file, mmaps_job: None, ticks: 0, ports_up: (false, false), misses: [0; 3], quit: false, deferred: VecDeque::new() };
+            let mut o = Orchestrator { layout, settings, shared: shared2, rx, log_tx, log_rx, db: None, db_owned: false, db_annex: false, realmd: None, mangosd: None, games: Vec::new(), log_file, mmaps_job: None, ticks: 0, ports_up: (false, false), misses: [0; 3], quit: false, deferred: VecDeque::new() };
             o.run();
         })
         .expect("thread orchestrateur");
@@ -309,7 +327,7 @@ impl Orchestrator {
             let mut s = self.shared.lock().unwrap();
             s.readonly = true;
             s.state = State::NotInstalled;
-            s.message = fr::RO_TITLE.into();
+            s.message = tr!(RO_TITLE).into();
         } else {
             self.verify(false);
             self.refresh_backups();
@@ -353,7 +371,7 @@ impl Orchestrator {
         match cmd {
             Command::StartAll => {
                 if self.start_all() {
-                    self.set(State::Ready, fr::MSG_READY, 1.0);
+                    self.set(State::Ready, tr!(MSG_READY), 1.0);
                 }
             }
             Command::Play => {
@@ -361,6 +379,23 @@ impl Orchestrator {
                     return;
                 }
                 self.play();
+            }
+            Command::PlayProfile(p) => {
+                if crate::network::guest_active() {
+                    self.play_with(Some(p), true);
+                    return;
+                }
+                if !self.state().services_up() && !self.start_all() {
+                    return;
+                }
+                self.play_with(Some(p), false);
+            }
+            Command::PlayGuest(p) => {
+                if !crate::network::guest_active() {
+                    self.shared.lock().unwrap().notice = Some(tr!(NET_NOT_GUEST).into());
+                    return;
+                }
+                self.play_with(p, true);
             }
             Command::StopAll => self.stop_all(),
             Command::Verify => self.verify(true),
@@ -382,7 +417,7 @@ impl Orchestrator {
                 match repair::export_diagnostic(&self.layout, report.as_ref()) {
                     Ok(p) => {
                         self.log(format!("diagnostic exporté : {}", p.display()));
-                        self.shared.lock().unwrap().notice = Some(format!("{}{}", fr::MSG_DIAG_DONE, p.display()));
+                        self.shared.lock().unwrap().notice = Some(format!("{}{}", tr!(MSG_DIAG_DONE), p.display()));
                     }
                     Err(e) => self.log(format!("diagnostic : {e}")),
                 }
@@ -394,9 +429,21 @@ impl Orchestrator {
                 self.console_shown(&format!("account set password {user} {pass} {pass}"), &format!("account set password {user} ******** ********"))
             }
             Command::DeleteAccount(user) => {
-                if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::ACC_DELETE_PLAYING.into());
+                if self.state().is_busy() {
                     return;
+                }
+                // Seul un compte dont un personnage est en jeu ne peut pas être supprimé (jeu ouvert sur un autre
+                // compte, serveur arrêté : la suppression reste possible).
+                if self.mangosd.is_some() {
+                    let upper = user.to_ascii_uppercase().replace('\'', "");
+                    let online = self.db.as_ref().and_then(|d| d.root_conn().ok()).and_then(|mut c| {
+                        use mysql::prelude::Queryable;
+                        c.query_first::<u64, _>(format!("SELECT COUNT(*) FROM characters.characters ch JOIN realmd.account a ON a.id=ch.account WHERE UPPER(a.username)='{upper}' AND ch.online=1")).ok().flatten()
+                    });
+                    if online.unwrap_or(0) > 0 {
+                        self.shared.lock().unwrap().notice = Some(tr!(acc_delete_online)(&user));
+                        return;
+                    }
                 }
                 if self.mangosd.is_some() {
                     // Le serveur supprime lui-même le compte et ses personnages (commande console SEC_CONSOLE).
@@ -409,9 +456,9 @@ impl Orchestrator {
                     match r {
                         Ok(n) => {
                             self.log(format!("compte {user} supprimé ({n} personnage(s))"));
-                            self.shared.lock().unwrap().notice = Some(format!("{} {user} ({n} {})", fr::ACC_DELETED, fr::BK_CHARS.to_lowercase()));
+                            self.shared.lock().unwrap().notice = Some(format!("{} {user} ({n} {})", tr!(ACC_DELETED), tr!(BK_CHARS).to_lowercase()));
                         }
-                        Err(e) => self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::ACC_DELETE_FAIL)),
+                        Err(e) => self.shared.lock().unwrap().notice = Some(format!("{} : {e}", tr!(ACC_DELETE_FAIL))),
                     }
                     self.refresh_accounts();
                     if was_temp {
@@ -427,7 +474,7 @@ impl Orchestrator {
                 self.refresh_accounts();
             }
             Command::ListTables(dbname) => {
-                let r = self.db.as_ref().ok_or(fr::DB_NEED_DB.to_string()).and_then(|d| d.tables(&dbname));
+                let r = self.db.as_ref().ok_or(tr!(DB_NEED_DB).to_string()).and_then(|d| d.tables(&dbname));
                 let mut s = self.shared.lock().unwrap();
                 match r {
                     Ok(t) => s.tables = t,
@@ -435,11 +482,11 @@ impl Orchestrator {
                 }
             }
             Command::Query { db: dbname, sql } => {
-                let r = self.db.as_ref().ok_or(fr::DB_NEED_DB.to_string()).and_then(|d| d.query(Some(&dbname), &sql, 500));
+                let r = self.db.as_ref().ok_or(tr!(DB_NEED_DB).to_string()).and_then(|d| d.query(Some(&dbname), &sql, 500));
                 self.shared.lock().unwrap().query = Some(r);
             }
             Command::Exec { db: dbname, sql } => {
-                let r = self.db.as_ref().ok_or(fr::DB_NEED_DB.to_string()).and_then(|d| d.exec(Some(&dbname), &sql));
+                let r = self.db.as_ref().ok_or(tr!(DB_NEED_DB).to_string()).and_then(|d| d.exec(Some(&dbname), &sql));
                 match &r {
                     Ok(n) => self.log(format!("SQL ({dbname}) : {n} ligne(s) affectée(s) — {}", sql.chars().take(160).collect::<String>())),
                     Err(e) => self.log(format!("SQL ({dbname}) ERREUR : {e}")),
@@ -449,7 +496,7 @@ impl Orchestrator {
                 s.table_dirty = true;
             }
             Command::LoadTable { db: dbname, table, filter, order, offset } => {
-                let r = self.db.as_ref().ok_or(fr::DB_NEED_DB.to_string()).and_then(|d| {
+                let r = self.db.as_ref().ok_or(tr!(DB_NEED_DB).to_string()).and_then(|d| {
                     let cols = d.table_columns(&dbname, &table)?;
                     let (page, total) = d.table_rows(&dbname, &table, &filter, order.as_ref().map(|(c, a)| (c.as_str(), *a)), offset, 200)?;
                     Ok(TableView { db: dbname.clone(), table: table.clone(), columns: cols, page, total, offset })
@@ -471,45 +518,54 @@ impl Orchestrator {
                 self.verify(false);
                 self.apply_settings_live();
             }
+            Command::AiSettingsChanged => {
+                if self.mangosd.is_some() {
+                    match crate::ai_bridge::restart(&self.layout) {
+                        Ok(on) => self.log(if on { "pont IA relancé avec les nouveaux réglages" } else { "pont IA arrêté (IA désactivée)" }),
+                        Err(e) => self.log(format!("pont IA non démarré : {e}")),
+                    }
+                    self.apply_settings_live();
+                }
+            }
             Command::InstallTo(dest) => self.install_to(&dest),
             Command::RefreshPatches => self.refresh_patches(),
             Command::PatchBuild(dir) => {
                 let st = self.state();
                 if st == State::Playing || st.is_busy() {
-                    self.shared.lock().unwrap().notice = Some(fr::PATCH_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(PATCH_PLAYING).into());
                     return;
                 }
                 let client = self.client_dir();
                 let Some(name) = crate::patches::next_free_name(&client) else {
-                    self.shared.lock().unwrap().notice = Some(fr::PATCH_ADD_FAIL.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(PATCH_ADD_FAIL).into());
                     return;
                 };
                 let out = client.join("Data").join(&name);
-                self.set(State::Repairing, fr::PATCH_BUILDING, 0.0);
+                self.set(State::Repairing, tr!(PATCH_BUILDING), 0.0);
                 let shared = self.shared.clone();
                 let r = crate::mpqbuild::build_from_dir(&dir, &out, &|i, n| {
                     let mut s = shared.lock().unwrap();
                     s.progress = i as f32 / n.max(1) as f32;
-                    s.message = format!("{} {i}/{n}", fr::PATCH_BUILDING);
+                    s.message = format!("{} {i}/{n}", tr!(PATCH_BUILDING));
                 });
                 let check = r.as_ref().ok().and_then(|_| crate::mpqbuild::inspect(&out).ok());
                 let mut s = self.shared.lock().unwrap();
                 s.state = if st.services_up() { State::Ready } else { State::Installed };
                 s.progress = 0.0;
-                s.message = if st.services_up() { fr::MSG_READY.into() } else { fr::MSG_IDLE.into() };
+                s.message = if st.services_up() { tr!(MSG_READY).into() } else { tr!(MSG_IDLE).into() };
                 drop(s);
                 match (r, check) {
                     (Ok(n), Some((listed, size))) => {
                         self.log(format!("patch construit : {name} ({n} fichiers, {listed} listés, {})", util::human_size(size)));
-                        self.shared.lock().unwrap().notice = Some(format!("{} {name} ({n} fichiers, {})", fr::PATCH_BUILT, util::human_size(size)));
+                        self.shared.lock().unwrap().notice = Some(format!("{} {name} ({n} fichiers, {})", tr!(PATCH_BUILT), util::human_size(size)));
                     }
                     (Ok(n), None) => {
                         self.log(format!("patch construit : {name} ({n} fichiers) mais relecture impossible"));
-                        self.shared.lock().unwrap().notice = Some(format!("{} {name}", fr::PATCH_BUILT));
+                        self.shared.lock().unwrap().notice = Some(format!("{} {name}", tr!(PATCH_BUILT)));
                     }
                     (Err(e), _) => {
                         self.log(format!("ERREUR construction du patch : {e}"));
-                        self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::PATCH_ADD_FAIL));
+                        self.shared.lock().unwrap().notice = Some(format!("{} : {e}", tr!(PATCH_ADD_FAIL)));
                     }
                 }
                 self.refresh_patches();
@@ -517,7 +573,7 @@ impl Orchestrator {
             Command::RefreshAddons => self.refresh_addons(),
             Command::AddonAdd(src) => {
                 if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::ADDON_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(ADDON_PLAYING).into());
                     return;
                 }
                 let prev = self.shared.lock().unwrap().message.clone();
@@ -525,16 +581,16 @@ impl Orchestrator {
                 match crate::addons::add_from_zip(&src, &self.client_dir(), &|m| shared.lock().unwrap().message = m.to_string()) {
                     Ok(names) => {
                         self.log(format!("AddOns installés : {} (depuis {})", names.join(", "), src.display()));
-                        self.shared.lock().unwrap().notice = Some(format!("{} {}", fr::ADDON_ADDED, names.join(", ")));
+                        self.shared.lock().unwrap().notice = Some(format!("{} {}", tr!(ADDON_ADDED), names.join(", ")));
                     }
-                    Err(e) => self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::ADDON_ADD_FAIL)),
+                    Err(e) => self.shared.lock().unwrap().notice = Some(format!("{} : {e}", tr!(ADDON_ADD_FAIL))),
                 }
                 self.shared.lock().unwrap().message = prev;
                 self.refresh_addons();
             }
             Command::AddonSetActive(name, active) => {
                 if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::ADDON_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(ADDON_PLAYING).into());
                     return;
                 }
                 let entries = crate::addons::list(&self.client_dir());
@@ -548,7 +604,7 @@ impl Orchestrator {
             }
             Command::AddonRemove(name) => {
                 if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::ADDON_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(ADDON_PLAYING).into());
                     return;
                 }
                 let entries = crate::addons::list(&self.client_dir());
@@ -562,7 +618,7 @@ impl Orchestrator {
             }
             Command::PatchSetActive(name, active) => {
                 if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::PATCH_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(PATCH_PLAYING).into());
                     return;
                 }
                 let entries = crate::patches::list(&self.client_dir());
@@ -577,7 +633,7 @@ impl Orchestrator {
             }
             Command::PatchAdd(src) => {
                 if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::PATCH_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(PATCH_PLAYING).into());
                     return;
                 }
                 let prev = self.shared.lock().unwrap().message.clone();
@@ -585,16 +641,16 @@ impl Orchestrator {
                 match crate::patches::add(&src, &self.client_dir(), &|m| shared.lock().unwrap().message = m.to_string()) {
                     Ok(name) => {
                         self.log(format!("patch ajouté : {name} (depuis {})", src.display()));
-                        self.shared.lock().unwrap().notice = Some(format!("{} {name}", fr::PATCH_ADDED));
+                        self.shared.lock().unwrap().notice = Some(format!("{} {name}", tr!(PATCH_ADDED)));
                     }
-                    Err(e) => self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::PATCH_ADD_FAIL)),
+                    Err(e) => self.shared.lock().unwrap().notice = Some(format!("{} : {e}", tr!(PATCH_ADD_FAIL))),
                 }
                 self.shared.lock().unwrap().message = prev;
                 self.refresh_patches();
             }
             Command::PatchRemove(name) => {
                 if self.state() == State::Playing {
-                    self.shared.lock().unwrap().notice = Some(fr::PATCH_PLAYING.into());
+                    self.shared.lock().unwrap().notice = Some(tr!(PATCH_PLAYING).into());
                     return;
                 }
                 let entries = crate::patches::list(&self.client_dir());
@@ -608,11 +664,12 @@ impl Orchestrator {
             }
             Command::DeleteBots => self.with_world_stopped(|o| o.delete_bots()),
             Command::KillGame => {
-                if let Some(mut g) = self.game.take() {
-                    let _ = g.kill();
-                    let _ = g.wait();
-                    self.log("jeu fermé de force à la demande de l'utilisateur");
+                for mut g in std::mem::take(&mut self.games) {
+                    let _ = g.child.kill();
+                    let _ = g.child.wait();
+                    self.log(format!("jeu fermé de force à la demande de l'utilisateur ({})", g.label));
                 }
+                self.shared.lock().unwrap().games.clear();
                 // WoW.exe lancé via VanillaFixes (processus enfant de VanillaFixes.exe) : fermé seulement s'il vient du
                 // dossier du client HomeCraft. Un « taskkill /IM WoW.exe » fermerait aussi tout autre client WoW du PC.
                 let dir = self.client_dir();
@@ -626,7 +683,7 @@ impl Orchestrator {
                     .output();
                 self.log(format!("jeu fermé (client : {})", dir.display()));
                 if self.state() == State::Playing {
-                    self.set(State::Ready, fr::MSG_READY, 1.0);
+                    self.set(State::Ready, tr!(MSG_READY), 1.0);
                 }
             }
             Command::Shutdown => {}
@@ -659,27 +716,28 @@ impl Orchestrator {
             match in_game {
                 Ok(0) => {}
                 Ok(n) => {
-                    self.shared.lock().unwrap().notice = Some(fr::botgen_players_in_world(n));
+                    self.shared.lock().unwrap().notice = Some(tr!(botgen_players_in_world)(n));
                     return;
                 }
                 Err(e) => {
-                    self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::BOT_DELETE_FAIL));
+                    self.shared.lock().unwrap().notice = Some(format!("{} : {e}", tr!(BOT_DELETE_FAIL)));
                     return;
                 }
             }
             self.log("personnages bots : arrêt du serveur le temps de l'opération, puis redémarrage");
-            self.set(State::Stopping, fr::MSG_STOPPING, 0.5);
+            self.set(State::Stopping, tr!(MSG_STOPPING), 0.5);
             self.stop_services_quiet();
-            self.set(State::Installed, fr::MSG_STOPPED, 0.0);
+            self.set(State::Installed, tr!(MSG_STOPPED), 0.0);
         }
         op(self);
         if restart && self.start_all() {
             // Jeu resté ouvert (à la sélection des personnages) : toujours suivi, pour la sauvegarde à sa fermeture.
-            let game_open = self.game.as_mut().map(|g| matches!(g.try_wait(), Ok(None))).unwrap_or(false);
+            self.poll_games();
+            let game_open = !self.games.is_empty();
             if game_open {
-                self.set(State::Playing, fr::MSG_PLAYING, 1.0);
+                self.set(State::Playing, tr!(MSG_PLAYING), 1.0);
             } else {
-                self.set(State::Ready, fr::MSG_READY, 1.0);
+                self.set(State::Ready, tr!(MSG_READY), 1.0);
             }
         }
     }
@@ -702,13 +760,13 @@ impl Orchestrator {
 
     /// Installation depuis un support en lecture seule : copie intégrale vers `dest`, puis lancement du launcher copié.
     fn install_to(&mut self, dest: &std::path::Path) {
-        self.set(State::Repairing, fr::MSG_INSTALLING, 0.0);
+        self.set(State::Repairing, tr!(MSG_INSTALLING), 0.0);
         let shared = self.shared.clone();
         let r = std::fs::create_dir_all(dest).map_err(|e| e.to_string()).and_then(|_| {
             util::copy_tree(&self.layout.root, dest, &["UserData", "Logs", "target"], &|i, n| {
                 let mut s = shared.lock().unwrap();
                 s.progress = i as f32 / n.max(1) as f32;
-                s.message = format!("{} {i}/{n}", fr::MSG_INSTALLING);
+                s.message = format!("{} {i}/{n}", tr!(MSG_INSTALLING));
             })
         });
         match r {
@@ -720,7 +778,7 @@ impl Orchestrator {
                 self.log(if launched { "launcher installé démarré" } else { "lancement du launcher installé impossible : ouvrez-le manuellement" });
                 let mut s = self.shared.lock().unwrap();
                 s.state = State::NotInstalled;
-                s.message = fr::MSG_INSTALLED.into();
+                s.message = tr!(MSG_INSTALLED).into();
                 s.progress = 0.0;
                 s.exit_requested = launched;
             }
@@ -730,6 +788,7 @@ impl Orchestrator {
 
     /// Contrôle périodique : santé réelle des services, fin du jeu, plantages.
     fn tick(&mut self) {
+        self.poll_games();
         let db_alive = self.db.as_ref().map(|d| d.ping()).unwrap_or(false);
         let realmd_alive = self.realmd.as_mut().map(|r| r.is_running()).unwrap_or(false);
         let world_alive = self.mangosd.as_mut().map(|m| m.is_running()).unwrap_or(false);
@@ -798,18 +857,12 @@ impl Orchestrator {
             self.stop_services_quiet();
             return;
         }
-        if state == State::Playing {
-            if let Some(g) = self.game.as_mut() {
-                if let Ok(Some(st)) = g.try_wait() {
-                    self.log(format!("jeu terminé (code {:?})", st.code()));
-                    self.game = None;
-                    self.set(State::Ready, fr::MSG_READY, 1.0);
-                    if self.settings.auto_backup {
-                        self.backup(fr::BK_AUTO_LABEL);
-                        self.rotate_auto_backups();
-                        self.set_message(fr::MSG_READY.into());
-                    }
-                }
+        if state == State::Playing && self.games.is_empty() {
+            self.set(State::Ready, tr!(MSG_READY), 1.0);
+            if self.settings.auto_backup {
+                self.backup(tr!(BK_AUTO_LABEL));
+                self.rotate_auto_backups();
+                self.set_message(tr!(MSG_READY).into());
             }
         }
         self.poll_mmaps();
@@ -841,7 +894,7 @@ impl Orchestrator {
     fn start_mmaps(&mut self, force: bool) {
         if self.mmaps_job.is_some() {
             if force {
-                self.shared.lock().unwrap().notice = Some(fr::MMAPS_ALREADY_RUNNING.into());
+                self.shared.lock().unwrap().notice = Some(tr!(MMAPS_ALREADY_RUNNING).into());
             }
             return;
         }
@@ -950,7 +1003,7 @@ impl Orchestrator {
     /// Ne conserve que les `auto_backup_keep` sauvegardes automatiques les plus récentes.
     fn rotate_auto_backups(&mut self) {
         let keep = self.settings.auto_backup_keep.max(1) as usize;
-        let auto: Vec<_> = backup::list(&self.layout).into_iter().filter(|b| b.manifest.label == fr::BK_AUTO_LABEL).collect();
+        let auto: Vec<_> = backup::list(&self.layout).into_iter().filter(|b| b.manifest.label == tr!(BK_AUTO_LABEL)).collect();
         let mut removed = 0;
         for b in auto.iter().skip(keep) {
             if std::fs::remove_file(&b.path).is_ok() {
@@ -970,19 +1023,19 @@ impl Orchestrator {
             return;
         }
         if st == State::Playing {
-            self.shared.lock().unwrap().notice = Some(fr::WORLD_REIMPORT_PLAYING.into());
+            self.shared.lock().unwrap().notice = Some(tr!(WORLD_REIMPORT_PLAYING).into());
             return;
         }
         if st.services_up() {
-            self.set(State::Stopping, fr::MSG_STOPPING, 0.3);
+            self.set(State::Stopping, tr!(MSG_STOPPING), 0.3);
             self.stop_world_only();
         }
-        self.set(State::Repairing, fr::MSG_WORLD_REIMPORT, 0.2);
+        self.set(State::Repairing, tr!(MSG_WORLD_REIMPORT), 0.2);
         let r = self.ensure_db().and_then(|db| {
             let shared = self.shared.clone();
             let tx = self.log_tx.clone();
             db.import_dumps(&["mangos"], &|step| {
-                shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_WORLD_REIMPORT);
+                shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_WORLD_REIMPORT));
                 let _ = tx.send(format!("import : {step}"));
             })
         });
@@ -991,7 +1044,7 @@ impl Orchestrator {
         match r {
             Ok(()) => {
                 self.log("base monde réimportée (personnages et comptes conservés)");
-                self.set(State::Installed, fr::MSG_WORLD_REIMPORT_DONE, 0.0);
+                self.set(State::Installed, tr!(MSG_WORLD_REIMPORT_DONE), 0.0);
             }
             Err(e) => self.fail("réimport de la base monde", e),
         }
@@ -1036,21 +1089,21 @@ impl Orchestrator {
         }
         if full && !prev.is_busy() {
             let restore_state = prev;
-            self.set(State::Verifying, fr::MSG_VERIFYING_FILES, 0.1);
+            self.set(State::Verifying, tr!(MSG_VERIFYING_FILES), 0.1);
             let report = self.build_report();
             self.log(format!("fichiers gérés : {} vérifiés, {} manquants, {} altérés", report.checked, report.missing.len(), report.altered.len()));
             let mut s = self.shared.lock().unwrap();
             s.report = Some(report);
             s.report_fresh = true;
             s.state = restore_state;
-            s.message = if restore_state.services_up() { fr::MSG_READY.into() } else { fr::MSG_IDLE.into() };
+            s.message = if restore_state.services_up() { tr!(MSG_READY).into() } else { tr!(MSG_IDLE).into() };
             s.progress = 0.0;
             return;
         }
         if !prev.services_up() && !prev.is_busy() {
             let mut s = self.shared.lock().unwrap();
             s.state = if all { State::Installed } else { State::NotInstalled };
-            s.message = if all { fr::MSG_IDLE.into() } else { fr::MSG_NOT_INSTALLED.into() };
+            s.message = if all { tr!(MSG_IDLE).into() } else { tr!(MSG_NOT_INSTALLED).into() };
         }
     }
 
@@ -1063,18 +1116,18 @@ impl Orchestrator {
                 let (missing, altered) = repair::verify_files(&self.layout, &m, &|i, n| {
                     let mut s = shared.lock().unwrap();
                     s.progress = i as f32 / n.max(1) as f32;
-                    s.message = format!("{} {i}/{n}", fr::MSG_VERIFYING_FILES);
+                    s.message = format!("{} {i}/{n}", tr!(MSG_VERIFYING_FILES));
                 });
                 report.checked = m.files.len();
                 report.missing = missing;
                 report.altered = altered;
             }
-            None => report.notes.push(fr::RPT_MANIFEST_MISSING.into()),
+            None => report.notes.push(tr!(RPT_MANIFEST_MISSING).into()),
         }
         report.data = repair::data_status(&self.layout);
         report.db_ok = self.db.as_ref().filter(|d| d.ping()).map(|d| d.databases_missing().map(|m| m.is_empty()).unwrap_or(false) && d.databases_incomplete().map(|m| m.is_empty()).unwrap_or(false));
         if !report.files_ok() {
-            report.notes.push(fr::RPT_UNREPAIRABLE.into());
+            report.notes.push(tr!(RPT_UNREPAIRABLE).into());
         }
         report
     }
@@ -1131,11 +1184,11 @@ impl Orchestrator {
             return;
         }
         let services_were_up = st.services_up();
-        self.set(State::Repairing, fr::MSG_REPAIR, 0.05);
+        self.set(State::Repairing, tr!(MSG_REPAIR), 0.05);
         let mut notes: Vec<String> = Vec::new();
         let result: Result<(), String> = (|| {
             // 1. Base : bases manquantes réimportées (jamais characters si elle contient des personnages).
-            self.set_message(format!("{} (base de données)", fr::MSG_REPAIR));
+            self.set_message(format!("{} (base de données)", tr!(MSG_REPAIR)));
             let db = self.ensure_db()?;
             let mut missing = db.databases_missing()?;
             for d in db.databases_incomplete()? {
@@ -1148,7 +1201,7 @@ impl Orchestrator {
                 let shared = self.shared.clone();
                 let tx = self.log_tx.clone();
                 db.import_dumps(&missing, &|step| {
-                    shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_REPAIR);
+                    shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_REPAIR));
                     let _ = tx.send(format!("import : {step}"));
                 })?;
                 notes.push(format!("bases réimportées : {}", missing.join(", ")));
@@ -1181,7 +1234,7 @@ impl Orchestrator {
                 }
                 self.shared.lock().unwrap().progress = 0.5;
                 let shared = self.shared.clone();
-                repair::extract(&self.layout, &source, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_EXTRACT))?;
+                repair::extract(&self.layout, &source, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_EXTRACT)))?;
                 notes.push("données du client ré-extraites".into());
             }
             Ok(())
@@ -1201,7 +1254,7 @@ impl Orchestrator {
         s.report = Some(report);
         s.report_fresh = true;
         s.state = if services_were_up { State::Ready } else { State::Installed };
-        s.message = fr::MSG_REPAIR_DONE.into();
+        s.message = tr!(MSG_REPAIR_DONE).into();
         s.progress = 0.0;
     }
 
@@ -1218,21 +1271,21 @@ impl Orchestrator {
             return;
         }
         if st == State::Playing {
-            self.log(fr::BK_PLAYING_WARN);
+            self.log(tr!(BK_PLAYING_WARN));
             self.console("saveall");
             std::thread::sleep(Duration::from_secs(3));
         }
         let prev_msg = self.shared.lock().unwrap().message.clone();
-        self.set_message(fr::MSG_BACKUP.into());
+        self.set_message(tr!(MSG_BACKUP).into());
         let r = self.ensure_db().and_then(|db| {
             let shared = self.shared.clone();
-            backup::create(&self.layout, &db, label, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_BACKUP))
+            backup::create(&self.layout, &db, label, &|step| shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_BACKUP)))
         });
         self.release_temp_db();
         match r {
             Ok(info) => {
                 self.log(format!("sauvegarde créée : {} ({} personnages, {} comptes, {})", info.path.display(), info.manifest.characters, info.manifest.accounts, util::human_size(info.size)));
-                self.set_message(format!("{} {}", fr::MSG_BACKUP_DONE, info.manifest.created));
+                self.set_message(format!("{} {}", tr!(MSG_BACKUP_DONE), info.manifest.created));
             }
             Err(e) => {
                 self.log(format!("ERREUR sauvegarde : {e}"));
@@ -1249,17 +1302,17 @@ impl Orchestrator {
             return;
         }
         if st == State::Playing {
-            self.shared.lock().unwrap().notice = Some(fr::BK_RESTORE_PLAYING.into());
+            self.shared.lock().unwrap().notice = Some(tr!(BK_RESTORE_PLAYING).into());
             return;
         }
         if st.services_up() {
-            self.set(State::Stopping, fr::MSG_STOPPING, 0.3);
+            self.set(State::Stopping, tr!(MSG_STOPPING), 0.3);
             self.stop_world_only();
         }
-        self.set(State::Repairing, fr::MSG_RESTORE, 0.2);
+        self.set(State::Repairing, tr!(MSG_RESTORE), 0.2);
         let r = self.ensure_db().and_then(|db| {
             let shared = self.shared.clone();
-            backup::restore(&self.layout, &db, path, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_RESTORE))
+            backup::restore(&self.layout, &db, path, &|step| shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_RESTORE)))
         });
         self.release_temp_db();
         self.refresh_backups();
@@ -1268,7 +1321,7 @@ impl Orchestrator {
                 self.log(format!("restauration terminée depuis {} ({} personnages, {} comptes)", path.display(), m.characters, m.accounts));
                 self.settings = Settings::load(&self.layout.settings_file());
                 self.shared.lock().unwrap().settings_reloaded = true;
-                self.set(State::Installed, fr::MSG_RESTORE_DONE, 0.0);
+                self.set(State::Installed, tr!(MSG_RESTORE_DONE), 0.0);
             }
             Err(e) => self.fail("restauration", e),
         }
@@ -1283,17 +1336,22 @@ impl Orchestrator {
             return st.services_up();
         }
         if self.shared.lock().unwrap().readonly {
-            self.fail("démarrage", fr::RO_TITLE.into());
+            self.fail("démarrage", tr!(RO_TITLE).into());
             return false;
         }
-        self.set(State::Verifying, fr::MSG_VERIFY, 0.05);
+        // Invité d'une partie multijoueur : les ports locaux 3724/8085 mènent à l'hôte, le serveur local ne peut pas démarrer.
+        if crate::network::guest_active() {
+            self.shared.lock().unwrap().notice = Some(tr!(NET_GUEST_NO_SERVER).into());
+            return false;
+        }
+        self.set(State::Verifying, tr!(MSG_VERIFY), 0.05);
         self.verify(false);
         if self.state() == State::NotInstalled {
             self.fail("vérification", "composants manquants".into());
             return false;
         }
 
-        self.set(State::Initializing, fr::MSG_INIT, 0.15);
+        self.set(State::Initializing, tr!(MSG_INIT), 0.15);
         let creds = match credentials::load_or_create(&self.layout.credentials_file()) {
             Ok(c) => c,
             Err(e) => return self.fail_ret("identifiants", e),
@@ -1309,7 +1367,7 @@ impl Orchestrator {
             }
         }
 
-        self.set(State::StartingDb, fr::MSG_DB, 0.3);
+        self.set(State::StartingDb, tr!(MSG_DB), 0.3);
         // Base déjà lancée par ce launcher (laissée en service après une restauration ou un réimport) : elle reste
         // la nôtre, sinon elle ne serait plus arrêtée à la fermeture.
         let already_ours = self.db_owned && self.db.as_ref().map(|d| d.ping()).unwrap_or(false);
@@ -1329,11 +1387,11 @@ impl Orchestrator {
         self.log(format!("MariaDB opérationnelle sur 127.0.0.1:{MARIADB_PORT}{}", if self.db_owned { "" } else { " (déjà en service, non gérée par ce launcher)" }));
         match db.databases_missing() {
             Ok(missing) if !missing.is_empty() => {
-                self.set(State::StartingDb, fr::MSG_DB_IMPORT, 0.4);
+                self.set(State::StartingDb, tr!(MSG_DB_IMPORT), 0.4);
                 let shared = self.shared.clone();
                 let tx = self.log_tx.clone();
                 if let Err(e) = db.import_dumps(&missing, &|step| {
-                    shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_DB_IMPORT);
+                    shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_DB_IMPORT));
                     let _ = tx.send(format!("import : {step}"));
                 }) {
                     self.drain_server_logs();
@@ -1368,7 +1426,7 @@ impl Orchestrator {
         if !steps.is_empty() {
             let info = client::inspect(&self.client_dir());
             if !info.is_ok() {
-                return self.fail_ret("données du client", fr::MSG_CLIENT_NEEDED.into());
+                return self.fail_ret("données du client", tr!(MSG_CLIENT_NEEDED).into());
             }
             match client::ensure_benilla_base_mpq(&info) {
                 Ok(Some(msg)) => self.log(msg),
@@ -1382,9 +1440,9 @@ impl Orchestrator {
             if source != info.dir {
                 self.log(format!("extraction : archives lues dans {} (il manque {} au client choisi)", source.display(), client::extraction_missing(&info.dir).join(", ")));
             }
-            self.set(State::Initializing, fr::MSG_FIRST_EXTRACT, 0.45);
+            self.set(State::Initializing, tr!(MSG_FIRST_EXTRACT), 0.45);
             let shared = self.shared.clone();
-            if let Err(e) = repair::extract(&self.layout, &source, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", fr::MSG_FIRST_EXTRACT)) {
+            if let Err(e) = repair::extract(&self.layout, &source, &steps, &self.log_tx, &|step| shared.lock().unwrap().message = format!("{} ({step})", tr!(MSG_FIRST_EXTRACT))) {
                 self.drain_server_logs();
                 return self.fail_ret("extraction", e);
             }
@@ -1399,7 +1457,7 @@ impl Orchestrator {
             return false;
         }
 
-        self.set(State::StartingAuth, fr::MSG_AUTH, 0.55);
+        self.set(State::StartingAuth, tr!(MSG_AUTH), 0.55);
         let leftovers = server::stop_leftovers(&self.layout);
         if !leftovers.is_empty() {
             self.log(format!("serveur resté en marche après une fermeture forcée, arrêté : {}", leftovers.join(", ")));
@@ -1410,7 +1468,13 @@ impl Orchestrator {
         }
         self.log(format!("realmd opérationnel sur 127.0.0.1:{REALMD_PORT}"));
 
-        self.set(State::StartingWorld, fr::MSG_WORLD, 0.7);
+        // Pont IA (si activé) avant mangosd : le module playerbots s'y adresse dès les premières discussions.
+        match crate::ai_bridge::restart(&self.layout) {
+            Ok(true) => self.log(format!("pont IA opérationnel sur 127.0.0.1:{}", crate::ai_bridge::BRIDGE_PORT)),
+            Ok(false) => {}
+            Err(e) => self.log(format!("pont IA non démarré : {e} — les bots répondront de façon classique")),
+        }
+        self.set(State::StartingWorld, tr!(MSG_WORLD), 0.7);
         let mut m = match Mangosd::start(&self.layout, self.log_tx.clone()) {
             Ok(m) => m,
             Err(e) => return self.fail_ret("démarrage mangosd", e),
@@ -1450,7 +1514,7 @@ impl Orchestrator {
     /// déjà faites (dossier de travail), progression sur l'accueil. Fermer le launcher ou arrêter interrompt la
     /// génération, qui reprendra au démarrage suivant. Renvoie false si elle n'a pas abouti (état déjà positionné).
     fn generate_mmaps_before_start(&mut self) -> bool {
-        self.set(State::Initializing, fr::MSG_FIRST_MMAPS, 0.45);
+        self.set(State::Initializing, tr!(MSG_FIRST_MMAPS), 0.45);
         if repair::mmaps_pending(&self.layout) {
             self.install_mmaps();
             if repair::data_status(&self.layout).iter().any(|(n, ok)| n == "mmaps" && *ok) {
@@ -1481,7 +1545,7 @@ impl Orchestrator {
                 Ok(Command::StopAll) => {
                     self.abort_mmaps();
                     self.stop_services_quiet();
-                    self.set(State::Installed, fr::MSG_STOPPED, 0.0);
+                    self.set(State::Installed, tr!(MSG_STOPPED), 0.0);
                     return false;
                 }
                 Ok(other) => self.deferred.push_back(other),
@@ -1499,7 +1563,7 @@ impl Orchestrator {
                 let p = repair::mmaps_progress(tiles, start_tiles, since.elapsed().as_secs());
                 let mut s = self.shared.lock().unwrap();
                 s.progress = 0.45 + 0.1 * p.fraction;
-                s.message = fr::mmaps_first_install((p.fraction * 100.0) as u32, p.remaining_secs);
+                s.message = tr!(mmaps_first_install)((p.fraction * 100.0) as u32, p.remaining_secs);
             }
             let Some(job) = self.mmaps_job.as_mut() else { return self.fail_ret("cartes de déplacement", "génération interrompue".into()) };
             match job.try_wait() {
@@ -1540,6 +1604,19 @@ impl Orchestrator {
     }
 
     fn play(&mut self) {
+        self.play_with(None, false);
+    }
+
+    /// Lance un client : simple, ou avec le préremplissage d'un profil (un seul client par profil) ; `guest` : partie
+    /// multijoueur d'un hôte, sans serveur local (les ports 3724/8085 locaux mènent à l'hôte par le réseau).
+    fn play_with(&mut self, profile: Option<crate::profiles::Profile>, guest: bool) {
+        self.poll_games();
+        if let Some(p) = &profile {
+            if self.games.iter().any(|g| g.profile.as_deref() == Some(p.id.as_str())) {
+                self.shared.lock().unwrap().notice = Some(tr!(profile_already_running)(&p.name));
+                return;
+            }
+        }
         let dir = self.client_dir();
         let info = client::inspect(&dir);
         if !info.is_ok() {
@@ -1562,14 +1639,59 @@ impl Orchestrator {
                 }
             }
         };
-        match client::launch(&info, via_vf) {
-            Ok(child) => {
-                self.log(if via_vf { "jeu lancé via VanillaFixes".to_string() } else { format!("jeu lancé : {} ({})", info.exe_name, info.kind_label()) });
-                self.game = Some(child);
-                self.set(State::Playing, fr::MSG_PLAYING, 1.0);
+        let prefill = match &profile {
+            Some(p) => match p.password_plain() {
+                Ok(password) => Some(client::Prefill { account: p.account.clone(), password, character: p.character.clone(), enter_world: p.enter_world, extra_args: p.args() }),
+                Err(e) => {
+                    self.shared.lock().unwrap().notice = Some(format!("{} : {e}", p.name));
+                    Some(client::Prefill { account: p.account.clone(), password: None, character: p.character.clone(), enter_world: false, extra_args: p.args() })
+                }
+            },
+            None => None,
+        };
+        match client::launch_with(&info, via_vf, prefill.as_ref()) {
+            Ok((child, mode)) => {
+                let label = profile.as_ref().map(|p| p.name.clone()).unwrap_or_else(|| info.exe_name.clone());
+                // Jamais de mot de passe dans le journal : seulement la façon dont la connexion a été préremplie.
+                let how = match &mode {
+                    client::PrefillMode::None => String::new(),
+                    client::PrefillMode::BenillaEnv { password, character } => format!(", profil « {label} » : compte prérempli{}{}", if *password { ", connexion automatique" } else { "" }, if *character { ", personnage présélectionné" } else { "" }),
+                    client::PrefillMode::OriginalConfig { password_typed } => format!(", profil « {label} » : compte prérempli (Config.wtf){}", if *password_typed { ", mot de passe saisi dans la fenêtre du client" } else { "" }),
+                };
+                self.log(format!("jeu lancé : {} ({}){}{how}", if via_vf { "VanillaFixes" } else { info.exe_name.as_str() }, info.kind_label(), if guest { ", partie multijoueur de l'hôte" } else { "" }));
+                self.games.push(GameProc { profile: profile.map(|p| p.id), label, child });
+                self.publish_games();
+                if !guest {
+                    self.set(State::Playing, tr!(MSG_PLAYING), 1.0);
+                }
             }
             Err(e) => self.fail("lancement du jeu", e),
         }
+    }
+
+    /// Retire les clients fermés.
+    fn poll_games(&mut self) {
+        let before = self.games.len();
+        let mut closed: Vec<String> = Vec::new();
+        self.games.retain_mut(|g| match g.child.try_wait() {
+            Ok(None) => true,
+            Ok(Some(st)) => {
+                closed.push(format!("jeu terminé (code {:?}, {})", st.code(), g.label));
+                false
+            }
+            Err(_) => false,
+        });
+        for l in closed {
+            self.log(l);
+        }
+        if self.games.len() != before {
+            self.publish_games();
+        }
+    }
+
+    fn publish_games(&mut self) {
+        let list = self.games.iter().map(|g| (g.profile.clone(), g.label.clone())).collect();
+        self.shared.lock().unwrap().games = list;
     }
 
     /// Arrête mangosd et realmd, conserve MariaDB (restauration, etc.).
@@ -1590,6 +1712,7 @@ impl Orchestrator {
 
     fn stop_services_quiet(&mut self) {
         self.stop_world_only();
+        crate::ai_bridge::stop();
         if let Some(d) = self.db.take() {
             if self.db_owned {
                 match d.shutdown(Duration::from_secs(60)) {
@@ -1609,15 +1732,13 @@ impl Orchestrator {
         if self.state() == State::Stopping {
             return;
         }
-        self.set(State::Stopping, fr::MSG_STOPPING, 0.5);
-        if let Some(g) = self.game.as_mut() {
-            if matches!(g.try_wait(), Ok(None)) {
-                self.log("le jeu est encore ouvert : les services s'arrêtent, le client sera déconnecté");
-            }
+        self.set(State::Stopping, tr!(MSG_STOPPING), 0.5);
+        self.poll_games();
+        if !self.games.is_empty() && !crate::network::guest_active() {
+            self.log("le jeu est encore ouvert : les services s'arrêtent, le client sera déconnecté");
         }
-        self.game = None;
         self.stop_services_quiet();
-        self.set(State::Installed, fr::MSG_STOPPED, 0.0);
+        self.set(State::Installed, tr!(MSG_STOPPED), 0.0);
         self.verify(false);
     }
 
@@ -1636,7 +1757,7 @@ impl Orchestrator {
                     self.log(format!("console : {e}"));
                 }
             }
-            None => self.log(fr::ACC_NEED_SERVER),
+            None => self.log(tr!(ACC_NEED_SERVER)),
         }
     }
 
@@ -1645,12 +1766,12 @@ impl Orchestrator {
     /// sinon le serveur répond « compte inexistant » (et l'utilisateur, croyant à un échec, recréait le compte).
     fn create_account(&mut self, user: &str, pass: &str, gm: u8) {
         let Some(db) = self.db.clone() else {
-            self.shared.lock().unwrap().notice = Some(fr::ACC_NEED_SERVER.into());
+            self.shared.lock().unwrap().notice = Some(tr!(ACC_NEED_SERVER).into());
             return;
         };
         let upper = user.to_ascii_uppercase();
         if crate::botgen::is_bot_account(user) {
-            self.shared.lock().unwrap().notice = Some(fr::ACC_BOT_PREFIX.into());
+            self.shared.lock().unwrap().notice = Some(tr!(ACC_BOT_PREFIX).into());
             return;
         }
         let exists = |db: &MariaDb| {
@@ -1663,12 +1784,13 @@ impl Orchestrator {
         };
         match exists(&db) {
             Ok(true) => {
-                self.shared.lock().unwrap().notice = Some(fr::acc_exists(user));
+                self.log(format!("compte {upper} : existe déjà, non recréé"));
+                self.shared.lock().unwrap().notice = Some(tr!(acc_exists)(user));
                 return;
             }
             Ok(false) => {}
             Err(e) => {
-                self.shared.lock().unwrap().notice = Some(format!("{} : {e}", fr::ACC_CREATE_FAIL));
+                self.shared.lock().unwrap().notice = Some(format!("{} : {e}", tr!(ACC_CREATE_FAIL)));
                 return;
             }
         }
@@ -1685,7 +1807,7 @@ impl Orchestrator {
         self.drain_server_logs();
         if !created {
             self.log(format!("ERREUR compte {user} : le serveur ne l'a pas créé dans le délai (voir la console du serveur)"));
-            self.shared.lock().unwrap().notice = Some(fr::ACC_CREATE_FAIL.into());
+            self.shared.lock().unwrap().notice = Some(tr!(ACC_CREATE_FAIL).into());
             return;
         }
         if gm > 0 {
@@ -1693,7 +1815,7 @@ impl Orchestrator {
             std::thread::sleep(Duration::from_millis(500));
         }
         self.log(format!("compte {user} créé (niveau {gm})"));
-        self.shared.lock().unwrap().notice = Some(fr::acc_created(user, gm));
+        self.shared.lock().unwrap().notice = Some(tr!(acc_created)(user, gm));
         self.refresh_accounts();
     }
 
@@ -1728,11 +1850,11 @@ impl Orchestrator {
     fn open_heidi(&mut self) {
         let exe = self.layout.heidisql_exe();
         if !exe.is_file() {
-            self.shared.lock().unwrap().notice = Some(fr::DB_HEIDI_MISSING.into());
+            self.shared.lock().unwrap().notice = Some(tr!(DB_HEIDI_MISSING).into());
             return;
         }
         let Some(db) = self.db.as_ref() else {
-            self.shared.lock().unwrap().notice = Some(fr::DB_NEED_DB.into());
+            self.shared.lock().unwrap().notice = Some(tr!(DB_NEED_DB).into());
             return;
         };
         let c = db.creds();

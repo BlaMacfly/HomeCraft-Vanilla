@@ -1,0 +1,10 @@
+[11:45:59] 0. démarrage du serveur de test et création du compte MBOXWNL
+[11:47:10]    OK 0. options écrites (multi-sessions 1, max 4, anti-AFK désactivé 1)
+[11:47:23] 7. contrôle : HomeCraft.DisableAfkKick = 0, l'expulsion doit avoir lieu vers 15 min
+[12:03:07]    OK 7. contrôle DisableAfkKick = 0 : expulsé par le serveur (code 5, après 15 min)
+[12:03:13]    OK arrêt sans processus résiduel
+OK       0. options écrites (multi-sessions 1, max 4, anti-AFK désactivé 1)
+OK       7. contrôle DisableAfkKick = 0 : expulsé par le serveur (code 5, après 15 min)
+OK       arrêt sans processus résiduel
+Journaux des clients : C:\Users\Marty\HomeCraftTests\cm\Logs\multisession
+Multisession : tout est conforme

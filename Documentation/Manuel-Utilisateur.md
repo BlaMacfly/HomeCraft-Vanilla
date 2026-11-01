@@ -1,198 +1,241 @@
 # HomeCraft Edition Vanilla — Manuel d'utilisation
 
-Version du manuel : 1.0 (15 octobre 2026), pour le launcher 0.9.0.
+Version du manuel : 2.0 (1er novembre 2026), pour le launcher **1.0.0** (édition CMaNGOS Classic + playerbots).
 
-HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« Vanilla ») **seul, hors ligne, en français**, sur votre propre ordinateur, dans un monde peuplé de bots qui jouent comme des joueurs, avec un hôtel des ventes approvisionné et des réglages de confort. Tout est piloté par une seule fenêtre : le launcher. Ce manuel décrit tout ce que le launcher sait faire, dans l'ordre où vous en aurez besoin.
+HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« Vanilla ») **en français, sur votre propre ordinateur**, seul ou avec quelques amis, dans un monde peuplé de bots qui jouent comme des joueurs. Tout est piloté par une seule fenêtre : le **launcher**. Ce manuel décrit tout ce que le launcher sait faire, dans l'ordre où vous en aurez besoin, avec des schémas pour comprendre ce qui se passe « sous le capot ».
+
+> **En trois phrases.** Copiez le dossier, mettez votre client 1.12.1 frFR dans `Client\`, ouvrez `HomeCraft Edition Vanilla.exe` et cliquez sur **JOUER**. Le premier démarrage prépare tout tout seul (de 20 minutes à une heure selon le PC, une seule fois). Ensuite, un clic suffit.
 
 ---
 
 ## Sommaire
 
+**Prise en main**
 1. [Ce que c'est, ce que ce n'est pas](#1-ce-que-cest-ce-que-ce-nest-pas)
-2. [Prérequis](#2-prérequis)
-3. [Contenu du dossier](#3-contenu-du-dossier)
+2. [Comment ça marche](#2-comment-ça-marche)
+3. [Prérequis](#3-prérequis)
 4. [Installation](#4-installation)
 5. [Premier démarrage pas à pas](#5-premier-démarrage-pas-à-pas)
 6. [La fenêtre du launcher](#6-la-fenêtre-du-launcher)
+
+**Jouer**
 7. [Onglet Accueil](#7-onglet-accueil)
-8. [Onglet Comptes](#8-onglet-comptes)
-9. [Jouer avec les bots](#9-jouer-avec-les-bots)
-10. [Onglet PlayerBots](#10-onglet-playerbots)
-11. [Onglet Monde](#11-onglet-monde)
-12. [Onglet Patchs](#12-onglet-patchs)
-13. [Onglet Base de données](#13-onglet-base-de-données)
-14. [Onglet Sauvegardes](#14-onglet-sauvegardes)
-15. [Onglet Paramètres](#15-onglet-paramètres)
-16. [Onglet Journaux et console du serveur](#16-onglet-journaux-et-console-du-serveur)
-17. [Vérifier et réparer l'installation](#17-vérifier-et-réparer-linstallation)
-18. [Déplacer, dupliquer, désinstaller](#18-déplacer-dupliquer-désinstaller)
-19. [Dépannage](#19-dépannage)
-20. [Questions fréquentes](#20-questions-fréquentes)
-21. [Où sont mes fichiers ?](#21-où-sont-mes-fichiers-)
-22. [Glossaire](#22-glossaire)
-23. [Mentions légales](#23-mentions-légales)
+8. [Profils de lancement](#8-profils-de-lancement)
+9. [Onglet Comptes](#9-onglet-comptes)
+10. [Jouer avec les bots](#10-jouer-avec-les-bots)
+11. [Plusieurs personnages à la fois (multiboxing) et absence (AFK)](#11-plusieurs-personnages-à-la-fois-multiboxing-et-absence-afk)
+
+**Régler**
+12. [Onglet PlayerBots](#12-onglet-playerbots)
+13. [IA des bots (modèle de langage)](#13-ia-des-bots-modèle-de-langage)
+14. [Onglet Monde](#14-onglet-monde)
+15. [Onglet Patchs et AddOns](#15-onglet-patchs-et-addons)
+16. [Onglet Paramètres](#16-onglet-paramètres)
+
+**Jouer à plusieurs**
+17. [HomeCraft Multijoueur](#17-homecraft-multijoueur)
+
+**Entretenir**
+18. [Onglet Sauvegardes](#18-onglet-sauvegardes)
+19. [Onglet Base de données](#19-onglet-base-de-données)
+20. [Onglet Journaux et console du serveur](#20-onglet-journaux-et-console-du-serveur)
+21. [Vérifier et réparer l'installation](#21-vérifier-et-réparer-linstallation)
+22. [Mettre à jour, déplacer, dupliquer, désinstaller](#22-mettre-à-jour-déplacer-dupliquer-désinstaller)
+
+**Référence**
+23. [Sécurité et vie privée](#23-sécurité-et-vie-privée)
+24. [Dépannage](#24-dépannage)
+25. [Questions fréquentes](#25-questions-fréquentes)
+26. [Où sont mes fichiers ?](#26-où-sont-mes-fichiers-)
+27. [Options de la ligne de commande](#27-options-de-la-ligne-de-commande)
+28. [Glossaire](#28-glossaire)
+29. [Mentions légales](#29-mentions-légales)
 
 ---
 
 ## 1. Ce que c'est, ce que ce n'est pas
 
-**C'est** un serveur de jeu complet (CMaNGOS Classic, fidèle au patch 1.12 de 2006, avec le module playerbots), une base de données (MariaDB) et un programme de pilotage (le launcher), installés dans un seul dossier, sans rien installer dans Windows. Le serveur n'écoute que sur votre propre machine (adresse 127.0.0.1) : personne d'autre ne peut s'y connecter, et rien ne sort vers Internet.
+**C'est** un serveur de jeu complet (**CMaNGOS Classic**, fidèle au patch 1.12 de 2006, avec le module **playerbots**), une base de données (**MariaDB**) et un programme de pilotage (le **launcher**), réunis dans un seul dossier, sans rien installer dans Windows.
 
-**Ce n'est pas** le jeu lui-même. Le client World of Warcraft 1.12.1 (le dossier avec `WoW.exe` et `Data\`) appartient à Blizzard Entertainment et n'est pas fourni : vous apportez le vôtre, en version française. HomeCraft n'est pas un service en ligne, pas un serveur privé partagé, et n'a aucun lien avec Blizzard.
+**Ce n'est pas** le jeu lui-même. Le client World of Warcraft 1.12.1 (le dossier avec `WoW.exe` et `Data\`) appartient à Blizzard Entertainment et **n'est jamais fourni** : vous apportez le vôtre, en version française. HomeCraft n'est pas un service en ligne, pas un serveur public, et n'a aucun lien avec Blizzard.
 
-**Ce qu'il apporte au jeu de base**
+**Ce que HomeCraft apporte**
 
-- des **bots** (PlayerBots) qui peuplent le monde, font leurs quêtes et rejoignent votre groupe quand vous les invitez ;
-- un **hôtel des ventes** rempli automatiquement (6 392 objets utiles en solo) ;
-- des **bots de peuplement** optionnels qui flânent dans les capitales ;
-- des **réglages** du monde (expérience, butin, difficulté, factions, etc.) sans toucher à un fichier ;
-- des **traductions françaises** complétées là où la base d'origine était en anglais ;
-- la gestion de vos **patchs graphiques** et de vos **AddOns** ;
-- des **sauvegardes** vérifiées, automatiques à chaque fermeture du jeu, et une restauration en un clic ;
-- la **vérification** et la **réparation** de l'installation ;
-- deux options de modernisation du client : **VanillaFixes** (fluidité) et **DXVK** (rendu Vulkan).
+| Domaine | Ce que vous obtenez |
+|---|---|
+| Monde vivant | des centaines de **bots** qui montent de niveau, font leurs quêtes, chassent, commercent, vont en donjon et en champ de bataille, forment des groupes et des guildes |
+| Compagnons | des bots qui rejoignent votre groupe, vous suivent, combattent, soignent, obéissent à vos ordres |
+| IA des bots | (facultatif) des bots qui vous répondent avec un modèle de langage local ou en ligne |
+| Confort | hôtel des ventes approvisionné, réglages du monde (expérience, butin, difficulté, factions) sans toucher un fichier |
+| Français | traductions complétées là où la base d'origine était en anglais |
+| Lancement | profils : un clic pour lancer le jeu avec votre compte et votre personnage préféré |
+| Multiboxing | plusieurs personnages d'un même compte connectés en même temps |
+| Multijoueur | une partie privée avec vos amis, sans serveur central, sans redirection de port dans la plupart des cas |
+| Sécurité des données | sauvegardes vérifiées, automatiques à chaque fermeture du jeu ; restauration en un clic |
+| Entretien | vérification et réparation de l'installation, explorateur de base de données, gestion des patchs et AddOns |
+| Client | prise en charge du client d'origine et de **Benilla** (client libre 64 bits) ; options VanillaFixes et DXVK |
+| Langue | interface du launcher en français ou en anglais |
 
-## 2. Prérequis
+## 2. Comment ça marche
+
+![Ce qui tourne sur votre PC quand vous jouez](images/manuel/architecture.svg)
+
+- Le **launcher** démarre et arrête dans le bon ordre la base de données, le serveur d'authentification (**realmd**) et le serveur du monde (**mangosd**, avec les bots), puis lance votre **client** déjà configuré.
+- Tout le serveur écoute **uniquement sur votre machine** (adresse 127.0.0.1) : personne sur le réseau ne peut s'y connecter.
+- Deux fonctions **facultatives** sortent de votre PC, seulement si vous les activez : l'**IA des bots** quand vous choisissez un fournisseur en ligne (§13), et le **multijoueur** quand vous ouvrez une partie ou en rejoignez une (§17). Le détail de ce qui est envoyé, et à qui, est au §23.
+
+## 3. Prérequis
 
 | Élément | Minimum |
 |---|---|
 | Système | Windows 10 ou 11, 64 bits |
-| Processeur | 4 cœurs conseillés (le serveur, la base et le jeu tournent en même temps) |
-| Mémoire | 8 Go (16 Go confortable) |
-| Espace disque | environ 4 Go pour HomeCraft (base de données + données extraites) **en plus** du client (≈ 5 Go, plus vos patchs HD éventuels) |
-| Client | World of Warcraft **1.12.1**, version **française** (frFR), build 5875 ou 5880 ; ou **Benilla** (client libre 64 bits) utilisant les archives de ce client |
-| Droits | un dossier où vous pouvez écrire (pas `C:\Program Files`, pas un CD) |
-| Réseau | aucun : tout fonctionne hors ligne |
+| Processeur | 4 cœurs conseillés (serveur, base, bots et jeu tournent en même temps) |
+| Mémoire | 8 Go ; **16 Go conseillés** (le serveur occupe 2 à 4 Go avec 100 à 200 bots) |
+| Espace disque | environ **6 Go** pour HomeCraft (base, données extraites, cartes de déplacement) **en plus** du client (≈ 5 Go) |
+| Client | World of Warcraft **1.12.1 français** (frFR), build 5875 ou 5880 ; ou **Benilla** utilisant les archives d'un tel client |
+| Droits | un dossier où vous pouvez écrire (pas `C:\Program Files`, pas un dossier OneDrive) ; **aucun droit administrateur** |
+| Réseau | aucun pour jouer seul ; Internet seulement pour le multijoueur à distance ou une IA en ligne |
+| IA locale (facultatif) | LM Studio ou Ollama avec un modèle déjà chargé ; une carte graphique récente aide beaucoup |
 
 Aucun logiciel supplémentaire n'est nécessaire : ni Visual C++, ni .NET, ni MySQL, ni Python.
 
-## 3. Contenu du dossier
-
-```
-HomeCraft Edition Vanilla\
-├─ HomeCraft Edition Vanilla.exe   le launcher (signé)
-├─ LISEZMOI.txt                    démarrage rapide
-├─ LICENCE.txt                     licence d'utilisation de HomeCraft
-├─ Client\                         VOTRE client 1.12.1 (vide à la livraison)
-├─ Server\                         serveur CMaNGOS, MariaDB, dumps de la base, configurations générées,
-│                                  données extraites de votre client (Server\Data, créées au premier démarrage)
-├─ UserData\                       VOS données : base de données (personnages), réglages, sauvegardes, identifiants
-├─ Logs\                           journaux du launcher et du serveur
-├─ Tools\                          HeidiSQL, VanillaFixes/DXVK, scripts
-├─ Documentation\                  ce manuel et la documentation technique
-├─ LICENCES\                       licences des composants tiers et liste des sources
-├─ Sources\                        code source du launcher et des scripts de construction
-└─ Build\                          manifeste des fichiers (vérification), certificat de signature
-```
-
-Deux dossiers vous appartiennent et doivent être préservés : `Client\` (votre jeu) et `UserData\` (vos personnages et sauvegardes).
-
 ## 4. Installation
 
-HomeCraft est livré sous forme **portable** : un dossier (ou son archive zip) à copier, sans installateur. Rien n'est écrit dans Windows en dehors de ce dossier.
+HomeCraft est livré sous forme **portable** : un dossier (ou son archive) à copier, sans installateur.
 
-1. **Copiez** l'intégralité du dossier livré sur votre disque dur, par exemple dans `C:\Jeux\HomeCraft Edition Vanilla\`. Évitez `C:\Program Files` (droits d'écriture) et les dossiers synchronisés en nuage (OneDrive) : la base de données y fonctionne mal.
-2. **Placez votre client** 1.12.1 frFR dans le sous-dossier `Client\` (le dossier doit contenir directement `WoW.exe` et `Data\`). Vous pouvez aussi laisser le client où il est et indiquer son emplacement dans Paramètres (voir §15).
+1. **Copiez** l'intégralité du dossier sur votre disque dur, par exemple `C:\Jeux\HomeCraft Edition Vanilla\`. Évitez `C:\Program Files` (droits d'écriture) et les dossiers synchronisés en nuage (OneDrive, Google Drive) : la base de données y fonctionne mal.
+2. **Placez votre client** 1.12.1 frFR dans le sous-dossier `Client\` : il doit contenir directement `WoW.exe` (ou l'exécutable Benilla) et `Data\`. Le launcher le détecte tout seul, il n'y a rien à régler.
 3. **Ouvrez** `HomeCraft Edition Vanilla.exe`.
 
-**Avertissement « Éditeur inconnu ».** Windows SmartScreen affiche cet avertissement parce que l'exécutable est signé avec un certificat personnel, non reconnu par Microsoft. Cliquez sur « Informations complémentaires » puis « Exécuter quand même ». La signature garantit au moins que le fichier n'a pas été modifié depuis sa création ; vous pouvez la consulter dans Propriétés > Signatures numériques.
+![Le dossier HomeCraft](images/manuel/dossiers.svg)
 
-**Antivirus.** Certains antivirus signalent à tort les lanceurs de jeu ou VanillaFixes (qui injecte une bibliothèque dans le jeu). Si c'est le cas, ajoutez le dossier HomeCraft aux exclusions.
+**Avertissement « Éditeur inconnu ».** Windows SmartScreen affiche cet avertissement parce que l'exécutable est signé avec un certificat personnel, non reconnu par Microsoft. Cliquez « Informations complémentaires » puis « Exécuter quand même ». La signature garantit au moins que le fichier n'a pas été modifié ; vous pouvez la consulter dans Propriétés > Signatures numériques.
 
-**Si vous avez ouvert le launcher depuis un support en lecture seule** (CD, DVD, dossier protégé), il vous le dit et propose « Installer sur ce PC… » : choisissez un dossier de destination, tout y est copié et le launcher s'y rouvre. Ce cas n'est pas l'usage prévu : copiez le dossier d'abord.
+**Antivirus.** Certains antivirus signalent à tort les lanceurs de jeu, VanillaFixes (qui injecte une bibliothèque dans le jeu) ou les outils du serveur. Ajoutez au besoin le dossier HomeCraft aux exclusions.
+
+**Contrôle intelligent des applications (Windows 11).** S'il est actif, il peut bloquer les outils du serveur (non signés par leurs auteurs) : voir §24, « os error 4551 ».
+
+**Support en lecture seule.** Ouvert depuis un CD, un DVD ou un dossier protégé, le launcher le signale et propose « Installer sur ce PC… » : choisissez un dossier, tout y est copié et le launcher s'y rouvre.
+
+**Une seule fenêtre par installation.** Ouvrir le launcher une seconde fois affiche un message et ne fait rien : utilisez la fenêtre déjà ouverte (peut-être réduite dans la barre des tâches).
 
 ## 5. Premier démarrage pas à pas
 
-1. Au premier lancement, l'accueil affiche l'état des composants : Client « vérifié » (ou « introuvable » si le client n'est pas encore en place), Base de données « arrêtée », Serveur « arrêté ».
-2. Cliquez sur **JOUER**. Le launcher enchaîne automatiquement, en affichant chaque étape et une barre de progression :
-   - *Préparation de la base de données locale* : création de la base MariaDB dans `UserData\Database` et d'identifiants aléatoires (`UserData\db-credentials.json`) ;
-   - *Première installation : import des données du monde* : les quatre bases (comptes, personnages, monde, journaux) sont importées, puis les compléments HomeCraft (hôtel des ventes, traductions) ; comptez une à deux minutes ;
-   - *Extraction des données du client* : les outils du serveur lisent votre client pour produire les cartes (dbc, maps, vmaps) dans `Server\Data` ; comptez une à trois minutes, une seule fois ;
-   - *Démarrage du serveur d'authentification* puis *Chargement du monde* : une dizaine de secondes.
-   Au total, le premier démarrage prend de **deux à cinq minutes**. Les suivants prennent quelques secondes.
-3. Quand l'état passe à **PRÊT**, le launcher lance le jeu tout seul (c'est le bouton JOUER qui a été utilisé). Le client est configuré automatiquement : adresse du serveur (`realmlist.wtf`), mode fenêtré et résolution adaptée à votre écran (`Config.wtf`).
-4. **Créez votre compte** dans l'onglet **Comptes** (voir §8), puis connectez-vous dans le jeu avec cet identifiant et ce mot de passe. Créez un personnage et entrez dans le monde.
-5. En arrière-plan, le launcher lance la génération des **cartes de déplacement (mmaps)**, nécessaires aux déplacements fins des bots et des monstres, en donjon notamment. Elle dure d'un quart d'heure à une heure environ selon votre processeur ; vous pouvez jouer pendant ce temps. L'accueil affiche une barre de progression, le temps écoulé et le temps restant estimé (calculé sur le rythme observé, plus long au début car les continents passent en premier), puis « générées : actives au prochain démarrage du serveur ». Si vous fermez le launcher avant la fin, elle reprend au démarrage suivant.
+![Premier démarrage pas à pas](images/manuel/premier-demarrage.svg)
 
-**Quand vous avez fini de jouer :** quittez le jeu normalement (Quitter dans le menu). Le launcher crée une sauvegarde automatique de vos personnages, puis vous pouvez fermer le launcher : il arrête proprement le serveur et la base (quelques secondes, ne forcez pas la fermeture).
+1. Au premier lancement, l'accueil affiche l'état des composants : Client « vérifié » (ou « introuvable » si le client n'est pas encore en place), Base de données « arrêtée », Serveur « arrêté ».
+2. Cliquez sur **JOUER**. Le launcher enchaîne automatiquement, avec une barre de progression et le détail de chaque étape :
+   - **Base de données** : création de MariaDB dans `UserData\Database` avec des identifiants aléatoires, import des bases (comptes, personnages, monde en français, journaux) ;
+   - **Extraction** : les outils du serveur lisent votre client pour produire les tables du jeu, le relief et les collisions (`Server\Data`) ;
+   - **Cartes de déplacement (mmaps)** : indispensables aux bots, elles sont générées **avant** le premier démarrage du serveur, avec tous les cœurs du processeur ; l'accueil affiche le pourcentage et le temps restant estimé ;
+   - **Démarrage** : MariaDB, realmd, puis mangosd ; au tout premier démarrage, le serveur crée aussi les comptes et personnages des bots (quelques minutes).
+3. Quand l'état passe à **PRÊT**, le jeu s'ouvre tout seul, déjà configuré (adresse du serveur, mode fenêtré, résolution adaptée à votre écran).
+4. **Créez votre compte** dans l'onglet **Comptes** (§9) — ou créez directement un **profil** (§8) — puis connectez-vous dans le jeu, créez un personnage et entrez dans le monde.
+
+Fermer le launcher pendant l'extraction ou la génération des cartes est sans danger : elles reprennent au démarrage suivant.
+
+**Quand vous avez fini de jouer :** quittez le jeu normalement. Le launcher fait une sauvegarde automatique de vos personnages. Fermez ensuite le launcher : il arrête proprement le serveur et la base (quelques secondes ; ne forcez pas la fermeture).
 
 ## 6. La fenêtre du launcher
 
-La fenêtre est organisée en **onglets** (barre du haut) : Accueil, Comptes, PlayerBots, Monde, Patchs, Base de données, Sauvegardes, Paramètres, Journaux.
+![Accueil du launcher](images/manuel/ecran-accueil.png)
 
-En permanence, l'accueil affiche un **état** en lettres capitales :
+La fenêtre est organisée en **onglets** (barre du haut) : Accueil, Comptes, PlayerBots, Monde, Patchs, Base de données, Sauvegardes, **Multijoueur**, Paramètres, Journaux. La barre du bas affiche en permanence l'**état** et le message en cours.
 
 | État | Signification |
 |---|---|
 | NON INSTALLÉ | des composants sont absents (dossier incomplet) : RÉPARER ou réinstaller |
 | INSTALLÉ | tout est en place, services arrêtés |
-| VÉRIFICATION / INITIALISATION / DÉMARRAGE… | démarrage en cours, étape affichée dessous |
+| VÉRIFICATION, INITIALISATION, DÉMARRAGE… | démarrage en cours, étape affichée à côté |
 | PRÊT | serveur opérationnel, vous pouvez jouer |
-| JEU EN COURS | le jeu est lancé ; le serveur reste actif tant que la fenêtre est ouverte |
+| JEU EN COURS | au moins un client est ouvert ; le serveur reste actif tant que la fenêtre est ouverte |
 | ARRÊT EN COURS | fermeture propre des services |
-| RÉPARATION | opération longue en cours (réparation, restauration, réimport, construction d'un patch) |
-| ERREUR | une étape a échoué : le message explique laquelle ; voir §19 |
+| RÉPARATION | opération longue (réparation, restauration, réimport, construction d'un patch) |
+| ERREUR | une étape a échoué : le message explique laquelle (§24) |
 
-Les boutons se grisent quand l'action n'est pas possible dans l'état courant (par exemple, pas de restauration pendant que le jeu tourne). Toute action irréversible demande une **confirmation** dans une petite fenêtre.
+Les boutons se grisent quand l'action n'est pas possible. Toute action irréversible demande une **confirmation**.
 
-**Fermer la fenêtre** arrête d'abord les services : si le jeu est encore ouvert, il sera déconnecté. Fermez le jeu avant.
+**Fermer la fenêtre** arrête d'abord les services ; un jeu encore ouvert serait déconnecté : quittez le jeu avant.
 
 ## 7. Onglet Accueil
 
 C'est le tableau de bord.
 
-**Composants** : Client (vérifié / réparation nécessaire / introuvable, avec sa version), Base de données (arrêtée / opérationnelle), Serveur (arrêté / démarrage / opérationnel), PlayerBots (activés / désactivés).
+**Composants** : Client (vérifié / réparation nécessaire / introuvable), Base de données (arrêtée / opérationnelle), Serveur (arrêté / démarrage / opérationnel), PlayerBots (activés / désactivés).
 
 **Boutons principaux**
 
-- **JOUER** : démarre les services si nécessaire, puis lance le jeu. Actif dès que le client est valide.
-- **DÉMARRER LE SERVEUR** : démarre les services sans lancer le jeu (utile pour créer un compte, régler le monde, laisser les bots de peuplement se connecter).
-- **ARRÊTER LE SERVEUR** : arrêt propre (les personnages sont enregistrés par le serveur avant l'arrêt).
-- **FERMER LE JEU** (visible seulement pendant le jeu) : force la fermeture de `WoW.exe`, pour un écran noir ou un jeu figé. Ce que le serveur n'a pas encore enregistré (au plus quelques minutes) est perdu.
+| Bouton | Effet |
+|---|---|
+| **JOUER** | démarre les services si nécessaire, puis lance le jeu (sans préremplissage) |
+| **DÉMARRER LE SERVEUR** | démarre les services sans lancer le jeu (créer un compte, régler le monde, laisser les bots se connecter, héberger une partie) |
+| **ARRÊTER LE SERVEUR** | arrêt propre : les personnages sont enregistrés avant l'arrêt |
+| **FERMER LE JEU** | (pendant le jeu) force la fermeture des clients lancés par HomeCraft, en cas d'écran noir ou de jeu figé ; ce que le serveur n'a pas encore enregistré (quelques minutes au plus) est perdu |
+| **Profils** (ligne sous les boutons) | un bouton par profil : lance le jeu avec ce compte prérempli (§8) ; « Gérer les profils… » |
 
-**Boutons secondaires** : VÉRIFIER LES FICHIERS, RÉPARER (voir §17), SAUVEGARDER (sauvegarde manuelle immédiate, puis bascule sur l'onglet Sauvegardes), RESTAURER (ouvre l'onglet Sauvegardes), PARAMÈTRES, JOURNAUX.
+**Boutons secondaires** : VÉRIFIER LES FICHIERS, RÉPARER (§21), SAUVEGARDER (sauvegarde manuelle immédiate), RESTAURER (onglet Sauvegardes), PARAMÈTRES, JOURNAUX.
 
-**Diagnostic** (bas de l'accueil) : dossier d'installation, version du launcher, dossier et version du client, archives MPQ manquantes le cas échéant, présence de chaque composant, état des **cartes de déplacement (mmaps)** (présentes / absentes / génération en cours / générées, actives au prochain démarrage / échec), nombre de personnages en ligne.
+**Diagnostic** (bas de l'accueil) : dossier d'installation, version du launcher, dossier, type et version du client, archives manquantes, présence de chaque composant, état des **cartes de déplacement** (présentes / génération en cours avec progression / échec), nombre de personnages en ligne (le vôtre et les bots).
 
-## 8. Onglet Comptes
+## 8. Profils de lancement
 
-Un compte de jeu = un identifiant + un mot de passe, auquel sont rattachés jusqu'à 10 personnages. Vous pouvez créer autant de comptes que vous voulez (un par membre de la famille, par exemple).
+![Profils de lancement](images/manuel/profils.svg)
 
-**Le serveur doit être démarré** pour créer ou modifier un compte (DÉMARRER LE SERVEUR ou JOUER).
+Un **profil** lance le jeu avec votre compte déjà rempli et votre personnage préféré présélectionné. Les boutons des profils sont sur l'accueil (le profil par défaut, marqué ★, vient en premier). Un profil dont le jeu est ouvert apparaît en vert et ne peut pas être relancé tant que ce jeu est ouvert.
 
-**Créer un compte** : saisissez l'identifiant (lettres et chiffres, sans espace), le mot de passe, choisissez le **niveau GM** puis « Créer le compte ».
+**Gérer les profils…** ouvre une fenêtre pour **créer**, **modifier** (y compris renommer), **supprimer** un profil et choisir le profil **par défaut**.
 
-**Niveau GM** : 0 = joueur, 1 = modérateur, 2 = maître de jeu, **3 = administrateur**. À partir de 2, les commandes de maître de jeu (`.go`, `.additem`, `.levelup`…) sont disponibles et tous les bots acceptent vos ordres. En solo, mettez 3. Les noms commençant par RNDBOT sont réservés aux comptes des bots (ils n'apparaissent pas dans la liste). Un compte GM joue exactement comme un autre tant que vous n'activez pas le mode maître de jeu dans le jeu (`.gm on`) ; voir le réglage « Mode MJ à la connexion » dans l'onglet Monde.
+| Champ | Rôle |
+|---|---|
+| Nom du profil | ce qui s'affiche sur le bouton |
+| Compte | le compte de jeu (lettres et chiffres) |
+| Mot de passe | facultatif ; « enregistrer le mot de passe (chiffré) » pour se connecter sans rien taper |
+| Personnage préféré | présélectionné à l'écran des personnages (Benilla) |
+| Entrer directement en jeu | Benilla avec mot de passe enregistré : entre en jeu avec ce personnage sans s'arrêter à la sélection |
+| Arguments du client | options passées à l'exécutable du jeu (avancé) |
 
-**Liste des comptes** : identifiant, niveau GM, dernière connexion, nombre de personnages. Sélectionnez un compte pour :
+**Mot de passe enregistré** : il est chiffré pour **votre session Windows** (DPAPI) avant d'être écrit dans `UserData\profiles.json`. Il n'est jamais écrit en clair, jamais réaffiché, jamais dans les journaux, jamais envoyé sur le réseau multijoueur, et il ne peut pas être déchiffré par un autre compte Windows ni sur un autre PC (après un changement de PC, ressaisissez-le).
 
-- **Changer le mot de passe** (saisissez le nouveau dans le champ Mot de passe puis cliquez) ;
-- **Appliquer le niveau GM** (après l'avoir changé dans le champ) ;
-- **Supprimer** : le compte **et tous ses personnages** (objets, courrier, progression) sont supprimés définitivement, après confirmation. Faites une sauvegarde avant si vous avez un doute. Impossible pendant que le jeu est lancé. Le launcher avertit si c'est le compte connecté le plus récemment.
+**Comment le jeu est prérempli**
 
-**Actualiser** relit la liste depuis la base.
+- **Benilla** : par le mécanisme prévu par ce client. Le compte est mémorisé dans `benilla-config\account` ; avec un mot de passe enregistré, la connexion est validée automatiquement et le personnage est présélectionné (ou le jeu entre directement en jeu). Le mot de passe n'est transmis qu'au processus du jeu, au lancement.
+- **Client d'origine** (`WoW.exe`) : le nom de compte est écrit dans `WTF\Config.wtf` (`accountName`, le réglage que le jeu mémorise lui-même). Le client 1.12.1 n'a aucun moyen de recevoir un mot de passe : s'il est enregistré, le launcher le **tape dans la fenêtre du jeu** qu'il vient d'ouvrir, quelques secondes après son apparition, puis valide (frappes envoyées à cette fenêtre seulement). Ce n'est possible qu'en lancement direct (pas via VanillaFixes). Pas de présélection du personnage avec ce client.
 
-**Se connecter dans le jeu** : à l'écran de connexion du jeu, saisissez l'identifiant et le mot de passe tels que créés ici. Le royaume s'appelle « HomeCraft » et apparaît seul dans la liste.
+**Plusieurs profils à la fois** : chaque profil ouvre son propre jeu ; c'est la façon la plus simple de jouer plusieurs personnages en même temps (§11).
 
-## 9. Jouer avec les bots
+## 9. Onglet Comptes
 
-Le monde est peuplé de **bots** (module playerbots de CMaNGOS) : des personnages contrôlés par le serveur qui jouent comme des joueurs. Ils montent de niveau, font leurs quêtes, chassent, commercent, vont en donjon et en champ de bataille, forment des groupes et fondent des guildes. Vous les croisez partout, sur les deux continents.
+![Onglet Comptes](images/manuel/ecran-comptes.png)
 
-Au **premier démarrage**, le serveur crée leurs comptes (RNDBOT0, RNDBOT1…, dix personnages chacun) et leurs personnages : comptez quelques minutes de plus que d'habitude. Ensuite, il en garde un certain nombre connectés (réglable dans l'onglet PlayerBots, 100 à 200 par défaut) et en renouvelle une partie de temps en temps.
+Un compte de jeu = un identifiant + un mot de passe, auquel sont rattachés jusqu'à 10 personnages. Créez autant de comptes que vous voulez (un par membre de la famille, un par ami en multijoueur…).
 
-**Grouper avec un bot** : invitez-le (clic droit sur son portrait, ou `/inviter Nom`). Il accepte quel que soit votre niveau (réglage « Écart de niveau maximal pour accepter une invitation »), sauf s'il est déjà occupé (groupe plein, file d'attente d'un champ de bataille). Il vous suit, attaque votre cible, soigne s'il est soigneur et vous accompagne en donjon. Les bots vous proposent aussi parfois de grouper.
+**Le serveur doit être démarré** pour créer ou modifier un compte.
+
+- **Créer un compte** : identifiant (1 à 16 lettres ou chiffres), mot de passe (4 à 16 caractères, sans espace), **niveau GM**, puis « Créer le compte ».
+- **Niveau GM** : 0 joueur, 1 modérateur, 2 maître de jeu, **3 administrateur**. À partir de 2, les commandes de maître de jeu (`.go`, `.additem`, `.levelup`…) sont disponibles et tous les bots acceptent vos ordres. En solo, mettez 3. En multijoueur, donnez **0** à vos amis.
+- Les noms commençant par **RNDBOT** sont réservés aux comptes des bots (ils n'apparaissent pas dans la liste).
+
+**Liste des comptes** : identifiant, niveau GM, dernière connexion, nombre de personnages. Sélectionnez un compte pour **changer son mot de passe**, **appliquer un niveau GM** ou le **supprimer** : le compte et tous ses personnages (objets, courrier, progression) sont alors supprimés définitivement, après confirmation. La suppression est refusée si un personnage du compte est en jeu (déconnectez-le d'abord). Faites une sauvegarde si vous avez un doute.
+
+**Se connecter dans le jeu** : saisissez l'identifiant et le mot de passe tels que créés ici (insensibles à la casse). Le royaume s'appelle « HomeCraft ».
+
+## 10. Jouer avec les bots
+
+Le monde est peuplé de **bots** (module playerbots) : des personnages contrôlés par le serveur qui jouent comme des joueurs, sur les deux continents. Au premier démarrage, le serveur crée leurs comptes (RNDBOT…, dix personnages chacun) ; ensuite il en garde un certain nombre connectés (100 à 200 par défaut, réglable) et en renouvelle une partie de temps en temps.
+
+**Grouper avec un bot** : invitez-le (clic droit sur son portrait, ou `/inviter Nom`). Il accepte quel que soit votre niveau (réglage « Écart de niveau maximal… »), sauf s'il est occupé. Il vous suit, attaque votre cible, soigne s'il est soigneur et vous accompagne en donjon. Les bots vous proposent aussi parfois de grouper.
 
 **Former un groupe en un instant**
 
 | Commande (chat du jeu) | Effet |
 |---|---|
-| `.bot group` | complète votre groupe avec des bots de classes complémentaires (tank, soigneur, DPS), **à votre niveau** ; ils disparaissent au redémarrage du serveur |
-| `.bot add Nom` | connecte un autre personnage **de votre compte** comme bot, dans votre groupe (vous jouez ainsi avec vos propres personnages) |
+| `.bot group` | complète votre groupe avec des bots de classes complémentaires (tank, soigneur, DPS), à votre niveau |
+| `.bot add Nom` | connecte un autre personnage **de votre compte** comme bot, dans votre groupe |
 | `.bot remove Nom` | déconnecte ce bot |
 | `.bot list` | liste vos bots connectés |
 | `.bot prepare Nom` | équipe le bot au mieux et lui donne nourriture, potions et composants |
 
-**Donner des ordres** : tapez-les dans le **canal de groupe** (`/g`), pour tous vos bots, ou en **chuchotant** à un bot (`/w Nom`), pour lui seul. Ils sont en anglais.
+**Donner des ordres** : dans le **canal de groupe** (`/g`) pour tous vos bots, ou en **chuchotant** (`/w Nom`) pour un seul. Les ordres sont en anglais.
 
 | Ordre | Effet |
 |---|---|
@@ -203,303 +246,414 @@ Au **premier démarrage**, le serveur crée leurs comptes (RNDBOT0, RNDBOT1…, 
 | `grind` | chassez librement autour de vous |
 | `summon` | le bot vous rejoint (téléportation) |
 | `release` | un bot mort libère son esprit |
-| `q` | liste ses quêtes ; `doquest` lui fait faire une quête |
-| `c` | son inventaire ; `e [objet]` équipe, `ue [objet]` déséquipe, `s [objet]` vend |
-| `talents`, `stats` | ses talents ; son argent, ses sacs, l'état de son équipement |
+| `q` / `doquest` | ses quêtes / lui faire faire une quête |
+| `c`, `e [objet]`, `ue [objet]`, `s [objet]` | inventaire, équiper, déséquiper, vendre |
+| `talents`, `stats` | ses talents ; argent, sacs, état de l'équipement |
 | `leave` | il quitte le groupe et reprend sa vie |
 | `help` | aide complète des bots (en anglais) |
 
-L'onglet PlayerBots du launcher rappelle ces commandes.
+Avec l'**IA des bots** activée (§13), vous pouvez aussi simplement leur parler en français : « tu peux me suivre ? », « attends-moi ici »…
 
-**Conseils de jeu**
+**Conseils** : un compte GM 2 ou 3 commande n'importe quel bot ; un compte joueur commande les bots de son groupe et de sa guilde. Pensez aux réglages de l'onglet Monde pour le solo (§14).
 
-- Un compte de niveau GM 2 ou 3 (onglet Comptes) peut commander n'importe quel bot ; un compte joueur commande les bots de son groupe et de sa guilde.
-- Les bots ont besoin des **cartes de déplacement (mmaps)** pour contourner les obstacles en intérieur. Tant qu'elles ne sont pas générées puis prises en compte (redémarrage du serveur), ils peuvent rester bloqués derrière un mur : utilisez `summon`.
-- L'hôtel des ventes est approvisionné automatiquement (Alliance, Horde et gobelin) ; les bots y achètent et vendent aussi.
-- En solo, pensez aux réglages de l'onglet Monde (§11) : quêtes de raid autorisées en groupe simple, Alliance et Horde sur le même compte, dégâts des créatures, cinématiques, etc.
+## 11. Plusieurs personnages à la fois (multiboxing) et absence (AFK)
 
-## 10. Onglet PlayerBots
+Onglet **Monde**, groupe **Sessions** :
 
-Cet onglet règle le module playerbots. Serveur en marche, les réglages enregistrés (bouton « Enregistrer les réglages PlayerBots ») sont **appliqués tout de suite** ; le nombre de comptes de bots, lui, ne change qu'au démarrage suivant.
+| Réglage | Défaut HomeCraft | Effet |
+|---|---|---|
+| Plusieurs personnages d'un même compte en même temps | activé | ouvrez plusieurs fois le jeu et connectez dans chacun un personnage différent du même compte ; sans cette option, un second jeu déconnecte le premier |
+| Sessions simultanées par compte | 4 (1 à 10) | une session de plus est **refusée sans déconnecter les autres** |
+| Pas de déconnexion pour inactivité | activé | un personnage absent (AFK) n'est plus renvoyé à la sélection des personnages au bout de 15 minutes |
 
-- *Activer les PlayerBots* : coche générale (sans elle, aucun bot, ni dans le monde ni dans votre groupe).
-- **Personnages des bots aléatoires** : leur nombre, et le bouton **« Supprimer tous les bots aléatoires »**. La suppression retire, après confirmation, tous les comptes RNDBOT, leurs personnages et leurs guildes ; vos comptes et personnages ne sont jamais concernés. Si le serveur tourne, le launcher l'arrête le temps de l'opération puis le relance (refusé si un de vos personnages est en jeu : revenez à la sélection des personnages). Au redémarrage, des bots neufs sont créés.
+**Comment faire** : créez un profil par personnage (§8) et cliquez sur chaque bouton, ou cliquez plusieurs fois sur JOUER et connectez un personnage différent dans chaque fenêtre.
 
-**Bots aléatoires (monde peuplé)** : connexion des bots, nombre minimal et maximal de bots connectés, niveaux minimal et maximal, part des bots créés au niveau maximal, recherche de groupe, champs de bataille, groupes, guildes, discussions dans les canaux, salutations, bots qui viennent près de vous.
+**Connexion réellement perdue** : jeu fermé de force, coupure réseau… le serveur le détecte toujours, déconnecte et sauvegarde le personnage ; vous pouvez vous reconnecter aussitôt, les autres sessions du compte ne sont pas touchées.
 
-**Combien de bots ?** Le serveur occupe à lui seul environ 2 Go de mémoire, même avec peu de bots (caches du module : équipements, trajets). Chaque bot connecté a ensuite une intelligence complète (quêtes, déplacements, combat) : c'est plus coûteux que de simples figurants. 100 à 200 bots conviennent à un PC courant ; au-delà de 1 000, l'onglet signale la charge à prévoir. Réduisez le nombre si le jeu ou le PC ralentit.
+En multijoueur, ces réglages sont ceux de l'**hôte** (c'est son serveur).
 
-**Invitations et groupe** : les bots vous invitent-ils, écart de niveau maximal pour accepter votre invitation (60 = toujours), refus si votre équipement est trop faible, bots qui prennent vos quêtes ou font les leurs, équipement automatique du butin, commande des bots de votre guilde, facilités accordées à vos bots (vols gratuits, composants, respiration sous l'eau).
+## 12. Onglet PlayerBots
 
-**Performances** : part des bots actifs loin de vous, taille des vagues de connexion au démarrage.
+![Onglet PlayerBots](images/manuel/ecran-playerbots.png)
 
-**Les bots dans `/qui`** : ce sont des personnages comme les autres, visibles dans `/qui` et comptés dans « Personnages en ligne » sur l'accueil.
+Cet onglet règle le module playerbots. Serveur en marche, les réglages enregistrés (« Enregistrer les réglages PlayerBots ») sont **appliqués tout de suite** ; le nombre de comptes de bots ne change qu'au démarrage suivant. En haut de l'onglet : la section **IA des bots** (§13).
 
-## 11. Onglet Monde
+- **Activer les PlayerBots** : coche générale.
+- **Personnages des bots aléatoires** : leur nombre, et « **Supprimer tous les bots aléatoires** » (après confirmation : comptes RNDBOT, personnages, guildes de bots ; jamais les vôtres). Serveur en marche, il est arrêté le temps de l'opération puis relancé (refusé si un de vos personnages est en jeu).
 
-Les réglages les plus utiles du serveur de jeu, regroupés par thème, chacun avec sa **valeur Vanilla par défaut** rappelée (« Défaut ») et marqué « modifié » quand vous l'avez changé. « Tout remettre aux valeurs Vanilla » annule l'ensemble. Enregistrez, puis redémarrez le serveur pour appliquer.
+| Groupe | Réglages |
+|---|---|
+| Bots aléatoires (monde peuplé) | connexion des bots, nombre minimal et maximal connectés, niveaux minimal et maximal, part au niveau maximal, recherche de groupe, champs de bataille (et lancement automatique), groupes, guildes, discussions dans les canaux, salutations, bots qui viennent près de vous |
+| Invitations et groupe | les bots vous invitent, écart de niveau maximal pour accepter, refus si équipement trop faible, bots qui prennent vos quêtes, quêtes en autonomie, équipement du butin, bots de votre guilde, facilités (vols gratuits, composants, respiration) |
+| Performances | part des bots actifs loin de vous, taille des vagues de connexion |
+
+**Combien de bots ?** Le serveur occupe environ 2 Go même avec peu de bots ; chaque bot connecté a ensuite une intelligence complète. 100 à 200 bots conviennent à un PC courant ; au-delà de 1 000, l'onglet signale la charge à prévoir.
+
+Chaque réglage montre sa **valeur par défaut** (« Défaut »), la mention « modifié » quand vous l'avez changé, et une aide au survol.
+
+## 13. IA des bots (modèle de langage)
+
+![IA des bots](images/manuel/pont-ia.svg)
+
+Dans l'onglet **PlayerBots**, section **IA des bots** : les bots répondent aux vrais joueurs (dire, groupe, chuchotement) avec un **modèle de langage**, dans la langue choisie, avec la personnalité que vous décrivez (et, bot par bot, le fichier `llm_character_card.txt` du module).
+
+![Réglages de l'IA](images/manuel/ecran-ia.png)
+
+| Réglage | Rôle |
+|---|---|
+| Activer l'IA | coche générale (désactivée par défaut) |
+| Fournisseur | **LM Studio** ou **Ollama** (modèles locaux, gratuits, rien ne sort du PC), **OpenAI**, **Anthropic**, **Mistral**, **OpenRouter**, ou tout service **compatible OpenAI** |
+| Adresse (URL) | vide = adresse habituelle du fournisseur |
+| Modèle | à saisir, ou à choisir après « Rechercher les modèles » (liste du fournisseur ; **rien n'est téléchargé**) |
+| Clé d'API | pour les fournisseurs en ligne ; chiffrée, jamais réaffichée (un aperçu masqué reste) |
+| Température | créativité des réponses (0 = sage, 1,5 = fantaisiste) |
+| Jetons de réponse | longueur maximale ; les modèles « à raisonnement » en consomment une partie avant de répondre : gardez-en **au moins 300** |
+| Délai maximal | au-delà, la réponse est abandonnée |
+| Générations simultanées | nombre de réponses calculées en même temps |
+| Paroles spontanées (%) | probabilité qu'un bot parle de lui-même à un PNJ ; chaque parole est une génération (coût d'un fournisseur payant) |
+| Intentions de jeu | autoriser l'IA à faire **agir** les bots (liste fermée, ci-dessous) |
+| Langue des réponses | français ou anglais |
+| Personnalité commune | une phrase décrivant le caractère de tous les bots |
+
+« **Tester** » envoie une phrase d'essai et affiche la réponse et sa durée (le premier appel à un modèle local peut prendre une minute, le temps de le charger). « **Enregistrer** » applique les réglages, serveur en marche compris. Sous les boutons, l'état du pont : nombre de demandes, d'échecs, durée de la dernière.
+
+**Ce que l'IA peut faire faire aux bots** : en plus de parler, **une seule action** par réponse, parmi : suivre, rester sur place, attaquer la cible, saluer, s'incliner, acclamer, rire, salut militaire. Toute autre demande est ignorée. L'action n'est exécutée que si vous êtes à côté du bot et avec les **mêmes droits** qu'un ordre que vous lui chuchoteriez. Le modèle n'a **aucun accès** au serveur.
+
+**Si le fournisseur ne répond pas** (arrêté, hors ligne, délai dépassé, erreur) : les bots reprennent leurs réponses classiques pendant une minute, puis réessaient. Le jeu ne se bloque jamais en attendant l'IA.
+
+**Modèles locaux** : téléchargez et chargez le modèle vous-même dans LM Studio ou Ollama ; HomeCraft ne télécharge jamais de modèle. Exemple testé : LM Studio avec `openai/gpt-oss-20b`.
+
+## 14. Onglet Monde
+
+![Onglet Monde](images/manuel/ecran-monde.png)
+
+Les réglages les plus utiles du serveur de jeu, regroupés par thème, chacun avec sa **valeur par défaut** et la mention « modifié ». « Tout remettre aux valeurs Vanilla » annule l'ensemble. Serveur en marche, l'enregistrement applique la plupart des réglages tout de suite (le serveur relit sa configuration) ; certains ne jouent qu'au redémarrage.
 
 | Groupe | Exemples de réglages |
 |---|---|
-| Règles du monde | contenu du monde par patch (1.2 Cœur du Magma → 1.12 complet), type de royaume (JcE / JcJ / jeu de rôle), message du jour, niveau et argent de départ, cinématiques, personnages par royaume, niveau requis des instances, heure de réinitialisation des raids, affichage des quêtes selon le niveau, **quêtes de raid autorisées en groupe simple**, nombre de métiers principaux, signatures pour fonder une guilde (0 = guilde solo) |
-| Expérience et progression | expérience des victoires / quêtes / exploration, repos, points de talent, réputation, vitesse des métiers (artisanat, récolte, armes, défense), minerai par filon, distance de partage d'expérience |
-| Butin et économie | chances de butin par rareté (gris à légendaire), argent trouvé, délai de livraison du courrier |
-| Difficulté des créatures | dégâts, points de vie et dégâts des sorts des créatures normales, élites, élites rares et boss mondiaux ; distance d'agression ; faiblesse de résurrection ; délai de récupération du corps ; malus de déserteur |
+| Règles du monde | type de royaume (JcE / JcJ / jeu de rôle), message du jour, niveau et argent de départ, cinématique d'introduction, personnages par royaume, niveau requis des instances, heure de réinitialisation des raids, affichage des quêtes selon le niveau, **quêtes de raid en groupe simple**, métiers principaux, signatures pour fonder une guilde |
+| Expérience et progression | expérience des victoires / quêtes / exploration, repos, points de talent, réputation, vitesse des métiers, minerai par filon, distance de partage d'expérience |
+| Butin et économie | chances de butin par rareté, argent trouvé, délai du courrier |
+| Difficulté des créatures | dégâts, points de vie et sorts des créatures normales, élites, élites rares, boss mondiaux ; distance d'agression ; faiblesse de résurrection ; récupération du corps ; malus de déserteur |
 | Factions et social | **Alliance et Horde sur le même compte**, chat, canaux, groupes, guildes, échanges, courrier, `/qui` et amis entre factions |
-| Maître de jeu (compte GM) | mode MJ à la connexion (« Désactivé » conseillé pour jouer normalement), visibilité, invulnérabilité en mode MJ, échanges autorisés pour les comptes GM |
-| Technique | distance d'affichage en extérieur et en instance, intervalle de sauvegarde des personnages, déchargement des instances vides, annonce des événements |
+| Sessions | multiboxing, sessions par compte, pas de déconnexion pour inactivité (§11) |
+| Maître de jeu (compte GM) | mode MJ à la connexion (« Désactivé » conseillé), visibilité |
+| Technique | distance d'affichage, intervalle de sauvegarde des personnages, déchargement des instances, annonce des événements |
 
-**Réglages conseillés pour un solo confortable** : quêtes de raid en groupe simple = oui ; Alliance et Horde sur le même compte = oui ; signatures pour une guilde = 0 ; dégâts des créatures normales et élites = 0,8 à 0,9 si vous jouez sans soigneur ; cinématiques = seulement au premier personnage ; mode MJ à la connexion = Désactivé.
+**Solo confortable** : quêtes de raid en groupe simple = oui ; Alliance et Horde sur le même compte = oui ; signatures pour une guilde = 0 ; dégâts des créatures 0,8 à 0,9 sans soigneur ; mode MJ à la connexion = Désactivé.
 
-**Contenu du monde par patch** : le serveur reproduit la sortie progressive du contenu de 2004 à 2006. Avec « 1.12 — complet », tout est disponible (Naxxramas compris). Un patch plus ancien retire les donjons, objets et événements sortis après.
+## 15. Onglet Patchs et AddOns
 
-## 12. Onglet Patchs
+**Patchs** : le client charge, après ses archives officielles, les fichiers `patch-X.MPQ` de `Client\Data` (X : chiffre de 3 à 9 ou lettre de A à Z ; les suivants ont priorité). C'est ainsi que s'installent les patchs de graphismes HD, d'interface ou de sons. HomeCraft n'en fournit ni n'en télécharge aucun.
 
-Le client charge, après ses archives officielles, les fichiers `patch-X.MPQ` du dossier `Client\Data` (X : chiffre de 3 à 9 ou lettre de A à Z ; les suivants ont priorité sur les précédents). C'est ainsi que s'installent les patchs de **graphismes HD**, d'interface ou de sons. HomeCraft n'en fournit ni n'en télécharge aucun : vous apportez les vôtres.
+- La liste montre chaque archive, sa taille et son état : **officielle**, **actif**, **désactivé** (renommé en `.off`, conservé), ou « nom non chargé par le client ».
+- **Activer / Désactiver**, **Supprimer** (confirmation ; préférez Désactiver), **Ajouter un patch…** (copié sous le prochain nom libre), **Ouvrir le dossier Data**.
+- **Créer un patch depuis un dossier…** : transforme une arborescence (par exemple un dépôt VanillaHD décompressé) en archive MPQ au format du client 1.12.1 ; plusieurs minutes pour un gros patch.
 
-- La liste montre chaque archive, sa taille et son état : **officielle** (archives du client, non modifiables), **actif**, **désactivé** (renommé en `.off`, conservé), ou « nom non chargé par le client ».
-- **Activer / Désactiver** : bascule sans rien supprimer.
-- **Supprimer** : efface l'archive définitivement (après confirmation). Préférez Désactiver.
-- **Ajouter un patch…** : choisissez un fichier `.MPQ` ; il est copié sous le prochain nom libre.
-- **Créer un patch depuis un dossier…** : transforme une arborescence de fichiers (par exemple le dépôt décompressé d'un patch VanillaHD « Patch-A-main ») en archive MPQ au format du client 1.12.1. Comptez plusieurs minutes pour un gros patch (plus d'un gigaoctet). Le nom est choisi automatiquement et l'archive est relue pour contrôle.
-- **Ouvrir le dossier Data** ouvre l'Explorateur Windows.
+Fermez le jeu avant de modifier les patchs. **Important** : les outils du serveur ne lisent que les archives officielles ; un patch n'a **aucun effet sur le serveur** (visuels et sons : oui ; nouvelles races, objets ou sorts : non reconnus).
 
-Fermez le jeu avant de modifier les patchs (fichiers en cours d'utilisation).
+**AddOns** (onglet Paramètres, en bas) : installez vos AddOns 1.12.1 (Questie, pfUI, Bagnon…) depuis leur archive zip avec « Ajouter un AddOn (zip)… » ; le launcher reconnaît le ou les dossiers d'AddOn (fichier `Nom.toc`), même dans une archive GitHub (« Nom-master »), et les place dans `Interface\AddOns` (ou `benilla-config\AddOns` avec Benilla). Désactiver renomme le dossier en `.off`. Un AddOn prévu pour une autre version (Interface ≠ 11200) est signalé : cochez « Charger les AddOns obsolètes » dans le jeu.
 
-**Important** : les outils du serveur ne lisent que les archives officielles. Un patch n'a donc **aucun effet sur le serveur** : les patchs purement visuels ou sonores fonctionnent parfaitement, mais un patch qui ajouterait des races, des objets ou des sorts côté client ne serait pas reconnu par le serveur.
+## 16. Onglet Paramètres
 
-## 13. Onglet Base de données
+![Onglet Paramètres](images/manuel/ecran-parametres.png)
 
-Un explorateur intégré, dans l'esprit de HeidiSQL, pour consulter et, si vous savez ce que vous faites, modifier les quatre bases : `characters` (personnages, objets, quêtes accomplies, courrier, hôtel des ventes), `realmd` (comptes), `mangos` (le monde : créatures, objets, quêtes, traductions) et `logs`.
+| Réglage | Rôle |
+|---|---|
+| **Langue / Language** | français ou anglais pour toute l'interface du launcher, appliqué immédiatement ; les journaux techniques et le jeu gardent leur langue |
+| Dossier du client | vide = `Client\` de l'installation (détecté automatiquement) ; « Parcourir… » pour un autre dossier ; « Rechercher les clients » liste les clients valides proches |
+| Client détecté | type reconnu (client d'origine ou Benilla), version, archives manquantes |
+| Jeu en mode fenêtré | recommandé ; changez le mode **ici**, jamais dans les options vidéo du jeu (le launcher borne la résolution pour éviter l'écran noir) |
+| VanillaFixes | corrige les saccades et le rythme des animations du client d'origine |
+| DXVK | traduit Direct3D 9 en Vulkan, à essayer si l'affichage pose problème |
+| Hôtel des ventes approvisionné | le serveur met en vente et achète des objets dans les trois hôtels des ventes |
+| Sauvegarde automatique | à chaque fermeture du jeu, avec le nombre de sauvegardes automatiques conservées |
+| Générer les mmaps | régénère les cartes de déplacement (après une réinstallation du client, ou en cas d'échec signalé) |
+| Réimporter la base monde… | recrée la base `mangos` depuis le package, **sans toucher aux personnages ni aux comptes** (après une mise à jour, ou pour annuler des modifications du monde) |
+| AddOns du client | §15 |
 
-La base doit être démarrée (DÉMARRER LE SERVEUR suffit).
+**Benilla** : le launcher règle `benilla-config\config.toml` (royaume local, fenêtré ou plein écran sans bordure, taille de fenêtre), installe les AddOns dans `benilla-config\AddOns` et n'utilise pas VanillaFixes ni DXVK. Le jeu est en français si les archives viennent d'un client frFR. N'y mettez pas de patchs chiffrés (patch-3/4/5 de certains repacks). Si `base.MPQ` manque, le launcher crée une archive vide de remplacement pour les extracteurs du serveur (Benilla l'ignore).
 
-- **Arbre** : base > tables. Cliquez une table pour l'afficher.
-- **Données** : 200 lignes par page (Précédent / Suivant), **Filtre** = clause WHERE libre (ex. `level >= 40`), tri par clic sur l'en-tête de colonne. **Double-cliquez une cellule** pour la modifier (Entrée valide, Échap annule). « Insérer une ligne » ouvre un formulaire (vide = valeur par défaut, `NULL` pour une valeur nulle) ; « Supprimer la ligne » demande confirmation. Les tables sans clé primaire sont en lecture seule dans la grille.
+## 17. HomeCraft Multijoueur
+
+![Multijoueur](images/manuel/multijoueur.svg)
+
+L'onglet **Multijoueur** permet de jouer à plusieurs sur le serveur de l'un d'entre vous, l'**hôte**. La liaison est **intégrée au launcher** (aucun programme à installer, aucun droit administrateur, aucun serveur intermédiaire) : chaque invité se relie directement au launcher de l'hôte par une connexion **chiffrée et authentifiée** (protocole Noise : X25519, ChaCha20-Poly1305, BLAKE2s).
+
+Pour le serveur de l'hôte, chaque invité est un joueur **local** : il n'y a ni royaume, ni realmlist, ni client à régler.
+
+### 17.1 Héberger
+
+![Héberger une partie](images/manuel/ecran-multijoueur-hote.png)
+
+1. Démarrez votre serveur (DÉMARRER LE SERVEUR ou JOUER).
+2. Pour chaque ami, créez un **compte** (onglet Comptes, niveau GM 0).
+3. Onglet Multijoueur : **Ouvrir ma partie**. Le launcher écoute sur le port 11010 (réglable) et **demande lui-même à votre box d'ouvrir ce port** (UPnP). L'onglet indique le résultat et votre adresse publique.
+4. Saisissez le nom de l'ami, **Créer une invitation** : un code `HC2-…` s'affiche. **Copier le code** et envoyez-le **en privé** (messagerie, e-mail), avec son identifiant et son mot de passe de compte.
+5. La liste « Joueurs reliés » montre qui est connecté, son adresse et sa latence ; « Invitations » montre la validité de chaque code.
+6. **Révoquer** coupe immédiatement les connexions de ce joueur et invalide son code. **Fermer la partie** invalide toutes les invitations (et referme le port sur la box).
+
+Chaque code contient une clé aléatoire **propre à ce joueur**, valable un temps limité (24 heures par défaut, réglable). Rien n'est persistant : une nouvelle partie demande de nouveaux codes. À la première ouverture d'une partie, Windows peut demander d'autoriser HomeCraft dans le pare-feu : acceptez pour les réseaux privés.
+
+### 17.2 Rejoindre
+
+![Rejoindre une partie](images/manuel/ecran-multijoueur-invite.png)
+
+1. Arrêtez votre propre serveur (il utiliserait les mêmes ports).
+2. Collez le code reçu, **Rejoindre**.
+3. Quand l'état indique **Relié à l'hôte**, cliquez **Jouer sur la partie de l'hôte** (ou le bouton d'un profil) et connectez-vous avec le compte que l'hôte vous a créé.
+
+Pendant la partie, votre serveur local ne peut pas démarrer ; **Quitter la partie** pour revenir au jeu solo.
+
+### 17.3 Sans redirection de port
+
+Les **invités** n'ont jamais rien à ouvrir. Pour l'**hôte**, le launcher essaie dans l'ordre :
+
+1. **UPnP** : la box ouvre et referme le port toute seule (Livebox, Freebox, Bbox, box SFR… quand l'UPnP est activé) ;
+2. **perçage de NAT**, si la box refuse l'UPnP : l'invité qui reste « à la recherche de l'hôte » voit un **code de réponse** `HCR-…` dans son launcher ; il l'envoie à l'hôte, qui le colle dans « Code de réponse d'un invité » puis clique **Relier** ; la liaison s'établit en quelques secondes ;
+3. en dernier recours seulement, **redirection manuelle** du port 11010 (TCP) vers le PC de l'hôte dans la configuration de la box.
+
+![Perçage de NAT](images/manuel/percage-nat.svg)
+
+Il n'est **pas garanti** que le perçage réussisse : il échoue derrière les NAT dits « symétriques » (certaines box 4G/5G, réseaux d'entreprise ou d'école, opérateurs en CGNAT). Dans ce cas, un autre joueur dont la box le permet peut héberger. Sur le même réseau local, tout fonctionne directement.
+
+### 17.4 Sécurité
+
+- Une invitation ne donne accès **qu'au serveur d'authentification et au serveur de jeu** de l'hôte. MariaDB, la console du serveur et le reste du PC de l'hôte sont **injoignables** ; rien du PC d'un invité n'est exposé.
+- Une connexion sans invitation valide (inconnue, expirée, révoquée, clé fausse, données quelconques) est fermée sans réponse.
+- Le code de réponse est signé avec la clé de l'invitation : un code fabriqué par un tiers est refusé.
+- L'**IA des bots** tourne chez l'hôte seulement ; sa clé d'API ne quitte jamais son PC.
+- Tous les invités apparaissent au serveur avec l'adresse 127.0.0.1 : un bannissement par adresse toucherait tout le monde ; bannissez par **compte**.
+
+Journal : `Logs\network\homecraft-network.log` (connexions acceptées et refusées ; jamais de clé ni de code).
+
+### 17.5 Réglages du réseau
+
+| Réglage | Rôle |
+|---|---|
+| Votre nom sur le réseau | affiché à l'hôte dans « Joueurs reliés » |
+| Port d'écoute (hôte) | 11010 par défaut (TCP pour la liaison directe, UDP pour le perçage) |
+| Adresse publique annoncée | vide = adresse donnée par la box ; sinon votre adresse ou un nom DNS |
+| Validité des invitations | en heures (1 à 720) |
+| Ouverture automatique du port (UPnP) | activée par défaut |
+
+## 18. Onglet Sauvegardes
+
+![Sauvegardes](images/manuel/sauvegardes.svg)
+
+Une sauvegarde contient les bases `characters` et `realmd` (export cohérent), vos réglages et un manifeste d'empreintes SHA-256, dans une archive zip horodatée de `UserData\Sauvegardes`. La base monde n'en fait pas partie : elle vient du package.
+
+| Sorte | Quand | Conservation |
+|---|---|---|
+| Manuelle | « Sauvegarder maintenant » ou SAUVEGARDER (libellé libre) | toujours conservée |
+| Automatique | à chaque fermeture du jeu | les N plus récentes (10 par défaut, réglable) |
+| De sécurité | avant chaque restauration | toujours conservée |
+
+Jeu en cours, une sauvegarde force d'abord l'enregistrement des personnages (`saveall`).
+
+**Restaurer** : sélectionnez une sauvegarde (date, libellé, nombre de personnages et de comptes, taille), « Restaurer la sélection », confirmez. Impossible pendant que le jeu est lancé. **Supprimer la sélection**, **Ouvrir le dossier** (copiez-le régulièrement sur un autre support), **Exporter un diagnostic** (journaux et configurations, mots de passe masqués, à joindre à une demande d'aide).
+
+**Conseil** : avant toute manipulation risquée (suppression de compte, modification de la base, mise à jour), faites une sauvegarde manuelle avec un libellé parlant.
+
+## 19. Onglet Base de données
+
+Un explorateur intégré, dans l'esprit de HeidiSQL, pour consulter et, si vous savez ce que vous faites, modifier les quatre bases : `characters` (personnages, objets, quêtes, courrier, hôtel des ventes), `realmd` (comptes), `mangos` (le monde) et `logs`. La base doit être démarrée.
+
+- **Arbre** : base > tables.
+- **Données** : 200 lignes par page, **filtre** (clause WHERE, ex. `level >= 40`), tri par clic sur l'en-tête, **double-clic** pour modifier une cellule, insertion et suppression de lignes (confirmation). Tables sans clé primaire : lecture seule.
 - **Structure** : colonnes, types, clés, valeurs par défaut.
-- **Requête SQL** : tapez une requête. « Exécuter (lecture) » accepte SELECT / SHOW / DESCRIBE ; « Exécuter (écriture) » exécute toute autre instruction **après confirmation**. Un historique conserve vos requêtes de la session.
-- **Ouvrir dans HeidiSQL** : lance l'outil externe fourni (`Tools\HeidiSQL`), déjà connecté à la base locale, pour les opérations avancées (export, édition massive).
+- **Requête SQL** : « Exécuter (lecture) » pour SELECT / SHOW / DESCRIBE, « Exécuter (écriture) » après confirmation ; historique de la session.
+- **Ouvrir dans HeidiSQL** : l'outil fourni, déjà connecté.
 
-Toute écriture est journalisée dans Journaux. **Avant de modifier la base, faites une sauvegarde** (onglet Sauvegardes). Pour annuler des modifications du monde, utilisez « Réimporter la base monde » (§15) ; pour annuler des modifications de personnages, restaurez une sauvegarde (§14).
-
-Quelques requêtes utiles (lecture) :
+Toute écriture est journalisée. **Sauvegardez avant de modifier.** Pour annuler des modifications du monde : « Réimporter la base monde » (§16) ; des personnages : restaurez une sauvegarde (§18).
 
 ```sql
 SELECT name, level, class, race, money FROM characters.characters;
 SELECT username, gmlevel, last_login FROM realmd.account;
-SELECT COUNT(*) FROM characters.auction;
 ```
 
-## 14. Onglet Sauvegardes
+## 20. Onglet Journaux et console du serveur
 
-Une sauvegarde contient les bases `characters` et `realmd` (export cohérent, tables verrouillées le temps de l'export), vos réglages (`settings.json`) et un manifeste d'empreintes SHA-256. C'est une archive zip horodatée dans `UserData\Sauvegardes`, d'environ 1 Mo au début. La base monde n'en fait pas partie : elle se réimporte depuis le package.
+Le journal du launcher et les messages du serveur défilent ici ; tout est aussi écrit dans `Logs\`.
 
-**Trois sortes de sauvegardes**
-
-- **manuelles** : bouton « Sauvegarder maintenant » (libellé libre) ou SAUVEGARDER de l'accueil ;
-- **automatiques** : à chaque fermeture du jeu, libellé « automatique à la fermeture du jeu » ; seules les 10 plus récentes sont conservées (réglable dans Paramètres) ;
-- **de sécurité** : créées automatiquement avant une restauration (« automatique avant restauration »).
-
-Les manuelles et les sauvegardes de sécurité ne sont jamais supprimées automatiquement.
-
-Si le jeu est en cours, une sauvegarde force d'abord l'enregistrement des personnages par le serveur (`saveall`) puis exporte.
-
-**Restaurer** : sélectionnez une sauvegarde dans la liste (date, libellé, nombre de personnages et de comptes, taille), cliquez « Restaurer la sélection », confirmez. Le serveur de jeu est arrêté, les empreintes de l'archive sont vérifiées, une sauvegarde de sécurité de l'état actuel est créée, puis les personnages et comptes sont **remplacés** par ceux de l'archive. Impossible pendant que le jeu est lancé. Redémarrez ensuite le serveur.
-
-**Supprimer la sélection** efface l'archive du disque (confirmation). **Ouvrir le dossier** ouvre `UserData\Sauvegardes` : copiez régulièrement ce dossier sur un autre support (clé USB, disque externe). **Exporter un diagnostic** produit un zip (`UserData\diagnostic-*.zip`) avec les journaux, les configurations (mots de passe masqués) et l'état des fichiers, à joindre à une demande d'aide.
-
-**Conseil** : avant toute manipulation risquée (suppression de compte, modification de la base, changement de version), faites une sauvegarde manuelle avec un libellé parlant.
-
-## 15. Onglet Paramètres
-
-Cliquez **Enregistrer** après vos modifications ; les réglages liés au serveur s'appliquent au prochain démarrage de celui-ci.
-
-**Dossier du client WoW 1.12.1** : vide = `Client\` de l'installation ; sinon « Parcourir… » pour désigner le dossier du client. Le client n'est jamais téléchargé.
-
-**Client détecté** : sous le dossier, le launcher indique le type de client reconnu. Deux sont pris en charge :
-
-- le **client d'origine** : `WoW.exe` 1.12.1 (32 bits) et ses archives dans `Data\` ;
-- **Benilla** : client libre réécrit en Rust (64 bits, licences MIT et Apache 2.0), avec un exécutable à la racine (`benilla.exe`, ou renommé, par exemple `HomeCraft.exe`), les douze archives 1.12.1 dans `Data\` et son dossier d'état `benilla-config\`. Le launcher règle alors `benilla-config\config.toml` (royaume local, fenêtré ou plein écran sans bordure, taille de fenêtre), installe les AddOns dans `benilla-config\AddOns` et désactive VanillaFixes et DXVK, inutiles avec Benilla. Le jeu est en français si les archives viennent d'un client frFR. Ne mettez pas dans son `Data\` de patchs chiffrés (patch-3, 4 ou 5 de certains repacks) : Benilla ne sait pas les lire. Rien d'autre à faire : les extracteurs du serveur exigent une archive `base.MPQ` que les dossiers Benilla n'ont pas. Si elle manque, le launcher en crée une de remplacement, vide (aucun contenu du jeu), dans le `Data\` de Benilla, qui l'ignore. Une vraie `base.MPQ` convient aussi.
-
-« **Rechercher les clients** » liste les clients valides trouvés dans `Client\` et dans les dossiers voisins de l'installation (par exemple sur le Bureau) ; « **Utiliser** » en sélectionne un, puis Enregistrer. Vos personnages sont sur le serveur : ce sont les mêmes quel que soit le client utilisé.
-
-**Jeu en mode fenêtré** (recommandé) : changez le mode **ici**, pas dans les options vidéo du jeu. Le launcher borne aussi la résolution à votre écran : un client 1.12.1 en fenêtré à la taille exacte de l'écran affiche un écran noir, le launcher l'évite.
-
-**Lancer le jeu via VanillaFixes** : corrige les saccades et le rythme des animations du vieux moteur sur les machines modernes (copie `VanillaFixes.exe`, `VfPatcher.dll` et `dlls.txt` dans le dossier du client ; la bibliothèque est injectée au démarrage et déchargée à l'écran de connexion). Désactivé par défaut. Certains antivirus signalent ce type de lanceur : ajoutez une exclusion.
-
-**Rendu DXVK** : traduit Direct3D 9 en Vulkan (copie `d3d9.dll` à côté de `WoW.exe`). À essayer si l'affichage pose problème sous Windows 11 ; nécessite un pilote Vulkan à jour. Décocher retire le fichier.
-
-**Hôtel des ventes approvisionné (AHBot)** : le serveur met en vente et achète des objets dans les trois hôtels des ventes (Alliance, Horde et gobelin).
-
-**Générer les cartes de déplacement (mmaps) en arrière-plan** : activé par défaut ; voir §5. **Générer les mmaps** relance la génération à la main (utile après une réinstallation du client ou si l'accueil signale un échec).
-
-**Sauvegarder automatiquement à chaque fermeture du jeu** et **Sauvegardes automatiques conservées** : voir §14.
-
-**Réimporter la base monde…** : supprime et recrée la base `mangos` depuis les fichiers du package, traductions et hôtel des ventes compris, **sans toucher aux personnages ni aux comptes**. Confirmation préalable ; le serveur de jeu est arrêté ; une à deux minutes. À utiliser après une mise à jour de HomeCraft ou pour annuler des modifications faites dans l'explorateur de base. Vos réglages de l'onglet Monde sont conservés (ils sont dans `settings.json`, pas dans la base).
-
-**AddOns du client** : installez vos AddOns 1.12.1 (Questie, pfUI, Bagnon, etc.) depuis leur archive zip avec « Ajouter un AddOn (zip)… » : le launcher reconnaît le ou les dossiers d'AddOn (fichier `Nom.toc`) et les place dans `Client\Interface\AddOns`, même si l'archive vient de GitHub (dossier « Nom-master »). La liste montre dossier, titre, version, interface et état ; « Désactiver » renomme le dossier en `.off`, « Supprimer » l'efface (confirmation). Un AddOn conçu pour une autre version du jeu (Interface différente de 11200) est signalé : dans le jeu, cochez « Charger les AddOns obsolètes » (bouton AddOns de l'écran de sélection des personnages). L'activation finale, personnage par personnage, se fait dans le jeu. Aucun AddOn n'est fourni ni téléchargé.
-
-## 16. Onglet Journaux et console du serveur
-
-Le journal du launcher (horodaté) et les messages du serveur de jeu défilent ici ; tout est aussi écrit dans `Logs\launcher.log` et `Logs\server\`.
-
-Le champ **Commande console mangosd** envoie une commande directement à la console du serveur (serveur démarré). Quelques commandes utiles :
+Le champ **Commande console mangosd** envoie une commande au serveur (démarré) :
 
 | Commande | Effet |
 |---|---|
-| `server info` | état du serveur, joueurs connectés, durée de fonctionnement |
+| `server info` | état, joueurs connectés, durée de fonctionnement |
 | `saveall` | enregistre tous les personnages en ligne |
 | `account onlinelist` | comptes connectés |
 | `announce <texte>` | message à tous les joueurs |
-| `server exit` | arrêt du serveur (préférez ARRÊTER LE SERVEUR) |
+| `rndbot stats` | état des bots aléatoires |
 
-Dans le jeu, avec un compte GM 2 ou 3, les commandes commencent par un point : `.gm on` / `.gm off` (mode maître de jeu, invulnérable), `.gm visible on`, `.levelup 5`, `.modify money 100000` (10 pièces d'or), `.tele Stormwind` (téléportation ; les noms de lieux sont en anglais : `.lookup tele <début du nom>` pour chercher), `.additem <id>`, `.unaura all`, `.revive`, `.commands` (liste). Ces commandes modifient votre partie : utilisez-les en connaissance de cause.
+Dans le jeu, avec un compte GM 2 ou 3 : `.gm on` / `.gm off`, `.levelup 5`, `.modify money 100000`, `.tele <lieu>` (`.lookup tele <début>`), `.additem <id>`, `.revive`, `.commands`. La liste complète est dans `Documentation\Commandes-GM.md`.
 
-## 17. Vérifier et réparer l'installation
+## 21. Vérifier et réparer l'installation
 
-**VÉRIFIER LES FICHIERS** compare chaque fichier géré (launcher, serveur, base, scripts, documentation) à son empreinte SHA-256 dans `Build\files-manifest.json`, contrôle la présence des données extraites (dbc, maps, vmaps, mmaps) et, si la base est démarrée, la présence et le schéma des quatre bases. Comptez deux à trois minutes (500 Mo à lire). Un rapport s'affiche : fichiers manquants, altérés, données, bases.
+**VÉRIFIER LES FICHIERS** compare chaque fichier géré à son empreinte SHA-256 (`Build\files-manifest.json`), contrôle les données extraites et, base démarrée, les quatre bases. Un rapport s'affiche.
 
-**RÉPARER** corrige ce qui peut l'être sans réinstaller : réimporte les bases manquantes ou incomplètes (**jamais** `characters` si elle contient des personnages), régénère les fichiers de configuration (`realmd.conf`, `mangosd.conf`, `my.ini`, royaume), ré-extrait les données du client si elles manquent. Les fichiers gérés manquants ou altérés sont listés comme irréparables : réinstallez le package (vos personnages et sauvegardes dans `UserData\` sont conservés, voir §18).
+**RÉPARER** corrige ce qui peut l'être sans réinstaller : bases manquantes ou incomplètes réimportées (**jamais** `characters` si elle contient des personnages), configurations régénérées, données du client ré-extraites si elles manquent. Les fichiers du programme manquants ou altérés sont signalés comme irréparables : réinstallez le package (`UserData\` est conservé).
 
-Vous pouvez aussi vérifier la copie du package depuis PowerShell, dans le dossier d'installation :
+## 22. Mettre à jour, déplacer, dupliquer, désinstaller
 
-```
-Get-FileHash -Algorithm SHA256 (Get-Content SHA256SUMS.txt | ForEach-Object { ($_ -split '  ',2)[1] })
-```
+- **Mettre à jour** : fermez le launcher, faites une sauvegarde manuelle, copiez le nouveau package dans un nouveau dossier, puis copiez-y `UserData\` (et `Client\`) depuis l'ancien. Au premier démarrage, « Réimporter la base monde » si les notes de version l'indiquent.
+- **Déplacer** : fermez le launcher et déplacez le dossier entier ; rien n'est inscrit dans Windows.
+- **Changer de PC** : copiez le dossier entier ; ressaisissez ensuite les mots de passe des profils et la clé d'IA (chiffrés pour l'ancienne session Windows).
+- **Dupliquer** : copiez le dossier ; chaque copie a ses bases et ses sauvegardes. Ne lancez qu'une installation à la fois (mêmes ports).
+- **Désinstaller** : fermez le launcher et supprimez le dossier. Rien n'a été écrit ailleurs, sauf dans votre **client** (`realmlist.wtf`, dont l'original est gardé en `realmlist.wtf.orig`, `WTF\Config.wtf`, `benilla-config\`, et les fichiers VanillaFixes/DXVK si activés).
 
-## 18. Déplacer, dupliquer, désinstaller
+## 23. Sécurité et vie privée
 
-**Déplacer** : fermez le launcher, déplacez le dossier entier où vous voulez. Aucun chemin n'est inscrit dans Windows ; les fichiers de configuration sont régénérés au démarrage suivant.
+**Ce qui reste sur votre PC** : tout, en solo. Aucune télémétrie, aucune mise à jour automatique, aucun compte en ligne.
 
-**Mettre à jour** vers une nouvelle version de HomeCraft : fermez le launcher, faites une sauvegarde manuelle, copiez le nouveau package dans un nouveau dossier, puis copiez-y votre dossier `UserData\` (et `Client\` si vous l'aviez placé dedans) depuis l'ancienne installation. Au premier démarrage, utilisez « Réimporter la base monde » si la documentation de la version l'indique.
+**Ce qui peut en sortir, seulement si vous l'activez**
 
-**Dupliquer** (deux installations indépendantes, par exemple une par joueur) : copiez le dossier entier ; chaque copie a ses propres bases et sauvegardes. Ne lancez qu'une installation à la fois : elles utilisent les mêmes ports locaux (3315, 3724, 8085).
+| Fonction | Envoyé à | Quoi |
+|---|---|---|
+| IA des bots, fournisseur en ligne | le fournisseur choisi (OpenAI, Anthropic, Mistral, OpenRouter…) | le contexte du bot et les messages des joueurs à qui il répond ; votre clé d'API |
+| IA des bots, LM Studio / Ollama | votre PC seulement | — |
+| Multijoueur, hôte ou invité | les autres participants | trafic de jeu chiffré |
+| Multijoueur, ouverture du port | votre box (UPnP) | demande d'ouverture / fermeture du port |
+| Multijoueur, perçage de NAT | serveurs STUN publics (Google, Cloudflare, Nextcloud) | une requête qui révèle seulement votre adresse IP et un port |
 
-**Désinstaller** : fermez le launcher et supprimez le dossier. Rien n'a été écrit ailleurs (ni registre, ni Program Files, ni AppData), à deux exceptions près que vous pouvez conserver ou effacer : les fichiers de configuration écrits dans votre **client** (`realmlist.wtf`, dont l'original est conservé sous `realmlist.wtf.orig`, `WTF\Config.wtf`, et les fichiers VanillaFixes/DXVK si vous les aviez activés), et le certificat de signature si vous l'aviez importé volontairement.
+**Secrets** : mots de passe des profils et clé d'API sont chiffrés par Windows pour votre session (DPAPI), jamais écrits en clair ni journalisés. Les codes d'invitation sont des clés temporaires : transmettez-les en privé. Les identifiants techniques de la base (`UserData\db-credentials.json`) ne servent qu'en local : ne les diffusez pas.
 
-## 19. Dépannage
+**Réseau** : en solo, rien n'écoute sur le réseau. Partie ouverte, seul le port du multijoueur (11010) écoute, et il ne mène qu'aux deux services du jeu (§17.4).
 
-**« Éditeur inconnu » au lancement** : normal (certificat personnel), voir §4.
+## 24. Dépannage
 
-**Le launcher dit ERREUR au démarrage**
+**Le launcher indique ERREUR au démarrage**
 
-- *client non valide* / *données du client* : le dossier indiqué ne contient pas `WoW.exe` 1.12.1 ou il manque des archives MPQ (listées sur l'accueil). Vérifiez le dossier dans Paramètres.
-- *démarrage MariaDB* : le port 3315 est occupé (une autre instance de HomeCraft, ou un autre MySQL/MariaDB) ou le dossier `UserData\Database` est en lecture seule ou synchronisé en nuage. Fermez l'autre programme ; consultez `Logs\mariadb-error.log`.
-- *démarrage realmd* / *démarrage mangosd* : port 3724 ou 8085 occupé par un reste d'une session précédente : patientez trente secondes et réessayez, ou redémarrez l'ordinateur. Consultez `Logs\server\Server.log`.
-- *chargement du monde* dépassant dix minutes : base endommagée après un arrêt brutal ; RÉPARER, puis « Réimporter la base monde ».
-- *service interrompu* : un des services s'est arrêté seul (plantage, antivirus) ; relancez, et consultez les journaux.
+| Message | Cause probable | Que faire |
+|---|---|---|
+| client non valide / données du client | le dossier ne contient pas un client 1.12.1 complet | placez le client dans `Client\` ; l'accueil liste les archives manquantes |
+| démarrage MariaDB | port 3315 occupé (autre installation HomeCraft, autre MariaDB) ou dossier synchronisé en nuage | fermez l'autre programme ; `Logs\mariadb-error.log` |
+| démarrage realmd / mangosd | port 3724 ou 8085 occupé (reste d'une session, partie multijoueur rejointe) | quittez la partie multijoueur ; attendez trente secondes ; redémarrez le PC au besoin ; `Logs\server\Server.log` |
+| service interrompu | un service s'est arrêté seul (plantage, antivirus) | relancez ; joignez le diagnostic à votre demande d'aide |
+| os error 4551 | Contrôle intelligent des applications de Windows 11 | ci-dessous |
 
-**Le jeu affiche un écran noir ou se fige** : bouton FERMER LE JEU sur l'accueil (ou Alt+F4). Ne changez jamais le mode fenêtré / plein écran ni la résolution dans les options vidéo du jeu : faites-le dans Paramètres. Essayez DXVK, ou désactivez-le s'il est actif.
+**« Une stratégie de contrôle d'application a bloqué ce fichier » (os error 4551)** : Windows 11 refuse les programmes du serveur, non signés par leurs auteurs. Sécurité Windows > Contrôle des applications et du navigateur > Paramètres du contrôle intelligent des applications > **Désactivé** (sur certaines versions, il ne peut plus être réactivé sans réinitialiser Windows ; l'antivirus reste actif). Relancez, puis JOUER ou RÉPARER. Sur un PC professionnel, voyez l'administrateur.
 
-**Le jeu dit « Impossible de se connecter »** : le serveur n'est pas PRÊT (attendez la fin du démarrage) ou le client a été lancé à la main sans passer par JOUER (le `realmlist.wtf` doit pointer vers 127.0.0.1 : le launcher s'en charge).
+**Écran noir ou jeu figé** : FERMER LE JEU. Changez le mode fenêtré dans Paramètres, jamais dans le jeu. Essayez DXVK (ou désactivez-le).
 
-**Identifiant ou mot de passe refusé** : identifiant et mot de passe sont insensibles à la casse sur ce serveur ; vérifiez l'absence d'espace ou de caractère accentué, ou changez le mot de passe dans l'onglet Comptes.
+**« Impossible de se connecter » dans le jeu** : le serveur n'est pas PRÊT, ou le client a été lancé à la main sans passer par le launcher. En multijoueur : l'état doit être « Relié à l'hôte ».
 
-**« Vous n'avez pas la permission » sur une commande** : le compte n'a pas le niveau GM requis (2 ou 3) ; corrigez dans Comptes puis reconnectez-vous. Pour les commandes `.bot`, vérifiez aussi que « Activer les PlayerBots » est coché dans PlayerBots.
+**Identifiant ou mot de passe refusé** : vérifiez l'absence d'espace ou d'accent ; changez le mot de passe dans Comptes. Avec un profil : modifiez le profil et ressaisissez le mot de passe.
 
-**Un bot refuse mon invitation** : il est sans doute déjà occupé (groupe plein, file d'attente d'un champ de bataille ou de la recherche de groupe), ou son niveau dépasse le vôtre de plus que l'« Écart de niveau maximal pour accepter une invitation » (PlayerBots ; 60 = il accepte toujours). Il vous le dit en chuchotant.
+**Le profil n'entre pas le mot de passe (client d'origine)** : la saisie se fait quelques secondes après l'apparition de la fenêtre ; ne cliquez pas ailleurs pendant ce temps. Avec VanillaFixes activé, la saisie automatique est impossible : seul le compte est prérempli.
 
-**Le jeu reste sur « Connecté » avec beaucoup de bots de peuplement** (versions 0.9.8 et antérieures) : chaque bot compte comme un joueur et le serveur était limité à 100 joueurs ; au-delà, vous étiez mis en file d'attente. Corrigé en 0.9.9 (limite supprimée). Avec une version plus ancienne, gardez moins de 100 bots en ligne.
+**« Vous n'avez pas la permission »** : niveau GM insuffisant (2 ou 3) ; corrigez dans Comptes puis reconnectez-vous. Pour `.bot`, vérifiez « Activer les PlayerBots ».
 
-**Le jeu reste sur « Connecté » pendant la génération des mmaps** (versions 0.9.9 et antérieures) : avec des cartes de déplacement à moitié générées, le serveur se figeait en plaçant les bots de peuplement dans les capitales. Depuis 0.9.10, les mmaps sont générées à part et n'entrent en service qu'une fois complètes, au démarrage suivant du serveur. Si cela vous arrive avec une ancienne version : arrêtez le serveur, désactivez le peuplement (PlayerBots) jusqu'à ce que l'accueil indique les mmaps « générées », puis redémarrez.
+**Un bot refuse mon invitation** : il est occupé, ou son niveau dépasse le vôtre de plus que l'écart autorisé (PlayerBots ; 60 = toujours). Il vous le dit en chuchotant.
 
-**Les bots restent bloqués ou traversent les murs** : les cartes de déplacement ne sont pas encore générées ou pas encore prises en compte (redémarrez le serveur une fois l'accueil passé à « générées »). En attendant : ordre `summon` dans le canal de groupe.
+**Aucun bot dans le monde** : « Activer les PlayerBots » et « Connecter les bots aléatoires » cochés, nombre minimal supérieur à 0, réglages **enregistrés**, premier démarrage allé à son terme (« Personnages des bots aléatoires » non nul).
 
-**Aucun bot dans le monde** : dans l'ordre, vérifiez que (1) « Activer les PlayerBots » et « Connecter les bots aléatoires » sont cochés, avec un nombre minimal supérieur à 0 (PlayerBots), (2) les réglages ont été **enregistrés**, (3) le premier démarrage, qui crée les bots, est allé à son terme (accueil : serveur prêt ; « Personnages des bots aléatoires » non nul dans PlayerBots). Le compteur « Personnages en ligne » de l'accueil inclut les bots : s'il est élevé, ils sont bien connectés. `/qui` ne montre que votre faction, sauf si « /qui commun aux deux factions » est activé dans Monde ; un compte de niveau 2 ou 3 voit les deux.
+**Les bots ne répondent pas avec l'IA** : « Tester » dans la section IA ; vérifiez que le modèle est chargé (LM Studio / Ollama) ou que la clé est valide ; regardez `Logs\ai-bridge.log` (échecs et durées). En cas d'échec, les bots répondent de façon classique pendant une minute : c'est voulu.
 
-**Le serveur met plusieurs minutes à démarrer la première fois** : c'est normal, il crée les comptes et les personnages des bots aléatoires (et d'autres au démarrage suivant si vous augmentez le nombre maximal de bots). Les démarrages suivants prennent une vingtaine de secondes.
+**Un deuxième personnage du même compte déconnecte le premier** : activez « Plusieurs personnages d'un même compte » (Monde > Sessions) et enregistrez ; au-delà du nombre de sessions par compte, la nouvelle connexion est refusée.
 
-**Un personnage tout juste créé est déconnecté dès son entrée dans le monde** (versions 0.9.13 et antérieures) : des bots avaient été générés pendant que le serveur tournait ; le serveur, qui attribue les numéros de personnages à partir d'un compteur lu au démarrage, a redonné à votre personnage le numéro d'un bot, puis l'a refusé à la connexion (« personnage d'un autre compte », journal `LogsserverAnticheat.log`). Depuis 0.9.15, le launcher arrête le serveur le temps de générer ou supprimer des bots, et le démarrage du serveur retire les inscriptions de bots qui désignent un personnage joueur. Après la mise à jour, redémarrez simplement le serveur : vos personnages se connectent normalement.
+**Multijoueur : l'invité reste « à la recherche de l'hôte »**
+1. L'hôte a-t-il ouvert sa partie, serveur démarré ? Le code a-t-il expiré ou été révoqué (« Invitation refusée par l'hôte ») ?
+2. L'onglet de l'hôte indique-t-il « Port ouvert automatiquement » ? Sinon, utilisez le **code de réponse** (§17.3).
+3. Le pare-feu Windows de l'hôte a-t-il été autorisé pour HomeCraft ?
+4. En dernier recours : redirection du port 11010 (TCP) vers le PC de l'hôte dans la box.
 
-**L'hôtel des ventes est vide** : il se remplit progressivement après le démarrage (une vague par minute) pour la faction choisie dans Paramètres ; vérifiez que l'option est cochée.
+**Multijoueur : « le port local 3724 est occupé »** : arrêtez votre propre serveur avant de rejoindre une partie.
 
-**Lenteur, ventilateur bruyant pendant une partie** : la génération des mmaps tourne en arrière-plan (accueil). Elle s'arrête d'elle-même ; vous pouvez la désactiver dans Paramètres et la lancer plus tard.
-
-**Mot de passe oublié** : Comptes > sélectionnez le compte > nouveau mot de passe > « Changer le mot de passe ».
+**Le launcher ne se ferme pas tout de suite** : il arrête proprement le serveur et la base (jusqu'à une minute). Ne tuez pas le processus.
 
 **J'ai supprimé un personnage ou un compte par erreur** : Sauvegardes > restaurez la sauvegarde automatique la plus récente d'avant l'erreur.
 
-**L'antivirus a supprimé un fichier** : rétablissez-le depuis la quarantaine, ajoutez le dossier aux exclusions, puis VÉRIFIER LES FICHIERS.
+Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diagnostic). Entraide : serveur Discord https://discord.gg/M34APTbZ8R
 
-**« Une stratégie de contrôle d'application a bloqué ce fichier » (os error 4551)** : Windows 11 refuse de lancer un programme du serveur. C'est le **Contrôle intelligent des applications** (Smart App Control), actif sur certaines installations neuves de Windows 11 : il bloque tout programme qui n'est pas signé par un éditeur reconnu, et les programmes du serveur CMaNGOS (`ad`, `vmap_extractor`, `realmd`, `mangosd`…) ne sont pas signés par leurs auteurs. Contrairement à l'avertissement SmartScreen, aucun bouton « Exécuter quand même » n'existe ; les exclusions de l'antivirus n'y changent rien. Pour jouer à HomeCraft sur ce PC :
+## 25. Questions fréquentes
 
-1. Ouvrez **Sécurité Windows** > **Contrôle des applications et du navigateur** > **Paramètres du contrôle intelligent des applications**.
-2. Choisissez **Désactivé**. Sur certaines versions de Windows 11, ce réglage ne peut plus être réactivé ensuite sans réinitialiser Windows : décidez en connaissance de cause. L'antivirus Microsoft Defender, lui, reste actif.
-3. Relancez le launcher et cliquez sur JOUER (ou RÉPARER) : l'extraction reprend depuis le début de l'étape interrompue (le launcher nettoie lui-même ce qu'elle avait laissé).
+**Puis-je jouer à plusieurs ?** Oui, par l'onglet Multijoueur (§17), en partie privée entre amis. Le serveur reste celui de l'hôte, sur son PC.
 
-Sur un PC professionnel, le blocage peut venir d'une stratégie de l'entreprise (WDAC) : seul l'administrateur peut l'autoriser.
+**Puis-je jouer plusieurs personnages en même temps ?** Oui (§11), même sur un seul compte.
 
-**Le launcher ne se ferme pas tout de suite** : il arrête proprement le serveur et la base (jusqu'à une minute si beaucoup de personnages). Ne tuez pas le processus : la base pourrait devoir se réparer au démarrage suivant (ce qu'elle sait faire, mais c'est plus long).
+**Puis-je avoir des personnages Alliance et Horde ?** Oui, sur des comptes différents, ou sur le même compte avec « Alliance et Horde sur le même compte » (Monde).
 
-Pour toute demande d'aide, joignez le diagnostic (Sauvegardes > Exporter un diagnostic). Entraide et questions : serveur Discord https://discord.gg/M34APTbZ8R
+**Le jeu est-il entièrement en français ?** L'interface, les sorts et les zones viennent de votre client français ; quêtes, dialogues, objets et créatures viennent de la base du serveur, traduite par les traductions d'époque et complétée par HomeCraft.
 
-## 20. Questions fréquentes
+**L'interface du launcher peut-elle être en anglais ?** Oui : Paramètres > Langue / Language.
 
-**Puis-je jouer à plusieurs sur le même serveur ?** Non. HomeCraft est conçu et concédé pour un usage individuel : le serveur n'écoute que sur votre machine.
+**L'IA est-elle obligatoire ? payante ?** Ni l'un ni l'autre : désactivée par défaut ; gratuite avec LM Studio ou Ollama ; payante selon le fournisseur en ligne choisi.
 
-**Puis-je avoir des personnages Alliance et Horde ?** Oui, sur des comptes différents, ou sur le même compte en activant « Alliance et Horde sur le même compte » dans Monde.
+**HomeCraft se connecte-t-il à Internet ?** Pas en solo. Seulement pour les fonctions que vous activez (§23).
 
-**Le jeu est-il entièrement en français ?** L'interface, les sorts et les noms de zones viennent de votre client français. Les quêtes, dialogues, objets et créatures viennent de la base du serveur, traduite à plus de 97 % par les traductions officielles d'époque ; HomeCraft a complété le reste (quêtes, dialogues, noms de créatures). Quelques textes techniques invisibles restent en anglais.
+**Puis-je changer de client ?** Oui : remplacez le contenu de `Client\` (ou désignez un autre dossier dans Paramètres) puis RÉPARER. Il doit rester un client 1.12.1 frFR, ou Benilla.
 
-**Puis-je changer de client plus tard ?** Oui, indiquez le nouveau dossier dans Paramètres puis RÉPARER (les données extraites sont régénérées). Il doit rester un client 1.12.1 frFR.
+**Mes sauvegardes sont-elles compatibles entre versions ?** Oui au sein de l'édition CMaNGOS (0.10 et suivantes). Les personnages de l'édition VMaNGOS (0.9.x) ne se restaurent pas dans l'édition CMaNGOS.
 
-**Puis-je utiliser des patchs HD et des AddOns ?** Oui, voir §12 et §15. HomeCraft n'en fournit aucun.
+**Combien de personnages ?** 10 par compte et par royaume (réglable), comptes illimités.
 
-**Mes sauvegardes sont-elles compatibles entre versions de HomeCraft ?** Oui au sein d'une même édition, tant que le serveur n'a pas changé de schéma de base ; dans ce cas la documentation de la version l'indique. Les personnages de l'édition VMaNGOS (0.9.x) ne se restaurent pas dans l'édition CMaNGOS (0.10 et suivantes) : bases de structure différente.
-
-**HomeCraft se connecte-t-il à Internet ?** Jamais. Aucun téléchargement, aucune télémétrie, aucune mise à jour automatique.
-
-**Que faire des fichiers `.orig` ?** `realmlist.wtf.orig` dans le client est la copie de votre fichier d'origine ; `mangosd.exe.orig` dans `Server\vmangos` est le binaire officiel avant le correctif de compatibilité du client build 5880. Laissez-les.
-
-**Combien de personnages ?** 10 par compte et par royaume (réglable dans Monde), comptes illimités.
-
-**Que compte « Personnages en ligne » sur l'accueil ?** Tous les personnages connectés au serveur : le vôtre et les bots (aléatoires, et ceux de votre groupe).
-
-## 21. Où sont mes fichiers ?
+## 26. Où sont mes fichiers ?
 
 | Quoi | Où |
 |---|---|
-| Personnages, comptes, objets, courrier, hôtel des ventes (base de données vivante) | `UserData\Database\` (ne jamais modifier à la main) |
-| Sauvegardes | `UserData\Sauvegardes\sauvegarde-AAAAMMJJ-HHMMSS.zip` |
-| Réglages du launcher, du monde et des bots | `UserData\settings.json` |
-| Identifiants techniques de la base (générés) | `UserData\db-credentials.json` (ne pas diffuser) |
+| Personnages, comptes (base vivante) | `UserData\Database\` (ne jamais modifier à la main) |
+| Sauvegardes | `UserData\Sauvegardes\` |
+| Réglages du launcher, du monde, des bots, langue | `UserData\settings.json` |
+| Profils (mots de passe chiffrés) | `UserData\profiles.json` |
+| Réglages de l'IA (clé chiffrée) | `UserData\ai-settings.json` |
+| Réglages du multijoueur | `UserData\network.json` |
+| Identifiants techniques de la base | `UserData\db-credentials.json` (ne pas diffuser) |
 | Diagnostics | `UserData\diagnostic-*.zip` |
 | Journal du launcher | `Logs\launcher.log` |
-| Journaux du serveur | `Logs\server\Server.log`, `DBErrors.log`, `Realmd.log`, etc. |
-| Journal de la base | `Logs\mariadb-error.log` |
-| Fichiers de configuration générés (ne pas modifier : régénérés) | `Server\Config\realmd.conf`, `mangosd.conf`, `my.ini` |
-| Données extraites du client (dbc, maps, vmaps, mmaps) | `Server\Data\` (régénérables : RÉPARER, Générer les mmaps) |
-| Compléments HomeCraft de la base monde (hôtel des ventes, traductions) | `Server\Database\custom\*.sql` |
-| Vos patchs | `Client\Data\patch-X.MPQ` |
-| Vos AddOns | `Client\Interface\AddOns\` |
-| Configuration du client écrite par le launcher | `Client\realmlist.wtf`, `Client\WTF\Config.wtf` |
+| Journaux du serveur | `Logs\server\` (`Server.log`, `Char.log`, `DBErrors.log`, `Realmd.log`…) |
+| Journal du multijoueur | `Logs\network\homecraft-network.log` |
+| Journal du pont IA | `Logs\ai-bridge.log` |
+| Configurations générées (régénérées à chaque démarrage) | `Server\Config\` |
+| Données extraites du client | `Server\Data\` |
+| Patchs / AddOns | `Client\Data\patch-X.MPQ` / `Client\Interface\AddOns\` |
 
-Ports utilisés, sur 127.0.0.1 uniquement : 3315 (base de données), 3724 (authentification), 8085 (monde).
+**Ports** : 3315 (base), 3724 (authentification), 8085 (monde), 15910 (pont IA, si l'IA est activée) — tous sur 127.0.0.1 uniquement ; 11010 (multijoueur, TCP et UDP) seulement pendant une partie ouverte.
 
-## 22. Glossaire
+## 27. Options de la ligne de commande
 
-- **AddOn** : extension d'interface du jeu, écrite en Lua, placée dans `Interface\AddOns`.
+Pour les utilisateurs avancés et les tests automatiques (raccourci Windows ou terminal) :
+
+| Option | Effet |
+|---|---|
+| `--start` | démarre le serveur à l'ouverture |
+| `--tab <onglet>` | ouvre un onglet (`accounts`, `bots`, `world`, `patches`, `database`, `backups`, `multiplayer`, `settings`, `logs`) |
+| `--quit-after N` | ferme le launcher (proprement) après N secondes |
+| `--do backup` / `verify` / `repair` / `diagnostic` | sauvegarde, vérification, réparation, diagnostic |
+| `--do restore <zip>` | restaure une sauvegarde |
+| `--do acccreate <compte> <mot de passe> [gm]` | crée un compte (avec `--start`) |
+| `--do accdel <compte>` | supprime un compte |
+| `--do playprofile <nom>` | lance le jeu avec un profil |
+| `--do console "<commande>"` | envoie une commande à la console du serveur |
+| `--net host` / `--net join <fichier>` / `--invite <nom>` | multijoueur (tests) |
+
+## 28. Glossaire
+
+- **AddOn** : extension d'interface du jeu (Lua), dans `Interface\AddOns`.
 - **AHBot** : robot qui approvisionne l'hôtel des ventes.
-- **Client** : le programme du jeu (`WoW.exe`) et ses données (`Data\`), fourni par vous.
-- **Compagnon / PartyBot** : personnage contrôlé par le serveur qui rejoint votre groupe.
-- **DBC, maps, vmaps, mmaps** : données extraites du client dont le serveur a besoin (tables du jeu, relief, collisions, cartes de déplacement).
-- **DXVK** : couche qui traduit Direct3D 9 en Vulkan.
-- **GM / MJ** : maître de jeu ; les niveaux GM 2 et 3 donnent accès aux commandes d'administration.
-- **HeidiSQL** : outil externe de consultation de base de données, fourni.
-- **MariaDB** : le serveur de base de données qui stocke le monde et vos personnages.
-- **MPQ** : format d'archive de Blizzard ; les patchs sont des archives MPQ.
-- **Patch (contenu)** : étape de la sortie progressive du contenu (1.2 à 1.12).
-- **Patch (fichier)** : archive `patch-X.MPQ` chargée par le client.
-- **RandomBot / bot de peuplement** : personnage bot qui flâne dans une capitale.
-- **realmd / mangosd** : les deux programmes du serveur (authentification / monde).
-- **Royaume** : le serveur de jeu tel qu'il apparaît dans la liste du client (« HomeCraft »).
+- **Benilla** : client libre (Rust, 64 bits) compatible 1.12.1.
+- **Client** : le programme du jeu et ses données, fournis par vous.
+- **CMaNGOS** : le logiciel de serveur (édition Classic) ; **playerbots** : son module de bots.
+- **Code d'invitation / de réponse** : `HC2-…` (de l'hôte vers un invité) / `HCR-…` (de l'invité vers l'hôte, perçage de NAT).
+- **DBC, maps, vmaps, mmaps** : données extraites du client (tables, relief, collisions, cartes de déplacement).
+- **DPAPI** : chiffrement de Windows lié à votre session : ce qu'il protège n'est lisible que par vous, sur ce PC.
+- **DXVK** : traduction de Direct3D 9 en Vulkan.
+- **GM / MJ** : maître de jeu.
+- **Hôte / invité** : celui dont le serveur accueille la partie / celui qui la rejoint.
+- **Intention (IA)** : action qu'un bot fait à la demande du modèle de langage, dans une liste fermée.
+- **MariaDB** : la base de données.
+- **Multiboxing** : jouer plusieurs personnages en même temps.
+- **NAT, perçage de NAT** : traduction d'adresses faite par une box ; technique pour relier deux PC derrière des box sans ouvrir de port.
+- **Profil** : raccourci de lancement avec compte et personnage préremplis.
+- **realmd / mangosd** : serveur d'authentification / serveur du monde.
+- **STUN** : protocole pour connaître son adresse publique.
+- **UPnP** : protocole par lequel un programme demande à la box d'ouvrir un port.
 - **VanillaFixes** : correctif de fluidité du client 1.12.1.
-- **CMaNGOS** : le logiciel de serveur (édition Classic), fidèle au patch 1.12 ; **playerbots** : son module de bots.
 
-## 23. Mentions légales
+## 29. Mentions légales
 
-HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments de base de données, nom et logo) est concédé selon la **licence d'utilisation** figurant dans `LICENCE.txt` : usage personnel autorisé ; reproduction, diffusion et modification interdites ; aucune garantie ; voir le texte complet.
+HomeCraft Edition Vanilla (launcher, scripts, documentation, compléments de base de données, nom et logo) est concédé selon la **licence d'utilisation** de `LICENCE.txt` : usage personnel autorisé ; reproduction, diffusion et modification interdites ; aucune garantie.
 
-Les composants tiers (CMaNGOS, MariaDB, HeidiSQL sous GPL-2.0 ; classic-db sous GPL-3.0 ; OpenSSL sous Apache-2.0 ; module playerbots, sans licence publiée, utilisé avec l'accord demandé à ses auteurs ; VanillaFixes sous MIT ; DXVK sous zlib ; bibliothèques Rust) restent sous leurs licences propres, reproduites dans `LICENCES\`, avec les liens vers leurs sources dans `LICENCES\SOURCES.md`.
+Les composants tiers (CMaNGOS, MariaDB, HeidiSQL sous GPL-2.0 ; classic-db sous GPL-3.0 ; OpenSSL sous Apache-2.0 ; module playerbots, sans licence publiée, utilisé avec l'accord demandé à ses auteurs ; VanillaFixes sous MIT ; DXVK sous zlib ; bibliothèques Rust, dont snow, quinn, rustls et tokio, sous MIT ou Apache-2.0) restent sous leurs licences propres, reproduites dans `LICENCES\`, avec les liens vers leurs sources dans `LICENCES\SOURCES.md`. Les modèles de langage et leurs fournisseurs ne sont pas fournis et restent soumis à leurs propres conditions.
 
-World of Warcraft et Blizzard Entertainment sont des marques de Blizzard Entertainment, Inc. HomeCraft est une création indépendante, sans lien avec Blizzard Entertainment, Inc. Le client du jeu n'est pas fourni : vous devez disposer du vôtre et respecter les conditions qui s'y appliquent.
+World of Warcraft et Blizzard Entertainment sont des marques de Blizzard Entertainment, Inc. HomeCraft est une création indépendante, sans lien avec Blizzard. Le client du jeu n'est pas fourni : vous devez disposer du vôtre et respecter les conditions qui s'y appliquent.

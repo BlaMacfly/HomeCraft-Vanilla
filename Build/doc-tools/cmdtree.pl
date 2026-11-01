@@ -1,9 +1,11 @@
 use strict; use warnings;
-# Reconstitue l'arborescence des commandes VMaNGOS depuis Chat.cpp :
+# Reconstitue l'arborescence des commandes depuis Chat.cpp (VMaNGOS, ou CMaNGOS avec le 2e argument « cmangos ») :
 #   static ChatCommand <table>[] = { { "nom", SEC_x, console, &handler, "aide", <sous-table|nullptr> }, ... };
 # Sortie TSV : commande complète, niveau, console (1/0), aide.
-my %lvl = (SEC_PLAYER => 0, SEC_MODERATOR => 1, SEC_TICKETMASTER => 2, SEC_GAMEMASTER => 3,
-           SEC_BASIC_ADMIN => 4, SEC_DEVELOPER => 5, SEC_ADMINISTRATOR => 6, SEC_CONSOLE => 7);
+my %lvl = ($ARGV[1] // '') eq 'cmangos'
+    ? (SEC_PLAYER => 0, SEC_MODERATOR => 1, SEC_GAMEMASTER => 2, SEC_ADMINISTRATOR => 3, SEC_CONSOLE => 4)
+    : (SEC_PLAYER => 0, SEC_MODERATOR => 1, SEC_TICKETMASTER => 2, SEC_GAMEMASTER => 3,
+       SEC_BASIC_ADMIN => 4, SEC_DEVELOPER => 5, SEC_ADMINISTRATOR => 6, SEC_CONSOLE => 7);
 local $/; open my $f, '<:raw', $ARGV[0] or die; my $src = <$f>;
 my %tables;
 while ($src =~ /static\s+ChatCommand\s+(\w+)\s*\[\]\s*=\s*\{(.*?)\n\s*\};/sg) {

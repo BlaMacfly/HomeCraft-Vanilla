@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <title>Perçage de NAT : se relier sans redirection de port</title>
+  <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <rect width="960" height="560" fill="#fff"/>
+  <text x="480" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">Perçage de NAT (quand la box de l'hôte refuse l'UPnP)</text>
+
+  <!-- colonnes -->
+  <rect x="40" y="56" width="200" height="44" rx="10" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+  <text x="140" y="83" text-anchor="middle" font-weight="bold">Launcher de l'hôte</text>
+  <rect x="380" y="56" width="200" height="44" rx="10" fill="#eef3f8" stroke="#7a8ea6" stroke-width="2"/>
+  <text x="480" y="83" text-anchor="middle" font-weight="bold">Serveurs STUN publics</text>
+  <rect x="720" y="56" width="200" height="44" rx="10" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+  <text x="820" y="83" text-anchor="middle" font-weight="bold">Launcher de l'invité</text>
+  <line x1="140" y1="100" x2="140" y2="500" stroke="#bbb" stroke-dasharray="5 4"/>
+  <line x1="480" y1="100" x2="480" y2="500" stroke="#bbb" stroke-dasharray="5 4"/>
+  <line x1="820" y1="100" x2="820" y2="500" stroke="#bbb" stroke-dasharray="5 4"/>
+
+  <!-- 1 STUN hôte -->
+  <line x1="142" y1="128" x2="476" y2="128" stroke="#7a8ea6" stroke-width="2" marker-end="url(#f)"/>
+  <text x="310" y="122" text-anchor="middle" font-size="12">1. « quelle est mon adresse publique ? »</text>
+  <line x1="478" y1="150" x2="144" y2="150" stroke="#7a8ea6" stroke-width="2" marker-end="url(#f)"/>
+  <text x="310" y="168" text-anchor="middle" font-size="12" fill="#555">86.x.x.x:11010 (seule l'adresse IP est vue)</text>
+
+  <!-- 2 invitation -->
+  <line x1="142" y1="200" x2="816" y2="200" stroke="#c0504d" stroke-width="2.5" marker-end="url(#f)"/>
+  <text x="480" y="192" text-anchor="middle" font-size="13" font-weight="bold" fill="#8b2a27">2. code d'invitation HC2-… (en privé : messagerie, e-mail…)</text>
+  <text x="480" y="216" text-anchor="middle" font-size="12" fill="#555">clé propre au joueur · adresses de l'hôte · empreinte de son certificat · expiration</text>
+
+  <!-- 3 STUN invité -->
+  <line x1="818" y1="250" x2="484" y2="250" stroke="#7a8ea6" stroke-width="2" marker-end="url(#f)"/>
+  <text x="650" y="244" text-anchor="middle" font-size="12">3. même question pour l'invité</text>
+  <line x1="482" y1="272" x2="816" y2="272" stroke="#7a8ea6" stroke-width="2" marker-end="url(#f)"/>
+
+  <!-- 4 réponse -->
+  <line x1="818" y1="318" x2="144" y2="318" stroke="#c0504d" stroke-width="2.5" marker-end="url(#f)"/>
+  <text x="480" y="310" text-anchor="middle" font-size="13" font-weight="bold" fill="#8b2a27">4. code de réponse HCR-… (en privé), collé par l'hôte puis « Relier »</text>
+  <text x="480" y="334" text-anchor="middle" font-size="12" fill="#555">adresses de l'invité, signées avec la clé de son invitation (un faux code est refusé)</text>
+
+  <!-- 5 simultané -->
+  <line x1="142" y1="378" x2="816" y2="392" stroke="#3e8e41" stroke-width="2.5" marker-end="url(#f)"/>
+  <line x1="818" y1="404" x2="144" y2="418" stroke="#3e8e41" stroke-width="2.5" marker-end="url(#f)"/>
+  <text x="480" y="372" text-anchor="middle" font-size="13" font-weight="bold" fill="#225c25">5. envois simultanés dans les deux sens</text>
+  <text x="480" y="440" text-anchor="middle" font-size="12" fill="#555">chaque box voit une « réponse » à un envoi sortant et la laisse passer</text>
+
+  <!-- 6 liaison -->
+  <rect x="140" y="458" width="680" height="36" rx="18" fill="#e4f5e4" stroke="#3e8e41" stroke-width="2"/>
+  <text x="480" y="481" text-anchor="middle" font-weight="bold" fill="#225c25">6. liaison QUIC établie · à l'intérieur, le même chiffrement par la clé d'invitation</text>
+
+  <text x="40" y="530" font-size="12" fill="#555">Échoue derrière un NAT « symétrique » (certaines box 4G/5G, réseaux d'entreprise, CGNAT). Les serveurs STUN ne reçoivent ni code, ni clé, ni donnée de jeu.</text>
+  <text x="40" y="548" font-size="12" fill="#555">Si l'UPnP de la box de l'hôte fonctionne, les étapes 1, 3, 4 et 5 sont inutiles : l'invité se relie directement après l'étape 2.</text>
+</svg>

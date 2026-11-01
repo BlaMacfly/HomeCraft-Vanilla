@@ -1,3 +1,148 @@
+diff --git a/src/game/Entities/CharacterHandler.cpp b/src/game/Entities/CharacterHandler.cpp
+index 06567441e..c78d9ff1d 100644
+--- a/src/game/Entities/CharacterHandler.cpp
++++ b/src/game/Entities/CharacterHandler.cpp
+@@ -62,12 +62,15 @@ class LoginQueryHolder : public SqlQueryHolder
+ {
+     private:
+         uint32 m_accountId;
++        uint32 m_callbackId;                                // HomeCraft : session qui a demandé le chargement
+         ObjectGuid m_guid;
+     public:
+         LoginQueryHolder(uint32 accountId, ObjectGuid guid)
+-            : m_accountId(accountId), m_guid(guid) { }
++            : m_accountId(accountId), m_callbackId(accountId), m_guid(guid) { }
+         ObjectGuid GetGuid() const { return m_guid; }
+         uint32 GetAccountId() const { return m_accountId; }
++        uint32 GetCallbackId() const { return m_callbackId; }
++        void SetCallbackId(uint32 id) { m_callbackId = id; }
+         bool Initialize();
+ };
+ 
+@@ -220,7 +223,7 @@ class CharacterHandler
+     public:
+         void HandleCharEnumCallback(QueryResult* result, uint32 account)
+         {
+-            WorldSession* session = sWorld.FindSession(account);
++            WorldSession* session = sWorld.FindSessionForCallback(account);
+             if (!session)
+             {
+                 delete result;
+@@ -234,7 +237,7 @@ class CharacterHandler
+             if (!holder) return;
+ 
+ #ifdef ENABLE_PLAYERBOTS
+-            WorldSession* session = sWorld.FindSession(((LoginQueryHolder*)holder)->GetAccountId());
++            WorldSession* session = sWorld.FindSessionForCallback(((LoginQueryHolder*)holder)->GetCallbackId());
+             if (!session)
+             {
+                 delete holder;
+@@ -252,7 +255,7 @@ class CharacterHandler
+                 sRandomPlayerbotMgr.OnPlayerLogin(player);
+             }
+ #else
+-            if (WorldSession* session = sWorld.FindSession(((LoginQueryHolder*)holder)->GetAccountId()))
++            if (WorldSession* session = sWorld.FindSessionForCallback(((LoginQueryHolder*)holder)->GetCallbackId()))
+                 session->HandlePlayerLogin((LoginQueryHolder*)holder);
+ #endif
+         }
+@@ -316,7 +319,7 @@ void WorldSession::HandleCharEnum(QueryResult* result)
+ void WorldSession::HandleCharEnumOpcode(WorldPacket& /*recv_data*/)
+ {
+     /// get all the data necessary for loading all characters (along with their pets) on the account
+-    CharacterDatabase.AsyncPQuery(&chrHandler, &CharacterHandler::HandleCharEnumCallback, GetAccountId(),
++    CharacterDatabase.AsyncPQuery(&chrHandler, &CharacterHandler::HandleCharEnumCallback, GetCallbackId(),
+                                   //           0               1                2                3                 4                  5                       6                        7
+                                   "SELECT characters.guid, characters.name, characters.race, characters.class, characters.gender, characters.playerBytes, characters.playerBytes2, characters.level, "
+                                   //   8                9               10                     11                     12                     13                    14
+@@ -661,6 +664,7 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPacket& recv_data)
+     DEBUG_LOG("WORLD: Received opcode Player Logon Message");
+ 
+     LoginQueryHolder* holder = new LoginQueryHolder(GetAccountId(), playerGuid);
++    holder->SetCallbackId(GetCallbackId());
+     if (!holder->Initialize())
+     {
+         delete holder;                                      // delete all unprocessed queries
+@@ -1187,7 +1191,7 @@ void WorldSession::HandleCharRenameOpcode(WorldPacket& recv_data)
+     // make sure that the character belongs to the current account, that rename at login is enabled
+     // and that there is no character with the desired new name
+     CharacterDatabase.AsyncPQuery(&WorldSession::HandleChangePlayerNameOpcodeCallBack,
+-                                  GetAccountId(), newname,
++                                  GetCallbackId(), newname,
+                                   "SELECT guid, name FROM characters WHERE guid = %u AND account = %u AND (at_login & %u) = %u AND NOT EXISTS (SELECT NULL FROM characters WHERE name = '%s')",
+                                   guid.GetCounter(), GetAccountId(), AT_LOGIN_RENAME, AT_LOGIN_RENAME, escaped_newname.c_str()
+                                  );
+@@ -1195,7 +1199,7 @@ void WorldSession::HandleCharRenameOpcode(WorldPacket& recv_data)
+ 
+ void WorldSession::HandleChangePlayerNameOpcodeCallBack(QueryResult* result, uint32 accountId, std::string newname)
+ {
+-    WorldSession* session = sWorld.FindSession(accountId);
++    WorldSession* session = sWorld.FindSessionForCallback(accountId);
+     if (!session)
+     {
+         delete result;
+diff --git a/src/game/Entities/MiscHandler.cpp b/src/game/Entities/MiscHandler.cpp
+index 60cf414d8..dcfddec1e 100644
+--- a/src/game/Entities/MiscHandler.cpp
++++ b/src/game/Entities/MiscHandler.cpp
+@@ -437,7 +437,7 @@ void WorldSession::HandleAddFriendOpcode(WorldPacket& recv_data)
+     DEBUG_LOG("WORLD: %s asked to add friend : '%s'",
+               GetPlayer()->GetName(), friendName.c_str());
+ 
+-    CharacterDatabase.AsyncPQuery(&WorldSession::HandleAddFriendOpcodeCallBack, GetAccountId(), "SELECT guid, race FROM characters WHERE name = '%s'", friendName.c_str());
++    CharacterDatabase.AsyncPQuery(&WorldSession::HandleAddFriendOpcodeCallBack, GetCallbackId(), "SELECT guid, race FROM characters WHERE name = '%s'", friendName.c_str());
+ }
+ 
+ void WorldSession::HandleAddFriendOpcodeCallBack(QueryResult* result, uint32 accountId)
+@@ -451,7 +451,7 @@ void WorldSession::HandleAddFriendOpcodeCallBack(QueryResult* result, uint32 acc
+ 
+     delete result;
+ 
+-    WorldSession* session = sWorld.FindSession(accountId);
++    WorldSession* session = sWorld.FindSessionForCallback(accountId);
+     if (!session)
+         return;
+ 
+@@ -520,7 +520,7 @@ void WorldSession::HandleAddIgnoreOpcode(WorldPacket& recv_data)
+     DEBUG_LOG("WORLD: %s asked to Ignore: '%s'",
+               GetPlayer()->GetName(), IgnoreName.c_str());
+ 
+-    CharacterDatabase.AsyncPQuery(&WorldSession::HandleAddIgnoreOpcodeCallBack, GetAccountId(), "SELECT guid FROM characters WHERE name = '%s'", IgnoreName.c_str());
++    CharacterDatabase.AsyncPQuery(&WorldSession::HandleAddIgnoreOpcodeCallBack, GetCallbackId(), "SELECT guid FROM characters WHERE name = '%s'", IgnoreName.c_str());
+ }
+ 
+ void WorldSession::HandleAddIgnoreOpcodeCallBack(QueryResult* result, uint32 accountId)
+@@ -533,7 +533,7 @@ void WorldSession::HandleAddIgnoreOpcodeCallBack(QueryResult* result, uint32 acc
+ 
+     delete result;
+ 
+-    WorldSession* session = sWorld.FindSession(accountId);
++    WorldSession* session = sWorld.FindSessionForCallback(accountId);
+     if (!session)
+         return;
+ 
+diff --git a/src/game/Entities/QueryHandler.cpp b/src/game/Entities/QueryHandler.cpp
+index 7b75c248a..f9f92191d 100644
+--- a/src/game/Entities/QueryHandler.cpp
++++ b/src/game/Entities/QueryHandler.cpp
+@@ -55,7 +55,7 @@ void WorldSession::SendNameQueryResponse(CharacterNameQueryResponse& response) c
+ 
+ void WorldSession::SendNameQueryResponseFromDB(ObjectGuid guid) const
+ {
+-    CharacterDatabase.AsyncPQuery(&WorldSession::SendNameQueryResponseFromDBCallBack, GetAccountId(),
++    CharacterDatabase.AsyncPQuery(&WorldSession::SendNameQueryResponseFromDBCallBack, GetCallbackId(),
+                                   //          0     1     2     3       4
+                                   "SELECT guid, name, race, gender, class "
+                                   "FROM characters WHERE guid = '%u'",
+@@ -67,7 +67,7 @@ void WorldSession::SendNameQueryResponseFromDBCallBack(QueryResult* result, uint
+     if (!result)
+         return;
+ 
+-    WorldSession* session = sWorld.FindSession(accountId);
++    WorldSession* session = sWorld.FindSessionForCallback(accountId);
+     if (!session)
+     {
+         delete result;
 diff --git a/src/game/Globals/SharedDefines.h b/src/game/Globals/SharedDefines.h
 index ff41d3fe0..105bd8a90 100644
 --- a/src/game/Globals/SharedDefines.h
@@ -72,6 +217,224 @@ index 5badca4ec..5b5a76b1b 100644
      dtQueryFilter m_filter;
      dtPolyRef polyRef = INVALID_POLYREF;
  
+diff --git a/src/game/Server/WorldSession.cpp b/src/game/Server/WorldSession.cpp
+index 46603db64..9db6ea814 100644
+--- a/src/game/Server/WorldSession.cpp
++++ b/src/game/Server/WorldSession.cpp
+@@ -97,9 +97,22 @@ bool WorldSessionFilter::Process(WorldPacket const& packet) const
+ }
+ 
+ /// WorldSession constructor
++// HomeCraft : numéros de session uniques pour les requêtes asynchrones (0 réservé : jamais attribué).
++static uint32 NextCallbackKey()
++{
++    static std::atomic<uint32> s_next{1};
++    uint32 key = s_next.fetch_add(1);
++    return key ? key : s_next.fetch_add(1);
++}
++
++uint32 WorldSession::GetCallbackId() const
++{
++    return sWorld.getConfig(CONFIG_BOOL_HOMECRAFT_MULTI_SESSION) ? m_callbackKey : GetAccountId();
++}
++
+ WorldSession::WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, time_t mute_time, LocaleConstant locale, std::string accountName, uint32 accountFlags) :
+     m_muteTime(mute_time),
+-    _player(nullptr), m_socket(sock ? sock->shared_from_this() : nullptr), m_requestSocket(nullptr), m_sessionState(WORLD_SESSION_STATE_CREATED),
++    _player(nullptr), m_socket(sock ? sock->shared_from_this() : nullptr), m_requestSocket(nullptr), m_sessionState(WORLD_SESSION_STATE_CREATED), m_callbackKey(NextCallbackKey()),
+     _security(sec), _accountId(id), m_accountName(accountName), m_accountFlags(accountFlags),
+     m_clientOS(CLIENT_OS_UNKNOWN), m_clientPlatform(CLIENT_PLATFORM_UNKNOWN), m_orderCounter(0),
+     _logoutTime(0), m_afkTime(0), m_playerSave(true), m_inQueue(false), m_playerLoading(false), m_kickSession(false), m_playerLogout(false), m_playerRecentlyLogout(false),
+@@ -533,7 +546,10 @@ bool WorldSession::Update(uint32 diff)
+             else if (!m_playerLoading)
+             {
+                 time_t curTime = time(nullptr);
+-                if (ShouldAfkDisconnect(curTime) || ShouldLogOut(curTime)) // check if delayed logout or afk is fired
++                // HomeCraft.DisableAfkKick : un joueur absent (AFK) reste en jeu. La perte réelle de la connexion
++                // (socket fermé, plus haut) et la déconnexion demandée (ShouldLogOut) restent traitées normalement.
++                bool afkKick = ShouldAfkDisconnect(curTime) && !sWorld.getConfig(CONFIG_BOOL_HOMECRAFT_DISABLE_AFK_KICK);
++                if (afkKick || ShouldLogOut(curTime)) // check if delayed logout or afk is fired
+                     LogoutPlayer();
+             }
+ 
+diff --git a/src/game/Server/WorldSession.h b/src/game/Server/WorldSession.h
+index 286885423..8a61385f4 100644
+--- a/src/game/Server/WorldSession.h
++++ b/src/game/Server/WorldSession.h
+@@ -242,6 +242,10 @@ class WorldSession
+         void AddAccountFlag(uint32 flags) { m_accountFlags |= flags; }
+         void RemoveAccountFlag(uint32 flags) { m_accountFlags &= ~flags; }
+         uint32 GetAccountId() const { return _accountId; }
++        // HomeCraft : identifiant passé aux requêtes asynchrones pour retrouver CETTE session à leur retour (le numéro
++        // du compte ne suffit plus quand un compte a plusieurs sessions). Résolu par World::FindSessionForCallback.
++        uint32 GetCallbackId() const;
++        uint32 GetCallbackKey() const { return m_callbackKey; }
+         std::string const& GetAccountName() const { return m_accountName; }
+         Player* GetPlayer() const { return _player; }
+         char const* GetPlayerName() const;
+@@ -826,6 +830,7 @@ class WorldSession
+         std::shared_ptr<WorldSocket> m_requestSocket;       // a new socket for this session is requested (double connection)
+         std::string m_localAddress;
+         WorldSessionState m_sessionState;                   // this session state
++        uint32 m_callbackKey;                               // HomeCraft : numéro unique de la session (voir GetCallbackId)
+ 
+         AccountTypes _security;
+         uint32 _accountId;
+diff --git a/src/game/Server/WorldSocket.cpp b/src/game/Server/WorldSocket.cpp
+index d11eeb597..bb5476766 100644
+--- a/src/game/Server/WorldSocket.cpp
++++ b/src/game/Server/WorldSocket.cpp
+@@ -496,7 +496,8 @@ bool WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
+ 
+     m_crypt.Init(&K);
+ 
+-    m_session = sWorld.FindSession(id);
++    // HomeCraft : en sessions multiples, seule une session déconnectée du compte est reprise ; sinon nouvelle session.
++    m_session = sWorld.FindSessionForReconnect(id);
+ 
+     ClientPlatformType clientPlatform;
+     if (platform == "x86")
+diff --git a/src/game/World/World.cpp b/src/game/World/World.cpp
+index e344c52c1..1497b6fa2 100644
+--- a/src/game/World/World.cpp
++++ b/src/game/World/World.cpp
+@@ -190,6 +190,29 @@ WorldSession* World::FindSession(uint32 id) const
+     return nullptr;
+ }
+ 
++WorldSession* World::FindSessionForCallback(uint32 id) const
++{
++    if (!getConfig(CONFIG_BOOL_HOMECRAFT_MULTI_SESSION))
++        return FindSession(id);
++
++    for (auto const& itr : m_sessions)
++        if (itr.second && itr.second->GetCallbackKey() == id)
++            return itr.second;
++    return nullptr;
++}
++
++WorldSession* World::FindSessionForReconnect(uint32 id) const
++{
++    if (!getConfig(CONFIG_BOOL_HOMECRAFT_MULTI_SESSION))
++        return FindSession(id);
++
++    auto range = m_sessions.equal_range(id);
++    for (auto itr = range.first; itr != range.second; ++itr)
++        if (itr->second && itr->second->IsOffline())
++            return itr->second;
++    return nullptr;
++}
++
+ /// Remove a given session
+ bool World::RemoveSession(uint32 id)
+ {
+@@ -218,6 +241,32 @@ World::AddSession_(WorldSession* s)
+ {
+     MANGOS_ASSERT(s);
+ 
++    // HomeCraft : sessions multiples par compte (plusieurs clients, un personnage chacun). La session d'un autre client
++    // n'est ni remplacée ni expulsée ; au-delà de HomeCraft.MaxSessionsPerAccount, la nouvelle est refusée.
++    if (getConfig(CONFIG_BOOL_HOMECRAFT_MULTI_SESSION))
++    {
++        auto range = m_sessions.equal_range(s->GetAccountId());
++        uint32 count = 0;
++        for (auto itr = range.first; itr != range.second; ++itr, ++count)
++        {
++            if (itr->second == s)
++            {
++                sLog.outError("Trying to add an already existing session");
++                return;
++            }
++        }
++        if (count >= getConfig(CONFIG_UINT32_HOMECRAFT_MAX_SESSIONS_PER_ACCOUNT))
++        {
++            sLog.outString("HomeCraft: account %u already has %u sessions (HomeCraft.MaxSessionsPerAccount): new session refused", s->GetAccountId(), count);
++            s->KickPlayer();
++            delete s;
++            return;
++        }
++        m_sessions.emplace(s->GetAccountId(), s);
++        AddSessionCounters(s, true);
++        return;
++    }
++
+     if (FindSession(s->GetAccountId()))
+     {
+         sLog.outError("Trying to add an already existing session");
+@@ -250,11 +299,17 @@ World::AddSession_(WorldSession* s)
+                 decrease_session = false;
+             // do not remove replaced session from queue if listed
+             delete old->second;
++            m_sessions.erase(old);
+         }
+     }
+ 
+-    m_sessions[s->GetAccountId()] = s;
++    m_sessions.emplace(s->GetAccountId(), s);
++    AddSessionCounters(s, decrease_session);
++}
+ 
++/// HomeCraft : file d'attente, compteurs et population, communs aux deux modes d'ajout de session.
++void World::AddSessionCounters(WorldSession* s, bool decrease_session)
++{
+     uint32 Sessions = GetActiveAndQueuedSessionCount();
+     uint32 pLimit = GetPlayerAmountLimit();
+     uint32 QueueSize = GetQueuedSessionCount();             // number of players in the queue
+@@ -517,6 +572,11 @@ void World::LoadConfigSettings(bool reload)
+     if (configNoReload(reload, CONFIG_UINT32_REALM_ZONE, "RealmZone", REALM_ZONE_DEVELOPMENT))
+         setConfig(CONFIG_UINT32_REALM_ZONE, "RealmZone", REALM_ZONE_DEVELOPMENT);
+ 
++    // HomeCraft (désactivés par défaut : le launcher les active pour le jeu local)
++    setConfig(CONFIG_BOOL_HOMECRAFT_DISABLE_AFK_KICK,         "HomeCraft.DisableAfkKick", false);
++    setConfig(CONFIG_BOOL_HOMECRAFT_MULTI_SESSION,            "HomeCraft.AllowMultipleSessionsPerAccount", false);
++    setConfigMinMax(CONFIG_UINT32_HOMECRAFT_MAX_SESSIONS_PER_ACCOUNT, "HomeCraft.MaxSessionsPerAccount", 4, 1, 10);
++
+     setConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_ACCOUNTS,            "AllowTwoSide.Accounts", false);
+     setConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT,    "AllowTwoSide.Interaction.Chat", false);
+     setConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHANNEL, "AllowTwoSide.Interaction.Channel", false);
+diff --git a/src/game/World/World.h b/src/game/World/World.h
+index 5d19b35cd..9752f9799 100644
+--- a/src/game/World/World.h
++++ b/src/game/World/World.h
+@@ -200,6 +200,7 @@ enum eConfigUInt32Values
+     CONFIG_UINT32_CREATURE_PICKPOCKET_RESTOCK_DELAY,
+     CONFIG_UINT32_CHANNEL_STATIC_AUTO_TRESHOLD,
+     CONFIG_UINT32_LFG_MATCHMAKING_TIMER,
++    CONFIG_UINT32_HOMECRAFT_MAX_SESSIONS_PER_ACCOUNT,   // HomeCraft : sessions simultanées par compte (multiboxing)
+     CONFIG_UINT32_VALUE_COUNT
+ };
+ 
+@@ -355,6 +356,8 @@ enum eConfigBoolValues
+     CONFIG_BOOL_DISABLE_INSTANCE_RELOCATE,
+     CONFIG_BOOL_PRELOAD_MMAP_TILES,
+     CONFIG_BOOL_REGEN_ZONE_AREA_ON_STARTUP,
++    CONFIG_BOOL_HOMECRAFT_DISABLE_AFK_KICK,             // HomeCraft : pas de retour à la sélection des personnages après 15 min d'absence
++    CONFIG_BOOL_HOMECRAFT_MULTI_SESSION,                // HomeCraft : plusieurs sessions (personnages) en même temps sur un compte
+     CONFIG_BOOL_VALUE_COUNT
+ };
+ 
+@@ -401,6 +404,11 @@ class World
+         void CleanupsBeforeStop();
+ 
+         WorldSession* FindSession(uint32 id) const;
++        // HomeCraft : session à reprendre pour un client qui se reconnecte (en sessions multiples : seulement une
++        // session déconnectée, jamais celle d'un autre client encore en jeu).
++        WorldSession* FindSessionForReconnect(uint32 id) const;
++        WorldSession* FindSessionForCallback(uint32 id) const; // id = WorldSession::GetCallbackId()
++        void AddSessionCounters(WorldSession* s, bool decrease_session);
+         void AddSession(WorldSession* s);
+         bool RemoveSession(uint32 id);
+         /// Get the number of current active sessions
+@@ -650,7 +658,8 @@ class World
+         uint32 mail_timer;
+         uint32 mail_timer_expires;
+ 
+-        typedef std::unordered_map<uint32, WorldSession*> SessionMap;
++        // HomeCraft : multimap, un compte peut avoir plusieurs sessions (HomeCraft.AllowMultipleSessionsPerAccount).
++        typedef std::unordered_multimap<uint32, WorldSession*> SessionMap;
+         typedef std::unordered_set<uint32> UniqueSessions;
+         SessionMap m_sessions;
+         UniqueSessions m_uniqueSessionCount;
 diff --git a/src/mangosd/Main.cpp b/src/mangosd/Main.cpp
 index 01aae80db..f38171f8f 100644
 --- a/src/mangosd/Main.cpp

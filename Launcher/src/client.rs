@@ -82,9 +82,9 @@ impl ClientInfo {
     /// Libellé du type de client, pour l'interface.
     pub fn kind_label(&self) -> &'static str {
         match self.kind {
-            ClientKind::Original => crate::i18n::fr::CLIENT_KIND_ORIGINAL,
-            ClientKind::Benilla => crate::i18n::fr::CLIENT_KIND_BENILLA,
-            ClientKind::None => crate::i18n::fr::CLIENT_KIND_NONE,
+            ClientKind::Original => crate::tr!(CLIENT_KIND_ORIGINAL),
+            ClientKind::Benilla => crate::tr!(CLIENT_KIND_BENILLA),
+            ClientKind::None => crate::tr!(CLIENT_KIND_NONE),
         }
     }
 }
@@ -237,7 +237,7 @@ pub fn extraction_source(selected: &ClientInfo, root: &Path) -> Result<PathBuf, 
     if let Some(other) = discover(root).into_iter().find(|c| c.dir != selected.dir && extraction_missing(&c.dir).is_empty()) {
         return Ok(other.dir);
     }
-    Err(format!("{} {} ({}). {}", crate::i18n::fr::EXTRACT_MISSING, missing.join(", "), selected.dir.join("Data").display(), crate::i18n::fr::EXTRACT_MISSING_HINT))
+    Err(format!("{} {} ({}). {}", crate::tr!(EXTRACT_MISSING), missing.join(", "), selected.dir.join("Data").display(), crate::tr!(EXTRACT_MISSING_HINT)))
 }
 
 /// Taille de l'écran principal (pixels).
@@ -417,7 +417,7 @@ pub fn apply_vanillafixes(client_dir: &Path, tools_dir: &Path, vanillafixes: boo
     let have_tools = VF_FILES.iter().all(|f| tools_dir.join(f).is_file());
     if vanillafixes {
         if !have_tools {
-            return Err(crate::i18n::fr::SET_VF_MISSING.to_string());
+            return Err(crate::tr!(SET_VF_MISSING).to_string());
         }
         for f in VF_FILES {
             let (src, dst) = (tools_dir.join(f), client_dir.join(f));
@@ -447,17 +447,155 @@ pub fn apply_vanillafixes(client_dir: &Path, tools_dir: &Path, vanillafixes: boo
 }
 
 /// Lance le client : VanillaFixes.exe si demandé (client d'origine), sinon l'exécutable du client.
-pub fn launch(info: &ClientInfo, via_vanillafixes: bool) -> Result<Child, String> {
-    let exe = if via_vanillafixes { "VanillaFixes.exe".to_string() } else { info.exe_name.clone() };
-    Command::new(info.dir.join(&exe))
-        .current_dir(&info.dir)
-        .creation_flags(CREATE_NO_WINDOW)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| crate::util::spawn_error(&exe, &e))
+/// Préremplissage de la connexion par un profil.
+pub struct Prefill {
+    pub account: String,
+    /// En clair en mémoire seulement le temps du lancement
+    pub password: Option<String>,
+    pub character: String,
+    pub enter_world: bool,
+    pub extra_args: Vec<String>,
 }
+
+/// Comment le préremplissage a été appliqué (journalisé sans aucun secret).
+#[derive(Debug, PartialEq)]
+pub enum PrefillMode {
+    None,
+    /// Benilla : variables WOW_USER/WOW_PASS (connexion validée automatiquement), WOW_CHARSELECT_PICK ou WOW_CHAR
+    BenillaEnv { password: bool, character: bool },
+    /// Client d'origine : `SET accountName` dans Config.wtf, mot de passe saisi dans sa fenêtre (automatisation locale)
+    OriginalConfig { password_typed: bool },
+}
+
+pub fn launch(info: &ClientInfo, via_vanillafixes: bool) -> Result<Child, String> {
+    launch_with(info, via_vanillafixes, None).map(|(c, _)| c)
+}
+
+/// Lance le client, avec le préremplissage d'un profil le cas échéant :
+/// 1. Benilla : son mécanisme officiel (variables d'environnement lues au démarrage, passées au seul processus du
+///    client ; compte mémorisé dans `benilla-config\account` si le mot de passe n'est pas enregistré) ;
+/// 2. client d'origine : `accountName` de Config.wtf (mécanisme officiel du client pour le nom de compte) ; le 1.12.1
+///    n'a aucun moyen de recevoir un mot de passe, il est donc saisi dans la fenêtre du client lancé (dernier recours,
+///    messages clavier adressés à cette seule fenêtre, jamais au bureau), seulement en lancement direct.
+pub fn launch_with(info: &ClientInfo, via_vanillafixes: bool, prefill: Option<&Prefill>) -> Result<(Child, PrefillMode), String> {
+    let exe = if via_vanillafixes { "VanillaFixes.exe".to_string() } else { info.exe_name.clone() };
+    let mut cmd = Command::new(info.dir.join(&exe));
+    cmd.current_dir(&info.dir).creation_flags(CREATE_NO_WINDOW).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    // Variables héritées d'un autre lancement (tests, terminal) : jamais transmises au client.
+    for k in ["WOW_USER", "WOW_PASS", "WOW_CHAR", "WOW_CHARSELECT_PICK"] {
+        cmd.env_remove(k);
+    }
+    let mut mode = PrefillMode::None;
+    let mut type_password: Option<String> = None;
+    if let Some(p) = prefill.filter(|p| !p.account.is_empty()) {
+        cmd.args(&p.extra_args);
+        if info.is_benilla() {
+            let home = info.dir.join(BENILLA_HOME);
+            let _ = std::fs::create_dir_all(&home);
+            std::fs::write(home.join("account"), &p.account).map_err(|e| format!("{BENILLA_HOME}\\account : {e}"))?;
+            if let Some(pw) = &p.password {
+                cmd.env("WOW_USER", &p.account).env("WOW_PASS", pw);
+            }
+            let character = !p.character.is_empty();
+            if character {
+                cmd.env(if p.enter_world && p.password.is_some() { "WOW_CHAR" } else { "WOW_CHARSELECT_PICK" }, &p.character);
+            }
+            mode = PrefillMode::BenillaEnv { password: p.password.is_some(), character };
+        } else {
+            set_config_wtf(&info.dir, &[("accountName", p.account.clone())])?;
+            if !via_vanillafixes {
+                type_password = p.password.clone();
+            }
+            mode = PrefillMode::OriginalConfig { password_typed: type_password.is_some() };
+        }
+    }
+    let child = cmd.spawn().map_err(|e| crate::util::spawn_error(&exe, &e))?;
+    if let Some(pw) = type_password {
+        let pid = child.id();
+        std::thread::spawn(move || type_into_login(pid, &pw));
+    }
+    Ok((child, mode))
+}
+
+/// Remplace ou ajoute des `SET clé "valeur"` dans WTF\Config.wtf du client d'origine.
+fn set_config_wtf(dir: &Path, values: &[(&str, String)]) -> Result<(), String> {
+    let wtf = dir.join("WTF");
+    std::fs::create_dir_all(&wtf).map_err(|e| e.to_string())?;
+    let cfg = wtf.join("Config.wtf");
+    let existing = std::fs::read_to_string(&cfg).unwrap_or_default();
+    let mut out: Vec<String> = Vec::new();
+    let mut done = vec![false; values.len()];
+    for line in existing.lines() {
+        let key = line.trim().strip_prefix("SET ").and_then(|r| r.split_whitespace().next());
+        match key.and_then(|k| values.iter().position(|(v, _)| v.eq_ignore_ascii_case(k))) {
+            Some(i) => {
+                out.push(format!("SET {} \"{}\"", values[i].0, values[i].1));
+                done[i] = true;
+            }
+            None => out.push(line.to_string()),
+        }
+    }
+    for (i, (k, v)) in values.iter().enumerate() {
+        if !done[i] {
+            out.push(format!("SET {k} \"{v}\""));
+        }
+    }
+    std::fs::write(&cfg, out.join("\r\n") + "\r\n").map_err(|e| format!("Config.wtf : {e}"))
+}
+
+/// Fenêtre principale visible d'un processus.
+fn main_window_of(pid: u32) -> Option<windows_sys::Win32::Foundation::HWND> {
+    use windows_sys::Win32::Foundation::{HWND, LPARAM};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{EnumWindows, GetWindowThreadProcessId, IsWindowVisible};
+    struct Search {
+        pid: u32,
+        found: HWND,
+    }
+    unsafe extern "system" fn cb(hwnd: HWND, l: LPARAM) -> i32 {
+        let s = unsafe { &mut *(l as *mut Search) };
+        let mut p = 0u32;
+        unsafe { GetWindowThreadProcessId(hwnd, &mut p) };
+        if p == s.pid && unsafe { IsWindowVisible(hwnd) } != 0 {
+            s.found = hwnd;
+            return 0;
+        }
+        1
+    }
+    let mut s = Search { pid, found: std::ptr::null_mut() };
+    unsafe { EnumWindows(Some(cb), &mut s as *mut Search as LPARAM) };
+    if s.found.is_null() { None } else { Some(s.found) }
+}
+
+/// Saisie du mot de passe dans l'écran de connexion du client d'origine lancé par le launcher : attend sa fenêtre
+/// (90 s au plus), laisse l'écran de connexion se charger, puis envoie les caractères et Entrée à cette fenêtre
+/// (le champ mot de passe a le focus quand le nom de compte est mémorisé). Abandon silencieux si le client se ferme.
+fn type_into_login(pid: u32, password: &str) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CHAR, WM_KEYDOWN, WM_KEYUP};
+    let start = std::time::Instant::now();
+    let hwnd = loop {
+        if let Some(h) = main_window_of(pid) {
+            break h;
+        }
+        if start.elapsed() > std::time::Duration::from_secs(90) {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    };
+    std::thread::sleep(std::time::Duration::from_secs(LOGIN_SCREEN_DELAY_SECS));
+    for u in password.encode_utf16() {
+        unsafe { PostMessageW(hwnd, WM_CHAR, u as usize, 1) };
+        std::thread::sleep(std::time::Duration::from_millis(15));
+    }
+    const VK_RETURN: usize = 0x0D;
+    unsafe {
+        PostMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0x001C_0001);
+        PostMessageW(hwnd, WM_CHAR, VK_RETURN, 0x001C_0001);
+        PostMessageW(hwnd, WM_KEYUP, VK_RETURN, 0xC01C_0001u32 as isize);
+    }
+}
+
+/// Délai entre l'apparition de la fenêtre du client d'origine et l'écran de connexion prêt à recevoir la saisie.
+pub const LOGIN_SCREEN_DELAY_SECS: u64 = 8;
 
 #[cfg(test)]
 mod tests {

@@ -1,0 +1,17 @@
+[12:03:28] 0. préparation : hôte C:\Users\Marty\HomeCraftTests\cm, invité C:\Users\Marty\HomeCraftTests\guest
+[12:03:28]    OK 0. aucun composant réseau externe dans les installations
+[12:03:28] 1. hôte : serveur, compte invité, partie ouverte, invitation
+[12:03:55]    OK 1. hôte prêt : serveur, compte invité, partie ouverte, code HC2-
+[12:03:55]    OK 1b. code : clé propre à ce joueur (32 octets), identifiant, adresse(s), expiration ; aucun mot de passe
+[12:03:55] 2. connexion non autorisée au port de l'hôte
+[12:03:55]    OK 2. données sans invitation valide : connexion fermée par l'hôte, aucune réponse
+[12:03:55] 3. invité : liaison puis jeu
+[12:04:02]    OK 3. invité relié à l'hôte (canal de présence chiffré)
+[12:04:02]    OK 3q. liaison établie par QUIC (chemin du perçage de NAT), sans adresse TCP directe
+[12:05:03]    OK 3b. personnage de l'invité créé et en jeu 40 s à travers la liaison (royaume 13724 et monde 18085)
+[12:05:03] 4. secrets absents des journaux
+[12:05:03]    OK 4. clé d'invitation, code et mot de passe absents de tous les journaux
+[12:05:03] 5. fermeture de l'hôte puis de l'invité
+[12:05:12]    OK 5. fermeture de l'hôte détectée par l'invité ; aucun processus ni port d'écoute résiduel
+Dossier du test : C:\Users\Marty\HomeCraftTests\cm\Logs\network-test
+Réseau : tout est conforme (sur une seule machine ; traversée d'une box non testée)

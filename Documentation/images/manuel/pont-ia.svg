@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <title>IA des bots : le pont HomeCraft</title>
+  <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <rect width="960" height="500" fill="#fff"/>
+  <text x="480" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">IA des bots : qui parle à qui</text>
+
+  <rect x="20" y="70" width="160" height="80" rx="12" fill="#e4f5e4" stroke="#3e8e41" stroke-width="2"/>
+  <text x="100" y="100" text-anchor="middle" font-weight="bold">Vous</text>
+  <text x="100" y="122" text-anchor="middle" font-size="12">chuchotez, dites,</text>
+  <text x="100" y="138" text-anchor="middle" font-size="12">parlez en groupe</text>
+
+  <rect x="220" y="60" width="210" height="100" rx="12" fill="#e3eefc" stroke="#3b6fb6" stroke-width="2"/>
+  <text x="325" y="86" text-anchor="middle" font-weight="bold">mangosd + playerbots</text>
+  <text x="325" y="108" text-anchor="middle" font-size="12">prépare le contexte du bot</text>
+  <text x="325" y="124" text-anchor="middle" font-size="12">(nom, race, classe, zone)</text>
+  <text x="325" y="144" text-anchor="middle" font-size="11" fill="#666">ne connaît ni la clé ni le fournisseur</text>
+
+  <rect x="470" y="60" width="220" height="100" rx="12" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+  <text x="580" y="86" text-anchor="middle" font-weight="bold">Pont IA du launcher</text>
+  <text x="580" y="106" text-anchor="middle" font-size="12">127.0.0.1:15910 + jeton local</text>
+  <text x="580" y="124" text-anchor="middle" font-size="12">ajoute personnalité et langue</text>
+  <text x="580" y="142" text-anchor="middle" font-size="12">clé déchiffrée en mémoire seule</text>
+
+  <rect x="730" y="60" width="210" height="100" rx="12" fill="#f1e6fa" stroke="#8a4fbf" stroke-width="2"/>
+  <text x="835" y="86" text-anchor="middle" font-weight="bold">Fournisseur choisi</text>
+  <text x="835" y="108" text-anchor="middle" font-size="12">LM Studio, Ollama (local)</text>
+  <text x="835" y="124" text-anchor="middle" font-size="12">OpenAI, Anthropic, Mistral,</text>
+  <text x="835" y="140" text-anchor="middle" font-size="12">OpenRouter, compatible OpenAI</text>
+
+  <line x1="182" y1="100" x2="218" y2="100" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <line x1="432" y1="100" x2="468" y2="100" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <line x1="692" y1="100" x2="728" y2="100" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+
+  <!-- retour -->
+  <rect x="470" y="210" width="470" height="120" rx="12" fill="#fff" stroke="#c9a227" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="705" y="236" text-anchor="middle" font-weight="bold">Réponse filtrée par le pont</text>
+  <text x="490" y="260" font-size="12">• une ou deux phrases, sans guillemets ni balise inventée</text>
+  <text x="490" y="280" font-size="12">• au plus UNE action de la liste blanche :</text>
+  <text x="510" y="298" font-size="12">suivre, rester, attaquer la cible, saluer, s'incliner,</text>
+  <text x="510" y="316" font-size="12">acclamer, rire, salut militaire — rien d'autre</text>
+  <path d="M835,162 L835,206" stroke="#8a4fbf" stroke-width="2" marker-end="url(#f)"/>
+  <path d="M470,270 C380,270 340,230 325,164" fill="none" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+
+  <rect x="20" y="210" width="410" height="120" rx="12" fill="#e3eefc" stroke="#3b6fb6" stroke-width="2"/>
+  <text x="225" y="236" text-anchor="middle" font-weight="bold">Le module revérifie, puis le bot agit</text>
+  <text x="40" y="260" font-size="12">• le bot dit la réponse dans le même canal</text>
+  <text x="40" y="280" font-size="12">• l'action n'est faite que si vous êtes à côté du bot,</text>
+  <text x="56" y="298" font-size="12">avec les droits d'un ordre que vous lui chuchoteriez</text>
+  <text x="40" y="318" font-size="12">• aucune autre fonction du serveur n'est accessible</text>
+
+  <rect x="20" y="360" width="920" height="120" rx="12" fill="#fdeaea" stroke="#c0504d"/>
+  <text x="40" y="388" font-weight="bold" fill="#8b2a27">Si le fournisseur ne répond pas (arrêté, hors ligne, délai dépassé, erreur) :</text>
+  <text x="40" y="412" font-size="13">le pont renvoie une erreur, le module bascule sur les réponses classiques des bots pendant 60 secondes, puis réessaie.</text>
+  <text x="40" y="436" font-size="13">Le jeu ne se bloque jamais en attendant l'IA : chaque génération se fait à part, en arrière-plan.</text>
+  <text x="40" y="460" font-size="13">En multijoueur, seul le launcher de l'hôte appelle le fournisseur ; la clé ne quitte jamais son PC.</text>
+</svg>

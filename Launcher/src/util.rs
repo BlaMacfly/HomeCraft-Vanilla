@@ -148,9 +148,9 @@ pub fn dir_file_count(dir: &Path) -> usize {
 pub fn spawn_error(name: &str, e: &std::io::Error) -> String {
     match e.raw_os_error() {
         // 4551 : stratégie de contrôle d'application ; 4553 : intégrité du code ; 1260 : stratégie de groupe.
-        Some(4551) | Some(4553) | Some(1260) => format!("{name} : {e}. {}", crate::i18n::fr::SPAWN_BLOCKED_APP_CONTROL),
+        Some(4551) | Some(4553) | Some(1260) => format!("{name} : {e}. {}", crate::tr!(SPAWN_BLOCKED_APP_CONTROL)),
         // 225 : fichier détecté comme virus ou logiciel indésirable.
-        Some(225) => format!("{name} : {e}. {}", crate::i18n::fr::SPAWN_BLOCKED_ANTIVIRUS),
+        Some(225) => format!("{name} : {e}. {}", crate::tr!(SPAWN_BLOCKED_ANTIVIRUS)),
         _ => format!("{name} : {e}"),
     }
 }

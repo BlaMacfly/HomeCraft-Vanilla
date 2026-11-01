@@ -8,13 +8,13 @@
     Le package doit avoir été construit (Build\New-Package.ps1). Les données du serveur (format CMaNGOS : dbc, maps,
     vmaps, mmaps, avec les marqueurs .cmangos-*) et les archives du client sont des liens physiques : rien n'y est
     écrit. Le dossier de développement contient les données de l'édition VMaNGOS : celles de CMaNGOS sont prises dans
-    -DataDir (par défaut l'extraction de test %TEMP%\hc-cm\Server\Data).
+    -DataDir (par défaut l'installation de test %USERPROFILE%\HomeCraftTests\cm\Server\Data ; %TEMP% est purgé par Windows).
     Ne pas lancer pendant que le launcher de l'utilisateur tourne (mêmes ports).
 #>
 [CmdletBinding()]
 param(
     [string]$Root = (Join-Path $env:TEMP 'hc-integration'),
-    [string]$DataDir = (Join-Path $env:TEMP 'hc-cm\Server\Data'),
+    [string]$DataDir = (Join-Path $env:USERPROFILE 'HomeCraftTests\cm\Server\Data'),
     [switch]$Keep
 )
 $ErrorActionPreference = 'Stop'

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 960 520" font-family="Consolas, Segoe UI, monospace" font-size="14">
+  <title>Contenu du dossier HomeCraft</title>
+  <rect width="960" height="520" fill="#fff"/>
+  <text x="480" y="32" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="bold" fill="#222">Le dossier HomeCraft : ce qui est à vous, ce qui est remplaçable</text>
+
+  <rect x="20" y="52" width="560" height="452" rx="12" fill="#f9f9f9" stroke="#bbb"/>
+  <text x="40" y="82" font-weight="bold">HomeCraft Edition Vanilla\</text>
+  <text x="60" y="108">HomeCraft Edition Vanilla.exe</text>
+  <text x="60" y="134" fill="#225c25" font-weight="bold">Client\</text>
+  <text x="60" y="160">Server\</text>
+  <text x="90" y="182">cmangos\      <tspan fill="#666">serveur, extracteurs</tspan></text>
+  <text x="90" y="204">Config\       <tspan fill="#666">.conf générés</tspan></text>
+  <text x="90" y="226">Data\         <tspan fill="#666">extrait de votre client</tspan></text>
+  <text x="90" y="248">Database\     <tspan fill="#666">MariaDB, données SQL</tspan></text>
+  <text x="60" y="274">Tools\        <tspan fill="#666">HeidiSQL, VanillaFixes, scripts</tspan></text>
+  <text x="60" y="300" fill="#8b2a27" font-weight="bold">UserData\</text>
+  <text x="90" y="322">Database\     <tspan fill="#666">vos personnages, comptes</tspan></text>
+  <text x="90" y="344">Sauvegardes\</text>
+  <text x="90" y="366">settings.json, profiles.json,</text>
+  <text x="90" y="388">network.json, ai-settings.json</text>
+  <text x="90" y="410">db-credentials.json</text>
+  <text x="60" y="436">Logs\         <tspan fill="#666">journaux (launcher, serveur,</tspan></text>
+  <text x="60" y="458"><tspan fill="#666">              réseau, pont IA)</tspan></text>
+  <text x="60" y="484">Documentation\, LICENCE.txt, LICENCES\</text>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="13">
+    <rect x="610" y="110" width="330" height="70" rx="10" fill="#e4f5e4" stroke="#3e8e41"/>
+    <text x="625" y="134" font-weight="bold" fill="#225c25">Client\ : votre jeu</text>
+    <text x="625" y="154">jamais fourni, jamais copié dans une</text>
+    <text x="625" y="170">archive ; détecté automatiquement ici</text>
+    <rect x="610" y="196" width="330" height="70" rx="10" fill="#e3eefc" stroke="#3b6fb6"/>
+    <text x="625" y="220" font-weight="bold" fill="#1d3f73">Server\, Tools\, .exe : le programme</text>
+    <text x="625" y="240">remplacés à chaque mise à jour</text>
+    <text x="625" y="256">(VÉRIFIER / RÉPARER les contrôlent)</text>
+    <rect x="610" y="282" width="330" height="134" rx="10" fill="#fdeaea" stroke="#c0504d"/>
+    <text x="625" y="306" font-weight="bold" fill="#8b2a27">UserData\ : vos données</text>
+    <text x="625" y="326">jamais remplacé par une mise à jour</text>
+    <text x="625" y="346">mots de passe des profils et clé d'IA :</text>
+    <text x="625" y="362">chiffrés, illisibles sur un autre PC</text>
+    <text x="625" y="382">ou un autre compte Windows</text>
+    <text x="625" y="402">à garder pour changer de PC</text>
+  </g>
+</svg>

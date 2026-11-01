@@ -1,0 +1,15 @@
+[11:02:12] 0. démarrage du serveur de test et création du compte MBOXSAE
+[11:03:16]    OK 0. options écrites (multi-sessions 1, max 4, anti-AFK désactivé 1)
+[11:03:16] 1. deux sessions simultanées (création des personnages Mbsaea, Mbsaeb)
+[11:04:25]    OK 1. deux personnages du même compte en jeu ensemble (online=2)
+[11:04:25] 2. quatre sessions simultanées
+[11:04:38] 3. cinquième session (au-delà de MaxSessionsPerAccount = 4)
+[11:06:06]    OK 2. quatre personnages du même compte en jeu ensemble (online=4)
+[11:06:06]    OK 3. cinquième session refusée, les quatre autres non déconnectées
+[11:06:06] 4. coupure brutale (processus tué) et reconnexion de Mbsaea pendant que Mbsaeb joue
+[11:08:26]    OK 4. reconnexion après coupure brutale, autre session non affectée
+[11:08:26] 5. sauvegarde à la déconnexion
+[11:08:31]    OK 5. personnages hors ligne et temps de jeu enregistré pour les 4
+[11:08:31] 6. AFK 17 minutes avec HomeCraft.DisableAfkKick = 1 (attente)
+[11:25:51]    OK 6. AFK 17 min : pas d'expulsion (DisableAfkKick = 1)
+[11:26:04] 7. contrôle : HomeCraft.DisableAfkKick = 0, l'expulsion doit avoir lieu vers 15 min

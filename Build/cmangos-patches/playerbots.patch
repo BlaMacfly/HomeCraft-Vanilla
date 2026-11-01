@@ -1,3 +1,160 @@
+diff --git a/playerbot/PlayerbotAI.cpp b/playerbot/PlayerbotAI.cpp
+index 996ffaac..253cbc04 100644
+--- a/playerbot/PlayerbotAI.cpp
++++ b/playerbot/PlayerbotAI.cpp
+@@ -289,6 +289,28 @@ void PlayerbotAI::UpdateAI(uint32 elapsed, bool minimal)
+         isWaiting = false;
+     }
+ 
++    // HomeCraft : intentions de jeu proposées par le modèle de langage (filtrées par le pont IA puis par
++    // PlayerbotLLMInterface::IsAllowedIntent), exécutées dans le fil du monde comme une commande chuchotée par le
++    // joueur qui parlait au bot : jamais plus de droits que lui (sécurité du module), et seulement s'il est proche.
++    if (sPlayerbotAIConfig.llmEnabled > 0)
++    {
++        for (auto& intent : PlayerbotLLMInterface::TakeIntents(bot->GetObjectGuid().GetRawValue()))
++        {
++            Player* sender = sObjectAccessor.FindPlayer(ObjectGuid(intent.first));
++            if (!sender || !sender->IsInWorld() || sender->GetMapId() != bot->GetMapId() || !bot->IsWithinDistInMap(sender, 60.0f))
++                continue;
++            static const std::map<std::string, uint32> emotes = { {"wave", EMOTE_ONESHOT_WAVE}, {"bow", EMOTE_ONESHOT_BOW}, {"cheer", EMOTE_ONESHOT_CHEER}, {"laugh", EMOTE_ONESHOT_LAUGH}, {"salute", EMOTE_ONESHOT_SALUTE} };
++            auto e = emotes.find(intent.second);
++            if (e != emotes.end())
++                bot->HandleEmoteCommand(e->second);
++            else if (PlayerbotLLMInterface::IsAllowedIntent(intent.second))
++                HandleCommand(CHAT_MSG_WHISPER, intent.second, *sender);
++            else
++                continue;
++            sLog.outString("BotLLM: intention « %s » de %s exécutée par %s", intent.second.c_str(), sender->GetName(), bot->GetName());
++        }
++    }
++
+     // cancel logout in combat
+     if (bot->IsStunnedByLogout() || bot->GetSession()->isLogingOut())
+     {
+diff --git a/playerbot/PlayerbotLLMInterface.cpp b/playerbot/PlayerbotLLMInterface.cpp
+index 311b372b..570dfa97 100644
+--- a/playerbot/PlayerbotLLMInterface.cpp
++++ b/playerbot/PlayerbotLLMInterface.cpp
+@@ -652,6 +652,13 @@ std::string PlayerbotLLMInterface::Generate(const std::string& prompt, int timeO
+             debugLines.push_back("Empty response");
+     }
+ 
++    // HomeCraft : une réponse autre que « 200 » (pont IA ou fournisseur en erreur, délai dépassé) est un échec :
++    // le corps d'une erreur ne doit pas être dit par le bot.
++    bool httpOk = response.rfind("HTTP/1.1 200", 0) == 0 || response.rfind("HTTP/1.0 200", 0) == 0;
++    ReportResult(httpOk);
++    if (!httpOk)
++        return "error";
++
+     size_t pos = response.find("\r\n\r\n");
+     if (pos != std::string::npos) {
+         response = response.substr(pos + 4);
+@@ -796,3 +803,76 @@ void PlayerbotLLMInterface::LimitContext(std::string& context, int currentLength
+         }
+     }
+ }
++
++// ---------------------------------------------------------------- HomeCraft : repli et intentions de jeu
++
++#include <ctime>
++#include <map>
++#include <mutex>
++
++static std::atomic<time_t> homecraftLlmUnavailableUntil{0};
++static std::mutex homecraftIntentLock;
++static std::multimap<std::uint64_t, std::pair<std::uint64_t, std::string>> homecraftIntents;
++
++bool PlayerbotLLMInterface::IsAvailable()
++{
++    return time(nullptr) >= homecraftLlmUnavailableUntil.load();
++}
++
++void PlayerbotLLMInterface::ReportResult(bool ok)
++{
++    if (ok)
++        homecraftLlmUnavailableUntil = 0;
++    else
++    {
++        if (IsAvailable())
++            sLog.outError("BotLLM: génération en échec, réponses classiques des bots pendant 60 s");
++        homecraftLlmUnavailableUntil = time(nullptr) + 60;
++    }
++}
++
++bool PlayerbotLLMInterface::IsAllowedIntent(const std::string& intent)
++{
++    static const char* const allowed[] = { "follow", "stay", "attack", "wave", "bow", "cheer", "laugh", "salute" };
++    for (const char* a : allowed)
++        if (intent == a)
++            return true;
++    return false;
++}
++
++void PlayerbotLLMInterface::ExtractIntents(std::vector<std::string>& lines, std::uint64_t bot, std::uint64_t sender)
++{
++    static const std::regex tag(R"(^\s*\[hc:([a-z_]{1,16})\]\s*$)");
++    std::vector<std::string> kept;
++    for (const std::string& line : lines)
++    {
++        std::smatch m;
++        if (std::regex_match(line, m, tag))
++        {
++            std::string intent = m[1].str();
++            // Une seule intention par réponse, toujours de la liste blanche ; le reste est ignoré sans être dit.
++            if (bot && sender && IsAllowedIntent(intent))
++            {
++                std::lock_guard<std::mutex> guard(homecraftIntentLock);
++                if (homecraftIntents.count(bot) == 0)
++                    homecraftIntents.emplace(bot, std::make_pair(sender, intent));
++            }
++            continue;
++        }
++        if (line.find("[hc:") != std::string::npos)
++            continue;
++        kept.push_back(line);
++    }
++    lines.swap(kept);
++}
++
++std::vector<std::pair<std::uint64_t, std::string>> PlayerbotLLMInterface::TakeIntents(std::uint64_t bot)
++{
++    std::vector<std::pair<std::uint64_t, std::string>> out;
++    std::lock_guard<std::mutex> guard(homecraftIntentLock);
++    auto range = homecraftIntents.equal_range(bot);
++    for (auto it = range.first; it != range.second; ++it)
++        out.push_back(it->second);
++    homecraftIntents.erase(range.first, range.second);
++    return out;
++}
+diff --git a/playerbot/PlayerbotLLMInterface.h b/playerbot/PlayerbotLLMInterface.h
+index 8b17e5e3..e3e96495 100644
+--- a/playerbot/PlayerbotLLMInterface.h
++++ b/playerbot/PlayerbotLLMInterface.h
+@@ -1,5 +1,7 @@
+ #include <atomic>
++#include <cstdint>
+ #include <string>
++#include <utility>
+ #include <vector>
+ 
+ class PlayerbotLLMInterface
+@@ -13,6 +15,16 @@ public:
+     static std::vector<std::string> ParseResponse(const std::string& response, const std::string& startPattern, const std::string& endPattern, const std::string& deletePattern, const std::string& splitPattern, std::vector<std::string>& debugLines);
+ 
+     static void LimitContext(std::string& context, int currentLength);
++
++    // HomeCraft : après un échec (pont IA ou fournisseur injoignable, erreur HTTP), les bots répondent de façon
++    // classique pendant 60 s au lieu d'attendre une génération qui échouerait aussi.
++    static bool IsAvailable();
++    static void ReportResult(bool ok);
++    // HomeCraft : intentions de jeu proposées par le modèle, déjà filtrées par le pont IA (lignes « [hc:nom] »),
++    // retirées du texte dit par le bot, revalidées ici (liste blanche) et exécutées dans le fil du monde.
++    static void ExtractIntents(std::vector<std::string>& lines, std::uint64_t bot, std::uint64_t sender);
++    static std::vector<std::pair<std::uint64_t, std::string>> TakeIntents(std::uint64_t bot);
++    static bool IsAllowedIntent(const std::string& intent);
+ private:
+     std::atomic<int> generationCount = 0;
+ };
 diff --git a/playerbot/RandomPlayerbotMgr.cpp b/playerbot/RandomPlayerbotMgr.cpp
 index c23086cd..b9964c94 100644
 --- a/playerbot/RandomPlayerbotMgr.cpp
@@ -25,3 +182,79 @@ index 38c636dd..23545b2f 100644
  
      float curPoint[VERTEX_SIZE] = {coord_y, coord_z, coord_x };
      float extend[VERTEX_SIZE] = { maxRange, maxHeight, maxRange };
+diff --git a/playerbot/strategy/actions/RpgSubActions.cpp b/playerbot/strategy/actions/RpgSubActions.cpp
+index b773b045..d32500d4 100644
+--- a/playerbot/strategy/actions/RpgSubActions.cpp
++++ b/playerbot/strategy/actions/RpgSubActions.cpp
+@@ -546,7 +546,7 @@ bool RpgAIChatAction::RequestNewLines()
+         emoteTemplate = ChatReplyAction::GetPacketTemplate(SMSG_CHAT_RESTRICTED, CHAT_MSG_MONSTER_EMOTE, unit, bot);
+     }
+ 
+-    futPackets = std::async(std::launch::async, ChatReplyAction::GenerateResponsePackets, json, chatTemplate, emoteTemplate, systemTemplate, startPattern, endPattern, deletePattern, splitPattern, debug);
++    futPackets = std::async(std::launch::async, ChatReplyAction::GenerateResponsePackets, json, chatTemplate, emoteTemplate, systemTemplate, startPattern, endPattern, deletePattern, splitPattern, debug, uint64(0), uint64(0));
+ 
+     if (!urand(0, 10))
+         chatLine += urand(-2, 2) * 2;
+diff --git a/playerbot/strategy/actions/SayAction.cpp b/playerbot/strategy/actions/SayAction.cpp
+index 0f987802..68fa0259 100644
+--- a/playerbot/strategy/actions/SayAction.cpp
++++ b/playerbot/strategy/actions/SayAction.cpp
+@@ -419,7 +419,7 @@ delayedPackets ChatReplyAction::LinesToPackets(const std::vector<std::string>& l
+ }
+ 
+ delayedPackets ChatReplyAction::GenerateResponsePackets(const std::string json
+-    , const WorldPacket chatTemplate, const WorldPacket emoteTemplate, const WorldPacket systemTemplate, const std::string startPattern, const std::string endPattern, const std::string deletePattern, const std::string splitPattern, bool debug)
++    , const WorldPacket chatTemplate, const WorldPacket emoteTemplate, const WorldPacket systemTemplate, const std::string startPattern, const std::string endPattern, const std::string deletePattern, const std::string splitPattern, bool debug, uint64 botGuid, uint64 senderGuid)
+ {
+     std::vector<std::string> debugLines;
+ 
+@@ -430,11 +430,18 @@ delayedPackets ChatReplyAction::GenerateResponsePackets(const std::string json
+ 
+     std::string response = PlayerbotLLMInterface::Generate(json, sPlayerbotAIConfig.llmGenerationTimeout, sPlayerbotAIConfig.llmMaxSimultaniousGenerations, debugLines);
+ 
++    // HomeCraft : échec de connexion au pont IA : réponses classiques pendant un moment.
++    if (response == "error")
++        PlayerbotLLMInterface::ReportResult(false);
++
+     auto timeAfter = time(nullptr);
+     auto timeDiff = (timeAfter - startTime) * IN_MILLISECONDS;
+ 
+     std::vector<std::string> lines = PlayerbotLLMInterface::ParseResponse(response, startPattern, endPattern, deletePattern, splitPattern, debugLines);
+ 
++    // HomeCraft : intentions « [hc:…] » retirées du texte, mises en file pour le fil du monde.
++    PlayerbotLLMInterface::ExtractIntents(lines, botGuid, senderGuid);
++
+     delayedPackets packets, debugPackets;
+ 
+     packets = LinesToPackets(lines, chatTemplate, false, 200, emoteTemplate, timeDiff);
+@@ -509,7 +516,7 @@ void ChatReplyAction::ChatReplyDo(Player* bot, uint32 type, uint32 guid1, uint32
+         return;
+     }
+ 
+-    if (bot->GetPlayerbotAI() && sPlayerbotAIConfig.llmEnabled > 0 && (bot->GetPlayerbotAI()->HasStrategy("ai chat", BotState::BOT_STATE_NON_COMBAT) || sPlayerbotAIConfig.llmEnabled == 3) && chatChannelSource != ChatChannelSource::SRC_UNDEFINED && sPlayerbotAIConfig.llmBlockedReplyChannels.find(chatChannelSource) == sPlayerbotAIConfig.llmBlockedReplyChannels.end()
++    if (bot->GetPlayerbotAI() && sPlayerbotAIConfig.llmEnabled > 0 && PlayerbotLLMInterface::IsAvailable() && (bot->GetPlayerbotAI()->HasStrategy("ai chat", BotState::BOT_STATE_NON_COMBAT) || sPlayerbotAIConfig.llmEnabled == 3) && chatChannelSource != ChatChannelSource::SRC_UNDEFINED && sPlayerbotAIConfig.llmBlockedReplyChannels.find(chatChannelSource) == sPlayerbotAIConfig.llmBlockedReplyChannels.end()
+         )
+     {
+         Player* player = sObjectAccessor.FindPlayer(ObjectGuid(HIGHGUID_PLAYER, guid1));
+@@ -650,7 +657,7 @@ void ChatReplyAction::ChatReplyDo(Player* bot, uint32 type, uint32 guid1, uint32
+                 WorldPacket emoteTemplate = (type == CHAT_MSG_SAY || type == CHAT_MSG_WHISPER) ? GetPacketTemplate(CMSG_MESSAGECHAT, CHAT_MSG_EMOTE, bot, player) : WorldPacket();
+                 WorldPacket systemTemplate = GetPacketTemplate(CMSG_MESSAGECHAT, CHAT_MSG_WHISPER, bot, player);
+ 
+-                futurePackets futPackets = std::async(std::launch::async, ChatReplyAction::GenerateResponsePackets, json, chatTemplate, emoteTemplate, systemTemplate, startPattern, endPattern, deletePattern, splitPattern, debug);
++                futurePackets futPackets = std::async(std::launch::async, ChatReplyAction::GenerateResponsePackets, json, chatTemplate, emoteTemplate, systemTemplate, startPattern, endPattern, deletePattern, splitPattern, debug, bot->GetObjectGuid().GetRawValue(), player->GetObjectGuid().GetRawValue());
+ 
+                 ai->SendDelayedPacket(session, std::move(futPackets));
+             }
+diff --git a/playerbot/strategy/actions/SayAction.h b/playerbot/strategy/actions/SayAction.h
+index 0ef87d36..64f6683f 100644
+--- a/playerbot/strategy/actions/SayAction.h
++++ b/playerbot/strategy/actions/SayAction.h
+@@ -35,7 +35,7 @@ namespace ai
+         static delayedPackets LinesToPackets(const std::vector<std::string>& lines, WorldPacket packetTemplate, bool debug = false, uint32 MsPerChar = 0, WorldPacket emoteTemplate = WorldPacket(), uint32 timeDiff = 0);
+ 
+         static delayedPackets GenerateResponsePackets(const std::string json
+-            , const WorldPacket chatTemplate, const WorldPacket emoteTemplate, const WorldPacket systemTemplate, const std::string startPattern, const std::string endPattern, const std::string deletePattern, const std::string splitPattern, bool debug = false);
++            , const WorldPacket chatTemplate, const WorldPacket emoteTemplate, const WorldPacket systemTemplate, const std::string startPattern, const std::string endPattern, const std::string deletePattern, const std::string splitPattern, bool debug = false, uint64 botGuid = 0, uint64 senderGuid = 0);
+ 
+         static void ChatReplyDo(Player* bot, uint32 type, uint32 guid1, uint32 guid2, std::string msg, std::string chanName, std::string name);
+         static bool HandleThunderfuryReply(Player* bot, ChatChannelSource chatChannelSource, std::string msg, std::string name);

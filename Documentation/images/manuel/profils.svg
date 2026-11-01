@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 430" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <title>Profils de lancement : préremplissage du client</title>
+  <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <rect width="960" height="430" fill="#fff"/>
+  <text x="480" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">Un clic sur un profil : le jeu s'ouvre avec votre compte</text>
+
+  <rect x="20" y="120" width="250" height="170" rx="12" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+  <text x="145" y="146" text-anchor="middle" font-weight="bold">Profil (UserData\profiles.json)</text>
+  <text x="40" y="172" font-size="12">• nom du profil, compte</text>
+  <text x="40" y="192" font-size="12">• mot de passe facultatif, chiffré</text>
+  <text x="56" y="208" font-size="12">pour votre session Windows (DPAPI)</text>
+  <text x="40" y="228" font-size="12">• personnage préféré</text>
+  <text x="40" y="248" font-size="12">• entrer directement en jeu</text>
+  <text x="40" y="268" font-size="12">• arguments du client</text>
+
+  <line x1="272" y1="180" x2="350" y2="120" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <line x1="272" y1="230" x2="350" y2="290" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+
+  <rect x="352" y="56" width="586" height="140" rx="12" fill="#e4f5e4" stroke="#3e8e41" stroke-width="2"/>
+  <text x="645" y="86" text-anchor="middle" font-weight="bold">Benilla : mécanisme prévu par le client</text>
+  <text x="372" y="112" font-size="12">• compte mémorisé dans benilla-config\account</text>
+  <text x="372" y="130" font-size="12">• avec mot de passe : WOW_USER / WOW_PASS, donnés au seul processus du jeu</text>
+  <text x="388" y="146" font-size="12">au lancement : la connexion est validée toute seule</text>
+  <text x="372" y="164" font-size="12">• personnage : présélectionné (WOW_CHARSELECT_PICK) ou entrée directe en jeu (WOW_CHAR)</text>
+  <text x="372" y="182" font-size="12" fill="#666">rien n'est écrit en clair sur le disque</text>
+
+  <rect x="352" y="230" width="586" height="130" rx="12" fill="#e3eefc" stroke="#3b6fb6" stroke-width="2"/>
+  <text x="645" y="256" text-anchor="middle" font-weight="bold">Client d'origine (WoW.exe 1.12.1)</text>
+  <text x="372" y="282" font-size="12">• compte écrit dans WTF\Config.wtf (SET accountName, réglage du jeu lui-même)</text>
+  <text x="372" y="302" font-size="12">• le 1.12.1 ne sait pas recevoir de mot de passe : s'il est enregistré, le launcher le tape</text>
+  <text x="388" y="320" font-size="12">dans la fenêtre du jeu qu'il vient d'ouvrir, puis valide (lancement direct seulement)</text>
+  <text x="372" y="342" font-size="12" fill="#666">pas de présélection du personnage avec ce client</text>
+
+  <rect x="20" y="380" width="918" height="36" rx="8" fill="#f7f7f7" stroke="#bbb"/>
+  <text x="479" y="403" text-anchor="middle" font-size="13">Un jeu par profil : plusieurs profils ouverts en même temps = plusieurs personnages (même compte possible, §Sessions)</text>
+</svg>

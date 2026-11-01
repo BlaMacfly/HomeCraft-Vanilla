@@ -2,7 +2,8 @@
 //! fenêtres de confirmation et rapport de vérification.
 
 use crate::conf_catalog;
-use crate::i18n::fr;
+use crate::i18n::t;
+use crate::tr;
 use crate::orchestrator::{Command, MmapsStatus, Snapshot, State};
 use crate::paths::Layout;
 use crate::settings::Settings;
@@ -13,6 +14,10 @@ use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
+mod ai;
+mod multiplayer;
+mod profiles;
+
 #[derive(PartialEq, Clone, Copy)]
 enum Tab {
     Home,
@@ -22,6 +27,7 @@ enum Tab {
     Patches,
     Database,
     Backups,
+    Multiplayer,
     Settings,
     Logs,
 }
@@ -36,6 +42,7 @@ enum Pending {
     /// (base, sql, titre, texte)
     ExecSql(String, String, &'static str, &'static str),
     ReimportWorld,
+    DeleteProfile(String, String),
 }
 
 pub struct App {
@@ -74,10 +81,22 @@ pub struct App {
     // Paramètres : client détecté dans le dossier saisi (recalculé quand le chemin change), clients trouvés à proximité
     client_probe: Option<(String, crate::client::ClientInfo)>,
     discovered: Option<Vec<crate::client::ClientInfo>>,
+    // Multijoueur
+    net: crate::network::Network,
+    net_cfg: crate::network::NetSettings,
+    net_code: String,
+    net_label: String,
+    net_reply: String,
+    // Profils
+    profiles: crate::profiles::Profiles,
+    prof_edit: Option<profiles::ProfileEdit>,
+    show_profiles: bool,
+    // IA des bots
+    ai: ai::AiUi,
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>, layout: Layout, settings: Settings, shared: Arc<Mutex<Snapshot>>, tx: Sender<Command>, quit_after: Option<u64>, start_tab: Option<String>) -> App {
+    pub fn new(cc: &eframe::CreationContext<'_>, layout: Layout, settings: Settings, shared: Arc<Mutex<Snapshot>>, tx: Sender<Command>, quit_after: Option<u64>, start_tab: Option<String>, net: crate::network::Network) -> App {
         let tab = match start_tab.as_deref() {
             Some("accounts") => Tab::Accounts,
             Some("bots") => Tab::Bots,
@@ -87,6 +106,7 @@ impl App {
             Some("backups") => Tab::Backups,
             Some("settings") => Tab::Settings,
             Some("logs") => Tab::Logs,
+            Some("multiplayer") => Tab::Multiplayer,
             _ => Tab::Home,
         };
         egui_extras::install_image_loaders(&cc.egui_ctx);
@@ -101,7 +121,6 @@ impl App {
         style.spacing.button_padding = egui::vec2(12.0, 6.0);
         cc.egui_ctx.set_style(style);
         App {
-            layout,
             shared,
             tx,
             tab,
@@ -130,6 +149,16 @@ impl App {
             console_cmd: String::new(),
             client_probe: None,
             discovered: None,
+            net_cfg: crate::network::NetSettings::load(&layout),
+            net,
+            net_code: String::new(),
+            net_label: String::new(),
+            net_reply: String::new(),
+            profiles: crate::profiles::Profiles::load(&layout.user_data()),
+            prof_edit: None,
+            show_profiles: false,
+            ai: ai::AiUi::new(&layout),
+            layout,
         }
     }
 
@@ -150,6 +179,7 @@ fn status_color(ok: bool, busy: bool) -> Color32 {
 
 const WARN: Color32 = Color32::from_rgb(230, 180, 60);
 const ERR: Color32 = Color32::from_rgb(230, 110, 110);
+const OK_COLOR: Color32 = Color32::from_rgb(90, 200, 90);
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -205,19 +235,20 @@ impl eframe::App for App {
             ui.horizontal(|ui| {
                 ui.add(egui::Image::new(egui::include_image!("../assets/logo-512.png")).fit_to_exact_size(egui::vec2(56.0, 56.0)));
                 ui.add_space(8.0);
-                ui.label(RichText::new(fr::TITLE).size(26.0).strong().color(Color32::from_rgb(255, 204, 51)));
+                ui.label(RichText::new(tr!(TITLE)).size(26.0).strong().color(Color32::from_rgb(255, 204, 51)));
             });
             ui.add_space(4.0);
             ui.horizontal_wrapped(|ui| {
-                ui.selectable_value(&mut self.tab, Tab::Home, fr::TAB_HOME);
-                ui.selectable_value(&mut self.tab, Tab::Accounts, fr::TAB_ACCOUNTS);
-                ui.selectable_value(&mut self.tab, Tab::Bots, fr::TAB_BOTS);
-                ui.selectable_value(&mut self.tab, Tab::World, fr::TAB_WORLD);
-                ui.selectable_value(&mut self.tab, Tab::Patches, fr::TAB_PATCHES);
-                ui.selectable_value(&mut self.tab, Tab::Database, fr::TAB_DATABASE);
-                ui.selectable_value(&mut self.tab, Tab::Backups, fr::TAB_BACKUPS);
-                ui.selectable_value(&mut self.tab, Tab::Settings, fr::TAB_SETTINGS);
-                ui.selectable_value(&mut self.tab, Tab::Logs, fr::TAB_LOGS);
+                ui.selectable_value(&mut self.tab, Tab::Home, tr!(TAB_HOME));
+                ui.selectable_value(&mut self.tab, Tab::Accounts, tr!(TAB_ACCOUNTS));
+                ui.selectable_value(&mut self.tab, Tab::Bots, tr!(TAB_BOTS));
+                ui.selectable_value(&mut self.tab, Tab::World, tr!(TAB_WORLD));
+                ui.selectable_value(&mut self.tab, Tab::Patches, tr!(TAB_PATCHES));
+                ui.selectable_value(&mut self.tab, Tab::Database, tr!(TAB_DATABASE));
+                ui.selectable_value(&mut self.tab, Tab::Backups, tr!(TAB_BACKUPS));
+                ui.selectable_value(&mut self.tab, Tab::Multiplayer, crate::i18n::t("Multijoueur", "Multiplayer"));
+                ui.selectable_value(&mut self.tab, Tab::Settings, tr!(TAB_SETTINGS));
+                ui.selectable_value(&mut self.tab, Tab::Logs, tr!(TAB_LOGS));
             });
             ui.add_space(4.0);
         });
@@ -227,7 +258,7 @@ impl eframe::App for App {
             ui.horizontal(|ui| {
                 ui.label(RichText::new(snap.state.label()).strong().color(status_color(snap.state.services_up(), snap.state.is_busy())));
                 ui.separator();
-                ui.label(if self.closing { fr::MSG_CLOSING } else { snap.message.as_str() });
+                ui.label(if self.closing { tr!(MSG_CLOSING) } else { snap.message.as_str() });
             });
             if snap.state.is_busy() {
                 ui.add(egui::ProgressBar::new(snap.progress).animate(true));
@@ -243,12 +274,14 @@ impl eframe::App for App {
             Tab::Patches => self.patches(ui, &snap),
             Tab::Database => self.database(ui, &snap),
             Tab::Backups => self.backups(ui, &snap),
+            Tab::Multiplayer => self.multiplayer(ui, &snap),
             Tab::Settings => self.settings_tab(ui),
             Tab::Logs => self.logs(ui, &snap),
         });
 
         self.confirm_window(ctx);
         self.report_window(ctx, &snap);
+        self.profiles_window(ctx, &snap);
     }
 }
 
@@ -256,11 +289,11 @@ impl App {
     fn home(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
         let busy = snap.state.is_busy();
         if snap.readonly {
-            ui.colored_label(WARN, RichText::new(fr::RO_TITLE).strong());
-            ui.label(fr::RO_TEXT);
+            ui.colored_label(WARN, RichText::new(tr!(RO_TITLE)).strong());
+            ui.label(tr!(RO_TEXT));
             ui.add_space(6.0);
-            if ui.add_enabled(!busy, egui::Button::new(RichText::new(fr::RO_INSTALL).size(18.0).strong()).min_size(egui::vec2(220.0, 40.0))).clicked() {
-                if let Some(dir) = rfd::FileDialog::new().set_title(fr::RO_PICK_TITLE).pick_folder() {
+            if ui.add_enabled(!busy, egui::Button::new(RichText::new(tr!(RO_INSTALL)).size(18.0).strong()).min_size(egui::vec2(220.0, 40.0))).clicked() {
+                if let Some(dir) = rfd::FileDialog::new().set_title(tr!(RO_PICK_TITLE)).pick_folder() {
                     let dest = if dir.file_name().map(|n| n.to_string_lossy().contains("HomeCraft")).unwrap_or(false) { dir } else { dir.join("HomeCraft Edition Vanilla") };
                     self.send(Command::InstallTo(dest));
                 }
@@ -271,19 +304,19 @@ impl App {
             return;
         }
         egui::Grid::new("composants").num_columns(2).spacing([24.0, 8.0]).show(ui, |ui| {
-            let client_txt = if snap.client.is_ok() { fr::CLIENT_OK } else if snap.client.exe_present { fr::CLIENT_REPAIR } else { fr::CLIENT_MISSING };
-            ui.label(RichText::new(fr::COMP_CLIENT).strong());
+            let client_txt = if snap.client.is_ok() { tr!(CLIENT_OK) } else if snap.client.exe_present { tr!(CLIENT_REPAIR) } else { tr!(CLIENT_MISSING) };
+            ui.label(RichText::new(tr!(COMP_CLIENT)).strong());
             ui.label(RichText::new(client_txt).color(status_color(snap.client.is_ok(), false)));
             ui.end_row();
-            ui.label(RichText::new(fr::COMP_DB).strong());
-            ui.label(RichText::new(if snap.db_up { fr::DB_RUNNING } else { fr::DB_STOPPED }).color(status_color(snap.db_up, busy)));
+            ui.label(RichText::new(tr!(COMP_DB)).strong());
+            ui.label(RichText::new(if snap.db_up { tr!(DB_RUNNING) } else { tr!(DB_STOPPED) }).color(status_color(snap.db_up, busy)));
             ui.end_row();
-            let srv = if snap.world_up { fr::SERVER_RUNNING } else if busy { fr::SERVER_STARTING } else { fr::SERVER_STOPPED };
-            ui.label(RichText::new(fr::COMP_SERVER).strong());
+            let srv = if snap.world_up { tr!(SERVER_RUNNING) } else if busy { tr!(SERVER_STARTING) } else { tr!(SERVER_STOPPED) };
+            ui.label(RichText::new(tr!(COMP_SERVER)).strong());
             ui.label(RichText::new(srv).color(status_color(snap.world_up, busy)));
             ui.end_row();
-            ui.label(RichText::new(fr::COMP_BOTS).strong());
-            ui.label(RichText::new(if snap.bots_enabled { fr::BOTS_ON } else { fr::BOTS_OFF }).color(status_color(snap.bots_enabled, false)));
+            ui.label(RichText::new(tr!(COMP_BOTS)).strong());
+            ui.label(RichText::new(if snap.bots_enabled { tr!(BOTS_ON) } else { tr!(BOTS_OFF) }).color(status_color(snap.bots_enabled, false)));
             ui.end_row();
         });
         ui.add_space(12.0);
@@ -292,39 +325,41 @@ impl App {
         let can_start = matches!(snap.state, State::Installed | State::Error);
         let idle = matches!(snap.state, State::Installed | State::Error | State::Ready | State::NotInstalled);
         ui.horizontal_wrapped(|ui| {
-            let play = ui.add_enabled(can_play || (can_start && snap.client.is_ok()), egui::Button::new(RichText::new(fr::BTN_PLAY).size(20.0).strong()).min_size(egui::vec2(180.0, 44.0)));
+            let play = ui.add_enabled(can_play || (can_start && snap.client.is_ok()), egui::Button::new(RichText::new(tr!(BTN_PLAY)).size(20.0).strong()).min_size(egui::vec2(180.0, 44.0)));
             if play.clicked() {
                 self.send(Command::Play);
             }
-            if ui.add_enabled(can_start, egui::Button::new(fr::BTN_START_SERVER).min_size(egui::vec2(0.0, 44.0))).clicked() {
+            if ui.add_enabled(can_start, egui::Button::new(tr!(BTN_START_SERVER)).min_size(egui::vec2(0.0, 44.0))).clicked() {
                 self.send(Command::StartAll);
             }
-            if ui.add_enabled(snap.state.services_up(), egui::Button::new(fr::BTN_STOP).min_size(egui::vec2(0.0, 44.0))).clicked() {
+            if ui.add_enabled(snap.state.services_up(), egui::Button::new(tr!(BTN_STOP)).min_size(egui::vec2(0.0, 44.0))).clicked() {
                 self.send(Command::StopAll);
             }
-            if snap.state == State::Playing && ui.add(egui::Button::new(fr::BTN_KILL_GAME).min_size(egui::vec2(0.0, 44.0))).on_hover_text(fr::BTN_KILL_GAME_HINT).clicked() {
+            if snap.state == State::Playing && ui.add(egui::Button::new(tr!(BTN_KILL_GAME)).min_size(egui::vec2(0.0, 44.0))).on_hover_text(tr!(BTN_KILL_GAME_HINT)).clicked() {
                 self.send(Command::KillGame);
             }
         });
+        ui.add_space(6.0);
+        self.home_profiles(ui, snap);
         ui.add_space(8.0);
         ui.horizontal_wrapped(|ui| {
-            if ui.add_enabled(!busy, egui::Button::new(fr::BTN_VERIFY)).clicked() {
+            if ui.add_enabled(!busy, egui::Button::new(tr!(BTN_VERIFY))).clicked() {
                 self.send(Command::Verify);
             }
-            if ui.add_enabled(idle, egui::Button::new(fr::BTN_REPAIR)).on_hover_text(fr::RPT_REPAIR_HINT).clicked() {
+            if ui.add_enabled(idle, egui::Button::new(tr!(BTN_REPAIR))).on_hover_text(tr!(RPT_REPAIR_HINT)).clicked() {
                 self.send(Command::Repair);
             }
-            if ui.add_enabled(!busy, egui::Button::new(fr::BTN_BACKUP)).clicked() {
+            if ui.add_enabled(!busy, egui::Button::new(tr!(BTN_BACKUP))).clicked() {
                 self.send(Command::Backup("manuelle".into()));
                 self.tab = Tab::Backups;
             }
-            if ui.add_enabled(idle, egui::Button::new(fr::BTN_RESTORE)).clicked() {
+            if ui.add_enabled(idle, egui::Button::new(tr!(BTN_RESTORE))).clicked() {
                 self.tab = Tab::Backups;
             }
-            if ui.button(fr::BTN_SETTINGS).clicked() {
+            if ui.button(tr!(BTN_SETTINGS)).clicked() {
                 self.tab = Tab::Settings;
             }
-            if ui.button(fr::BTN_LOGS).clicked() {
+            if ui.button(tr!(BTN_LOGS)).clicked() {
                 self.tab = Tab::Logs;
             }
         });
@@ -334,66 +369,66 @@ impl App {
         }
         ui.add_space(12.0);
         ui.separator();
-        ui.label(RichText::new(fr::LOG_DIAG).strong());
+        ui.label(RichText::new(tr!(LOG_DIAG)).strong());
         egui::Grid::new("diag").num_columns(2).spacing([24.0, 4.0]).show(ui, |ui| {
-            ui.label("Dossier d'installation");
+            ui.label(t("Dossier d'installation", "Installation folder"));
             ui.label(self.layout.root.display().to_string());
             ui.end_row();
-            ui.label("Version du launcher");
+            ui.label(t("Version du launcher", "Launcher version"));
             ui.label(Layout::version());
             ui.end_row();
             ui.label("Client");
             ui.label(format!("{} — {} {}", snap.client.dir.display(), snap.client.kind_label(), snap.client.version_string()));
             ui.end_row();
             if !snap.client.missing_mpq.is_empty() {
-                ui.label("MPQ manquants");
+                ui.label(t("MPQ manquants", "Missing MPQs"));
                 ui.label(snap.client.missing_mpq.join(", "));
                 ui.end_row();
             }
             for (name, ok) in &snap.components {
                 ui.label(name);
-                ui.label(RichText::new(if *ok { "présent" } else { "ABSENT" }).color(status_color(*ok, false)));
+                ui.label(RichText::new(if *ok { t("présent", "present") } else { t("ABSENT", "MISSING") }).color(status_color(*ok, false)));
                 ui.end_row();
             }
-            ui.label(fr::HOME_MMAPS);
+            ui.label(tr!(HOME_MMAPS));
             match &snap.mmaps {
                 MmapsStatus::Unknown => ui.label("…"),
-                MmapsStatus::Present => ui.label(RichText::new(fr::HOME_MMAPS_PRESENT).color(status_color(true, false))),
-                MmapsStatus::Absent => ui.label(RichText::new(fr::HOME_MMAPS_ABSENT).color(WARN)),
+                MmapsStatus::Present => ui.label(RichText::new(tr!(HOME_MMAPS_PRESENT)).color(status_color(true, false))),
+                MmapsStatus::Absent => ui.label(RichText::new(tr!(HOME_MMAPS_ABSENT)).color(WARN)),
                 MmapsStatus::Running { since, start_tiles, tiles } => {
                     let p = crate::repair::mmaps_progress(*tiles, *start_tiles, since.elapsed().as_secs());
                     ui.vertical(|ui| {
                         ui.add(egui::ProgressBar::new(p.fraction).desired_width(260.0).show_percentage());
-                        ui.label(RichText::new(fr::mmaps_running(since.elapsed().as_secs() / 60, p.remaining_secs)).color(WARN));
+                        ui.label(RichText::new(tr!(mmaps_running)(since.elapsed().as_secs() / 60, p.remaining_secs)).color(WARN));
                     })
                     .response
                 }
-                MmapsStatus::DoneRestartNeeded => ui.label(RichText::new(fr::HOME_MMAPS_DONE_RESTART).color(WARN)),
-                MmapsStatus::Failed(e) => ui.label(RichText::new(format!("{} {e}", fr::HOME_MMAPS_FAILED)).color(ERR)),
+                MmapsStatus::DoneRestartNeeded => ui.label(RichText::new(tr!(HOME_MMAPS_DONE_RESTART)).color(WARN)),
+                MmapsStatus::Failed(e) => ui.label(RichText::new(format!("{} {e}", tr!(HOME_MMAPS_FAILED))).color(ERR)),
             };
             ui.end_row();
-            ui.label("Personnages en ligne");
+            ui.label(t("Personnages en ligne", "Characters online"));
             ui.label(snap.online.to_string());
             ui.end_row();
         });
     }
 
     fn accounts(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::ACC_TITLE);
-        ui.label(fr::ACC_HINT);
+        ui.heading(tr!(ACC_TITLE));
+        ui.label(tr!(ACC_HINT));
         if !snap.world_up {
-            ui.colored_label(WARN, fr::ACC_NEED_SERVER);
+            ui.colored_label(WARN, tr!(ACC_NEED_SERVER));
         }
         ui.add_space(8.0);
         ui.group(|ui| {
             egui::Grid::new("acc_form").num_columns(2).show(ui, |ui| {
-                ui.label(fr::ACC_USER);
+                ui.label(tr!(ACC_USER));
                 ui.text_edit_singleline(&mut self.acc_user);
                 ui.end_row();
-                ui.label(fr::ACC_PASS);
+                ui.label(tr!(ACC_PASS));
                 ui.add(egui::TextEdit::singleline(&mut self.acc_pass).password(true));
                 ui.end_row();
-                ui.label(fr::ACC_GM);
+                ui.label(tr!(ACC_GM));
                 ui.add(egui::Slider::new(&mut self.acc_gm, 0..=3));
                 ui.end_row();
             });
@@ -403,22 +438,22 @@ impl App {
             let pass_ok = (4..=16).contains(&self.acc_pass.len()) && self.acc_pass.chars().all(|c| c.is_ascii_graphic());
             let valid = user_ok && pass_ok;
             if (!user.is_empty() && !user_ok) || (!self.acc_pass.is_empty() && !pass_ok) {
-                ui.colored_label(WARN, fr::ACC_INVALID);
+                ui.colored_label(WARN, tr!(ACC_INVALID));
             }
             ui.horizontal(|ui| {
-                if ui.add_enabled(snap.world_up && valid, egui::Button::new(fr::ACC_CREATE)).clicked() {
+                if ui.add_enabled(snap.world_up && valid, egui::Button::new(tr!(ACC_CREATE))).clicked() {
                     self.send(Command::CreateAccount { user: self.acc_user.trim().to_string(), pass: self.acc_pass.clone(), gm: self.acc_gm });
                     self.acc_pass.clear();
                 }
                 let sel = self.acc_selected.clone();
-                if ui.add_enabled(snap.world_up && sel.is_some() && pass_ok, egui::Button::new(fr::ACC_SET_PASS)).clicked() {
+                if ui.add_enabled(snap.world_up && sel.is_some() && pass_ok, egui::Button::new(tr!(ACC_SET_PASS))).clicked() {
                     self.send(Command::SetPassword { user: sel.clone().unwrap(), pass: self.acc_pass.clone() });
                     self.acc_pass.clear();
                 }
-                if ui.add_enabled(snap.world_up && sel.is_some(), egui::Button::new(fr::ACC_SET_GM)).clicked() {
+                if ui.add_enabled(snap.world_up && sel.is_some(), egui::Button::new(tr!(ACC_SET_GM))).clicked() {
                     self.send(Command::SetGm { user: sel.unwrap(), gm: self.acc_gm });
                 }
-                if ui.add_enabled(snap.db_up, egui::Button::new(fr::ACC_REFRESH)).clicked() {
+                if ui.add_enabled(snap.db_up, egui::Button::new(tr!(ACC_REFRESH))).clicked() {
                     self.send(Command::RefreshAccounts);
                 }
             });
@@ -427,7 +462,6 @@ impl App {
             ui.colored_label(WARN, n);
         }
         ui.add_space(8.0);
-        let playing = snap.state == State::Playing;
         let last_login_user = snap.accounts.iter().filter(|a| !a.last_login.is_empty()).max_by(|a, b| a.last_login.cmp(&b.last_login)).map(|a| a.username.clone());
         TableBuilder::new(ui)
             .striped(true)
@@ -437,10 +471,10 @@ impl App {
             .column(Column::auto().at_least(100.0))
             .column(Column::remainder())
             .header(22.0, |mut h| {
-                h.col(|ui| { ui.strong(fr::ACC_USER); });
-                h.col(|ui| { ui.strong(fr::ACC_GM); });
-                h.col(|ui| { ui.strong(fr::ACC_LAST); });
-                h.col(|ui| { ui.strong(fr::BK_CHARS); });
+                h.col(|ui| { ui.strong(tr!(ACC_USER)); });
+                h.col(|ui| { ui.strong(tr!(ACC_GM)); });
+                h.col(|ui| { ui.strong(tr!(ACC_LAST)); });
+                h.col(|ui| { ui.strong(tr!(BK_CHARS)); });
                 h.col(|_| {});
             })
             .body(|body| {
@@ -453,10 +487,11 @@ impl App {
                     row.col(|ui| { ui.label(&a.last_login); });
                     row.col(|ui| { ui.label(a.characters.to_string()); });
                     row.col(|ui| {
-                        if ui.add_enabled(!playing && snap.db_up, egui::Button::new(RichText::new(fr::ACC_DELETE).color(ERR))).clicked() {
-                            let mut detail = format!("{} — {} {}", a.username, a.characters, fr::BK_CHARS.to_lowercase());
+                        // Serveur arrêté : suppression directe en base (MariaDB démarrée le temps de l'opération).
+                        if ui.add_enabled(!snap.state.is_busy(), egui::Button::new(RichText::new(tr!(ACC_DELETE)).color(ERR))).clicked() {
+                            let mut detail = format!("{} — {} {}", a.username, a.characters, tr!(BK_CHARS).to_lowercase());
                             if last_login_user.as_deref() == Some(a.username.as_str()) {
-                                detail.push_str(&format!("\n{}", fr::ACC_DELETE_SELF_WARN));
+                                detail.push_str(&format!("\n{}", tr!(ACC_DELETE_SELF_WARN)));
                             }
                             self.pending = Some(Pending::DeleteAccount(a.username.clone(), detail));
                         }
@@ -475,14 +510,14 @@ impl App {
         }
         for g in groups {
             ui.add_space(6.0);
-            ui.label(RichText::new(g).strong().color(Color32::from_rgb(255, 204, 51)));
+            ui.label(RichText::new(crate::conf_catalog_en::group(g)).strong().color(Color32::from_rgb(255, 204, 51)));
             egui::Grid::new(format!("{id}-{g}")).num_columns(3).spacing([14.0, 6.0]).striped(true).show(ui, |ui| {
                 for o in catalog.iter().filter(|o| o.group == g) {
                     let current = conf.get(o.key).cloned().unwrap_or_else(|| o.default.to_string());
                     let mut new_value: Option<String> = None;
-                    let r = ui.label(o.label);
+                    let r = ui.label(crate::conf_catalog_en::label(o));
                     if !o.help.is_empty() {
-                        r.on_hover_text(o.help);
+                        r.on_hover_text(crate::conf_catalog_en::help(o));
                     }
                     match o.kind {
                         conf_catalog::Kind::Bool => {
@@ -504,10 +539,10 @@ impl App {
                             }
                         }
                         conf_catalog::Kind::Choice(items) => {
-                            let label = items.iter().find(|(v, _)| *v == current).map(|(_, l)| *l).unwrap_or(current.as_str());
+                            let label = items.iter().find(|(v, _)| *v == current).map(|(_, l)| crate::conf_catalog_en::choice(l)).unwrap_or(current.as_str());
                             egui::ComboBox::from_id_salt(format!("{id}-{}", o.key)).selected_text(label).show_ui(ui, |ui| {
                                 for (v, l) in items {
-                                    if ui.selectable_label(*v == current, *l).clicked() {
+                                    if ui.selectable_label(*v == current, crate::conf_catalog_en::choice(l)).clicked() {
                                         new_value = Some(v.to_string());
                                     }
                                 }
@@ -523,8 +558,8 @@ impl App {
                     let modified = conf.contains_key(o.key) && conf.get(o.key).map(String::as_str) != Some(o.default);
                     ui.horizontal(|ui| {
                         if modified {
-                            ui.small(RichText::new(fr::OPT_MODIFIED).color(WARN));
-                            if ui.small_button(fr::OPT_DEFAULT).clicked() {
+                            ui.small(RichText::new(tr!(OPT_MODIFIED)).color(WARN));
+                            if ui.small_button(tr!(OPT_DEFAULT)).clicked() {
                                 conf.remove(o.key);
                             }
                         }
@@ -545,7 +580,7 @@ impl App {
     fn save_settings(&mut self) {
         match self.settings.save(&self.layout.settings_file()) {
             Ok(()) => {
-                self.settings_notice = Some(fr::SET_SAVED.into());
+                self.settings_notice = Some(tr!(SET_SAVED).into());
                 self.send(Command::SettingsChanged(self.settings.clone()));
             }
             Err(e) => self.settings_notice = Some(e),
@@ -553,16 +588,16 @@ impl App {
     }
 
     fn world(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::WORLD_TITLE);
-        ui.label(fr::WORLD_INTRO);
+        ui.heading(tr!(WORLD_TITLE));
+        ui.label(tr!(WORLD_INTRO));
         if snap.state.services_up() {
-            ui.colored_label(WARN, fr::SET_SAVE);
+            ui.colored_label(WARN, tr!(SET_SAVE));
         }
         ui.horizontal(|ui| {
-            if ui.button(fr::WORLD_SAVE).clicked() {
+            if ui.button(tr!(WORLD_SAVE)).clicked() {
                 self.save_settings();
             }
-            if ui.button(fr::OPT_RESET_ALL).clicked() {
+            if ui.button(tr!(OPT_RESET_ALL)).clicked() {
                 for o in conf_catalog::WORLD_OPTIONS {
                     self.settings.conf.remove(o.key);
                 }
@@ -577,41 +612,42 @@ impl App {
     }
 
     fn bots(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::BOT_TITLE);
-        ui.label(fr::BOT_INTRO);
+        ui.heading(tr!(BOT_TITLE));
+        ui.label(tr!(BOT_INTRO));
+        self.ai_section(ui, snap);
         if snap.state.services_up() {
-            ui.colored_label(WARN, fr::SET_SAVE);
+            ui.colored_label(WARN, tr!(SET_SAVE));
         }
         ui.add_space(6.0);
-        ui.checkbox(&mut self.settings.partybots_enabled, fr::BOT_ENABLE);
+        ui.checkbox(&mut self.settings.partybots_enabled, tr!(BOT_ENABLE));
         ui.group(|ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.label(fr::BOT_POOL);
+                ui.label(tr!(BOT_POOL));
                 match snap.bot_pool {
-                    Some(0) | None => { ui.colored_label(WARN, fr::BOT_POOL_NONE); }
+                    Some(0) | None => { ui.colored_label(WARN, tr!(BOT_POOL_NONE)); }
                     Some(n) => { ui.label(RichText::new(n.to_string()).strong()); }
                 }
             });
             let busy = snap.state.is_busy();
-            let del = ui.add_enabled(!busy && snap.bot_pool.unwrap_or(0) > 0, egui::Button::new(fr::BOT_DELETE));
-            let del = if snap.state.services_up() { del.on_hover_text(fr::BOT_DELETE_HINT) } else { del };
+            let del = ui.add_enabled(!busy && snap.bot_pool.unwrap_or(0) > 0, egui::Button::new(tr!(BOT_DELETE)));
+            let del = if snap.state.services_up() { del.on_hover_text(tr!(BOT_DELETE_HINT)) } else { del };
             if del.clicked() {
                 self.pending = Some(Pending::DeleteBots);
             }
             let conf_n = |k: &str| self.settings.conf.get(k).and_then(|v| v.parse::<u32>().ok()).unwrap_or_else(|| conf_catalog::bot_opt(k).default.parse().unwrap_or(0));
             let (min_b, max_b) = (conf_n("AiPlayerbot.MinRandomBots"), conf_n("AiPlayerbot.MaxRandomBots"));
             if max_b > 1000 {
-                ui.colored_label(WARN, fr::bot_load(max_b, min_b));
+                ui.colored_label(WARN, tr!(bot_load)(max_b, min_b));
             }
             if let Some(n) = &snap.notice {
                 ui.colored_label(WARN, n);
             }
         });
         ui.horizontal(|ui| {
-            if ui.button(fr::BOT_SAVE).clicked() {
+            if ui.button(tr!(BOT_SAVE)).clicked() {
                 self.save_settings();
             }
-            if ui.button(fr::OPT_RESET_ALL).clicked() {
+            if ui.button(tr!(OPT_RESET_ALL)).clicked() {
                 for o in conf_catalog::BOT_OPTIONS {
                     self.settings.conf.remove(o.key);
                 }
@@ -624,31 +660,31 @@ impl App {
             Self::render_options(ui, conf_catalog::BOT_OPTIONS, &mut self.settings.conf, "bots");
             ui.add_space(12.0);
             ui.separator();
-            ui.strong(fr::BOT_CMDS);
+            ui.strong(tr!(BOT_CMDS));
             Self::command_grid(ui, "bot_cmds", &[
-                ("/inviter Nom", "invite un bot dans votre groupe (ou clic droit sur son portrait) ; un bot vous propose aussi parfois de grouper"),
-                (".bot add Nom", "connecte un autre personnage de votre compte comme bot, dans votre groupe"),
-                (".bot remove Nom", "déconnecte ce bot"),
-                (".bot group", "complète votre groupe avec des bots de classes complémentaires, à votre niveau"),
-                (".bot list", "liste vos bots connectés"),
-                (".bot prepare Nom", "équipe le bot au mieux et lui donne nourriture, potions et composants"),
+                ("/inviter Nom", t("invite un bot dans votre groupe (ou clic droit sur son portrait) ; un bot vous propose aussi parfois de grouper", "invites a bot into your group (or right-click its portrait); a bot sometimes offers to group too")),
+                (".bot add Nom", t("connecte un autre personnage de votre compte comme bot, dans votre groupe", "logs another character of your account in as a bot, in your group")),
+                (".bot remove Nom", t("déconnecte ce bot", "logs this bot out")),
+                (".bot group", t("complète votre groupe avec des bots de classes complémentaires, à votre niveau", "fills your group with bots of complementary classes, at your level")),
+                (".bot list", t("liste vos bots connectés", "lists your bots online")),
+                (".bot prepare Nom", t("équipe le bot au mieux et lui donne nourriture, potions et composants", "gears the bot as well as possible and gives it food, potions and reagents")),
             ]);
             ui.add_space(8.0);
-            ui.strong(fr::BOT_ORDERS);
+            ui.strong(tr!(BOT_ORDERS));
             Self::command_grid(ui, "bot_orders", &[
-                ("follow", "suivez-moi"),
-                ("stay", "restez ici"),
-                ("attack", "attaquez ma cible"),
-                ("flee", "fuyez avec moi (sans combattre)"),
-                ("grind", "chassez librement autour de vous"),
-                ("summon", "le bot vous rejoint (téléportation)"),
-                ("release", "libère l'esprit d'un bot mort"),
-                ("q", "liste les quêtes du bot ; « doquest » lui fait faire une quête"),
-                ("c", "inventaire du bot ; « e [objet] » équipe, « ue [objet] » déséquipe, « s [objet] » vend"),
-                ("talents", "talents du bot"),
-                ("stats", "argent, sacs, réparation, expérience du bot"),
-                ("leave", "le bot quitte le groupe et reprend sa vie"),
-                ("help", "aide complète des bots (en anglais)"),
+                ("follow", t("suivez-moi", "follow me")),
+                ("stay", t("restez ici", "stay here")),
+                ("attack", t("attaquez ma cible", "attack my target")),
+                ("flee", t("fuyez avec moi (sans combattre)", "flee with me (without fighting)")),
+                ("grind", t("chassez librement autour de vous", "hunt freely around you")),
+                ("summon", t("le bot vous rejoint (téléportation)", "the bot joins you (teleport)")),
+                ("release", t("libère l'esprit d'un bot mort", "releases the spirit of a dead bot")),
+                ("q", t("liste les quêtes du bot ; « doquest » lui fait faire une quête", "lists the bot's quests; \"doquest\" makes it do a quest")),
+                ("c", t("inventaire du bot ; « e [objet] » équipe, « ue [objet] » déséquipe, « s [objet] » vend", "bot inventory; \"e [item]\" equips, \"ue [item]\" unequips, \"s [item]\" sells")),
+                ("talents", t("talents du bot", "bot talents")),
+                ("stats", t("argent, sacs, réparation, expérience du bot", "bot money, bags, repairs, experience")),
+                ("leave", t("le bot quitte le groupe et reprend sa vie", "the bot leaves the group and goes back to its life")),
+                ("help", t("aide complète des bots (en anglais)", "full bot help (in English)")),
             ]);
         });
     }
@@ -664,30 +700,30 @@ impl App {
     }
 
     fn patches(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::PATCH_TITLE);
-        ui.label(fr::PATCH_INTRO);
-        ui.colored_label(WARN, fr::PATCH_SERVER_NOTE);
-        ui.small(fr::PATCH_LOOSE_NOTE);
+        ui.heading(tr!(PATCH_TITLE));
+        ui.label(tr!(PATCH_INTRO));
+        ui.colored_label(WARN, tr!(PATCH_SERVER_NOTE));
+        ui.small(tr!(PATCH_LOOSE_NOTE));
         let playing = snap.state == State::Playing;
         if playing {
-            ui.colored_label(ERR, fr::PATCH_PLAYING);
+            ui.colored_label(ERR, tr!(PATCH_PLAYING));
         }
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            if ui.add_enabled(!playing, egui::Button::new(fr::PATCH_ADD)).clicked() {
-                if let Some(f) = rfd::FileDialog::new().set_title(fr::PATCH_ADD).add_filter("Archive MPQ", &["mpq", "MPQ"]).pick_file() {
+            if ui.add_enabled(!playing, egui::Button::new(tr!(PATCH_ADD))).clicked() {
+                if let Some(f) = rfd::FileDialog::new().set_title(tr!(PATCH_ADD)).add_filter(t("Archive MPQ", "MPQ archive"), &["mpq", "MPQ"]).pick_file() {
                     self.send(Command::PatchAdd(f));
                 }
             }
-            if ui.add_enabled(!playing && !snap.state.is_busy(), egui::Button::new(fr::PATCH_BUILD)).on_hover_text(fr::PATCH_BUILD_HINT).clicked() {
-                if let Some(d) = rfd::FileDialog::new().set_title(fr::PATCH_BUILD).pick_folder() {
+            if ui.add_enabled(!playing && !snap.state.is_busy(), egui::Button::new(tr!(PATCH_BUILD))).on_hover_text(tr!(PATCH_BUILD_HINT)).clicked() {
+                if let Some(d) = rfd::FileDialog::new().set_title(tr!(PATCH_BUILD)).pick_folder() {
                     self.send(Command::PatchBuild(d));
                 }
             }
-            if ui.button(fr::PATCH_OPEN_DIR).clicked() {
+            if ui.button(tr!(PATCH_OPEN_DIR)).clicked() {
                 let _ = std::process::Command::new("explorer.exe").arg(snap.client.dir.join("Data")).spawn();
             }
-            if ui.button(fr::ACC_REFRESH).clicked() {
+            if ui.button(tr!(ACC_REFRESH)).clicked() {
                 self.send(Command::RefreshPatches);
             }
             if let Some(n) = &snap.notice {
@@ -696,7 +732,7 @@ impl App {
         });
         ui.add_space(6.0);
         if !snap.patches.iter().any(|p| !p.official) {
-            ui.label(fr::PATCH_NONE);
+            ui.label(tr!(PATCH_NONE));
         }
         let mut action: Option<Command> = None;
         TableBuilder::new(ui)
@@ -706,9 +742,9 @@ impl App {
             .column(Column::auto().at_least(180.0))
             .column(Column::remainder())
             .header(22.0, |mut h| {
-                h.col(|ui| { ui.strong(fr::PATCH_NAME); });
-                h.col(|ui| { ui.strong(fr::PATCH_SIZE); });
-                h.col(|ui| { ui.strong(fr::PATCH_STATE); });
+                h.col(|ui| { ui.strong(tr!(PATCH_NAME)); });
+                h.col(|ui| { ui.strong(tr!(PATCH_SIZE)); });
+                h.col(|ui| { ui.strong(tr!(PATCH_STATE)); });
                 h.col(|_| {});
             })
             .body(|body| {
@@ -718,21 +754,21 @@ impl App {
                     row.col(|ui| { ui.label(util::human_size(p.size)); });
                     row.col(|ui| {
                         if p.official {
-                            ui.label(fr::PATCH_OFFICIAL);
+                            ui.label(tr!(PATCH_OFFICIAL));
                         } else if !p.loaded_by_client {
-                            ui.colored_label(WARN, fr::PATCH_NOT_LOADED);
+                            ui.colored_label(WARN, tr!(PATCH_NOT_LOADED));
                         } else if p.active {
-                            ui.colored_label(status_color(true, false), fr::PATCH_ACTIVE);
+                            ui.colored_label(status_color(true, false), tr!(PATCH_ACTIVE));
                         } else {
-                            ui.colored_label(ERR, fr::PATCH_INACTIVE);
+                            ui.colored_label(ERR, tr!(PATCH_INACTIVE));
                         }
                     });
                     row.col(|ui| {
                         if !p.official {
-                            if ui.add_enabled(!playing, egui::Button::new(if p.active { fr::PATCH_DISABLE } else { fr::PATCH_ENABLE })).clicked() {
+                            if ui.add_enabled(!playing, egui::Button::new(if p.active { tr!(PATCH_DISABLE) } else { tr!(PATCH_ENABLE) })).clicked() {
                                 action = Some(Command::PatchSetActive(p.name.clone(), !p.active));
                             }
-                            if ui.add_enabled(!playing, egui::Button::new(fr::PATCH_REMOVE)).clicked() {
+                            if ui.add_enabled(!playing, egui::Button::new(tr!(PATCH_REMOVE))).clicked() {
                                 self.pending = Some(Pending::RemovePatch(p.name.clone()));
                             }
                         }
@@ -770,14 +806,14 @@ impl App {
     }
 
     fn database(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::DB_TITLE);
-        ui.small(fr::DB_INTRO);
+        ui.heading(tr!(DB_TITLE));
+        ui.small(tr!(DB_INTRO));
         ui.horizontal(|ui| {
-            if ui.add_enabled(snap.db_up, egui::Button::new(fr::DB_OPEN_HEIDI)).clicked() {
+            if ui.add_enabled(snap.db_up, egui::Button::new(tr!(DB_OPEN_HEIDI))).clicked() {
                 self.send(Command::OpenHeidi);
             }
             if !snap.db_up {
-                ui.colored_label(WARN, fr::DB_NEED_DB);
+                ui.colored_label(WARN, tr!(DB_NEED_DB));
             }
             if let Some(n) = &snap.notice {
                 ui.colored_label(ERR, n);
@@ -825,9 +861,9 @@ impl App {
         });
         egui::CentralPanel::default().frame(egui::Frame::NONE).show_inside(ui, |ui| {
             ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.db_tab, 0, fr::DB_TAB_DATA);
-                ui.selectable_value(&mut self.db_tab, 1, fr::DB_TAB_STRUCTURE);
-                ui.selectable_value(&mut self.db_tab, 2, fr::DB_TAB_SQL);
+                ui.selectable_value(&mut self.db_tab, 0, tr!(DB_TAB_DATA));
+                ui.selectable_value(&mut self.db_tab, 1, tr!(DB_TAB_STRUCTURE));
+                ui.selectable_value(&mut self.db_tab, 2, tr!(DB_TAB_SQL));
                 if !self.table_selected.is_empty() {
                     ui.separator();
                     ui.label(RichText::new(format!("{}.{}", self.db_selected, self.table_selected)).strong());
@@ -851,26 +887,26 @@ impl App {
         };
         let has_pk = view.columns.iter().any(|c| c.primary);
         ui.horizontal(|ui| {
-            ui.label(fr::DB_FILTER);
+            ui.label(tr!(DB_FILTER));
             let r = ui.add(egui::TextEdit::singleline(&mut self.db_filter).desired_width(320.0).hint_text("ex. level > 10 AND race = 1"));
-            if ui.button(fr::DB_APPLY_FILTER).clicked() || (r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))) {
+            if ui.button(tr!(DB_APPLY_FILTER)).clicked() || (r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))) {
                 self.load_table(0);
             }
             ui.separator();
-            if ui.add_enabled(view.offset > 0, egui::Button::new(fr::DB_PREV)).clicked() {
+            if ui.add_enabled(view.offset > 0, egui::Button::new(tr!(DB_PREV))).clicked() {
                 self.load_table(view.offset.saturating_sub(200));
             }
-            ui.label(format!("{}–{} / {} {}", view.offset + 1, (view.offset + view.page.rows.len() as u64).min(view.total), view.total, fr::DB_TOTAL));
-            if ui.add_enabled(view.offset + 200 < view.total, egui::Button::new(fr::DB_NEXT)).clicked() {
+            ui.label(format!("{}–{} / {} {}", view.offset + 1, (view.offset + view.page.rows.len() as u64).min(view.total), view.total, tr!(DB_TOTAL)));
+            if ui.add_enabled(view.offset + 200 < view.total, egui::Button::new(tr!(DB_NEXT))).clicked() {
                 self.load_table(view.offset + 200);
             }
             ui.separator();
-            if ui.add_enabled(has_pk, egui::Button::new(fr::DB_INSERT)).clicked() {
+            if ui.add_enabled(has_pk, egui::Button::new(tr!(DB_INSERT))).clicked() {
                 self.insert_form = Some(view.columns.iter().map(|_| String::new()).collect());
             }
         });
         if !has_pk {
-            ui.colored_label(WARN, fr::DB_NO_PK);
+            ui.colored_label(WARN, tr!(DB_NO_PK));
         }
         if let Some(Err(e)) = &snap.query {
             ui.colored_label(ERR, e);
@@ -879,8 +915,8 @@ impl App {
         if let Some(form) = self.insert_form.as_mut() {
             let mut submit = false;
             let mut cancel = false;
-            egui::Window::new(fr::DB_INSERT_TITLE).collapsible(false).show(ui.ctx(), |ui| {
-                ui.small(fr::DB_INSERT_HINT);
+            egui::Window::new(tr!(DB_INSERT_TITLE)).collapsible(false).show(ui.ctx(), |ui| {
+                ui.small(tr!(DB_INSERT_HINT));
                 egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
                     egui::Grid::new("insert_form").num_columns(2).show(ui, |ui| {
                         for (i, c) in view.columns.iter().enumerate() {
@@ -891,8 +927,8 @@ impl App {
                     });
                 });
                 ui.horizontal(|ui| {
-                    if ui.button(fr::CONFIRM).clicked() { submit = true; }
-                    if ui.button(fr::CANCEL).clicked() { cancel = true; }
+                    if ui.button(tr!(CONFIRM)).clicked() { submit = true; }
+                    if ui.button(tr!(CANCEL)).clicked() { cancel = true; }
                 });
             });
             if submit {
@@ -931,7 +967,7 @@ impl App {
                     let ri = row.index();
                     let data = &view.page.rows[ri];
                     row.col(|ui| {
-                        if has_pk && ui.add(egui::Button::new("✖").small()).on_hover_text(fr::DB_DELETE_ROW).clicked() {
+                        if has_pk && ui.add(egui::Button::new("✖").small()).on_hover_text(tr!(DB_DELETE_ROW)).clicked() {
                             delete_row = Some(ri);
                         }
                     });
@@ -974,7 +1010,7 @@ impl App {
         }
         if let Some(ri) = delete_row {
             if let Some(w) = Self::pk_where(view, &view.page.rows[ri]) {
-                self.pending = Some(Pending::ExecSql(view.db.clone(), format!("DELETE FROM `{}` WHERE {} LIMIT 1", view.table, w), fr::DB_DELETE_ROW_CONFIRM_TITLE, fr::DB_DELETE_ROW_CONFIRM));
+                self.pending = Some(Pending::ExecSql(view.db.clone(), format!("DELETE FROM `{}` WHERE {} LIMIT 1", view.table, w), tr!(DB_DELETE_ROW_CONFIRM_TITLE), tr!(DB_DELETE_ROW_CONFIRM)));
             }
         }
     }
@@ -982,14 +1018,14 @@ impl App {
     fn db_structure_tab(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
         let Some(view) = snap.table_view.as_ref() else { return };
         egui::Grid::new("structure").num_columns(6).striped(true).spacing([14.0, 4.0]).show(ui, |ui| {
-            for h in [fr::DB_COL_NAME, fr::DB_COL_TYPE, fr::DB_COL_NULL, fr::DB_COL_KEY, fr::DB_COL_DEFAULT, "Extra"] {
+            for h in [tr!(DB_COL_NAME), tr!(DB_COL_TYPE), tr!(DB_COL_NULL), tr!(DB_COL_KEY), tr!(DB_COL_DEFAULT), "Extra"] {
                 ui.strong(h);
             }
             ui.end_row();
             for c in &view.columns {
                 ui.label(&c.name);
                 ui.label(&c.col_type);
-                ui.label(if c.nullable { "oui" } else { "non" });
+                ui.label(if c.nullable { t("oui", "yes") } else { t("non", "no") });
                 ui.label(if c.primary { "PRIMARY" } else { "" });
                 ui.label(c.default.clone().unwrap_or_else(|| "NULL".into()));
                 ui.label(&c.extra);
@@ -1002,16 +1038,16 @@ impl App {
         ui.add(egui::TextEdit::multiline(&mut self.sql).desired_rows(5).desired_width(f32::INFINITY).code_editor());
         ui.horizontal(|ui| {
             let is_read = crate::db::is_read_statement(&self.sql);
-            if ui.add_enabled(snap.db_up && is_read, egui::Button::new(fr::DB_RUN_READ)).clicked() {
+            if ui.add_enabled(snap.db_up && is_read, egui::Button::new(tr!(DB_RUN_READ))).clicked() {
                 self.sql_history.push(self.sql.clone());
                 self.send(Command::Query { db: self.db_selected.clone(), sql: self.sql.clone() });
             }
-            if ui.add_enabled(snap.db_up && !is_read && !self.sql.trim().is_empty(), egui::Button::new(RichText::new(fr::DB_RUN_WRITE).color(WARN))).clicked() {
+            if ui.add_enabled(snap.db_up && !is_read && !self.sql.trim().is_empty(), egui::Button::new(RichText::new(tr!(DB_RUN_WRITE)).color(WARN))).clicked() {
                 self.sql_history.push(self.sql.clone());
-                self.pending = Some(Pending::ExecSql(self.db_selected.clone(), self.sql.clone(), fr::DB_WRITE_CONFIRM_TITLE, fr::DB_WRITE_CONFIRM));
+                self.pending = Some(Pending::ExecSql(self.db_selected.clone(), self.sql.clone(), tr!(DB_WRITE_CONFIRM_TITLE), tr!(DB_WRITE_CONFIRM)));
             }
             if !self.sql_history.is_empty() {
-                egui::ComboBox::from_id_salt("sql_hist").selected_text(fr::DB_HISTORY).show_ui(ui, |ui| {
+                egui::ComboBox::from_id_salt("sql_hist").selected_text(tr!(DB_HISTORY)).show_ui(ui, |ui| {
                     for h in self.sql_history.iter().rev().take(20) {
                         if ui.selectable_label(false, h.lines().next().unwrap_or("").chars().take(80).collect::<String>()).clicked() {
                             self.sql = h.clone();
@@ -1023,9 +1059,9 @@ impl App {
         match &snap.query {
             None => {}
             Some(Err(e)) => { ui.colored_label(ERR, e); }
-            Some(Ok(r)) if r.affected.is_some() => { ui.colored_label(status_color(true, false), format!("{} {}", r.affected.unwrap(), fr::DB_AFFECTED)); }
+            Some(Ok(r)) if r.affected.is_some() => { ui.colored_label(status_color(true, false), format!("{} {}", r.affected.unwrap(), tr!(DB_AFFECTED))); }
             Some(Ok(r)) => {
-                ui.label(format!("{} {}{}", r.rows.len(), fr::DB_ROWS, if r.truncated { " (tronqué à 500)" } else { "" }));
+                ui.label(format!("{} {}{}", r.rows.len(), tr!(DB_ROWS), if r.truncated { " (tronqué à 500)" } else { "" }));
                 let ncols = r.columns.len().max(1);
                 egui::ScrollArea::horizontal().show(ui, |ui| {
                     let mut tb = TableBuilder::new(ui).striped(true).resizable(true).vscroll(true).max_scroll_height(f32::INFINITY);
@@ -1051,10 +1087,10 @@ impl App {
     }
 
     fn backups(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::BK_TITLE);
-        ui.label(fr::BK_HINT);
+        ui.heading(tr!(BK_TITLE));
+        ui.label(tr!(BK_HINT));
         if snap.state == State::Playing {
-            ui.colored_label(WARN, fr::BK_PLAYING_WARN);
+            ui.colored_label(WARN, tr!(BK_PLAYING_WARN));
         }
         if let Some(n) = &snap.notice {
             ui.colored_label(WARN, n);
@@ -1063,38 +1099,38 @@ impl App {
         let busy = snap.state.is_busy();
         let idle = matches!(snap.state, State::Installed | State::Error | State::Ready | State::NotInstalled);
         ui.horizontal_wrapped(|ui| {
-            ui.label(fr::BK_LABEL);
+            ui.label(tr!(BK_LABEL));
             ui.add(egui::TextEdit::singleline(&mut self.backup_label).desired_width(200.0));
-            if ui.add_enabled(!busy, egui::Button::new(fr::BK_NOW)).clicked() {
+            if ui.add_enabled(!busy, egui::Button::new(tr!(BK_NOW))).clicked() {
                 let label = if self.backup_label.trim().is_empty() { "manuelle".to_string() } else { self.backup_label.trim().to_string() };
                 self.send(Command::Backup(label));
                 self.backup_label.clear();
             }
             let sel = self.backup_selected.clone();
             let sel_info = sel.as_ref().and_then(|p| snap.backups.iter().find(|b| &b.path == p));
-            if ui.add_enabled(idle && sel_info.is_some(), egui::Button::new(fr::BK_RESTORE_SEL)).clicked() {
+            if ui.add_enabled(idle && sel_info.is_some(), egui::Button::new(tr!(BK_RESTORE_SEL))).clicked() {
                 let b = sel_info.unwrap();
                 self.pending = Some(Pending::Restore(b.path.clone(), format!("{} — {} personnages, {} comptes", b.manifest.created, b.manifest.characters, b.manifest.accounts)));
             }
-            if ui.add_enabled(!busy && sel_info.is_some(), egui::Button::new(fr::BK_DELETE_SEL)).clicked() {
+            if ui.add_enabled(!busy && sel_info.is_some(), egui::Button::new(tr!(BK_DELETE_SEL))).clicked() {
                 let b = sel_info.unwrap();
                 self.pending = Some(Pending::Delete(b.path.clone(), b.manifest.created.clone()));
             }
-            if ui.button(fr::BK_OPEN_DIR).clicked() {
+            if ui.button(tr!(BK_OPEN_DIR)).clicked() {
                 let dir = self.layout.backups();
                 let _ = std::fs::create_dir_all(&dir);
                 let _ = std::process::Command::new("explorer.exe").arg(&dir).spawn();
             }
-            if ui.add_enabled(!busy, egui::Button::new(fr::BK_DIAG)).clicked() {
+            if ui.add_enabled(!busy, egui::Button::new(tr!(BK_DIAG))).clicked() {
                 self.send(Command::ExportDiagnostic);
             }
-            if ui.button(fr::ACC_REFRESH).clicked() {
+            if ui.button(tr!(ACC_REFRESH)).clicked() {
                 self.send(Command::RefreshBackups);
             }
         });
         ui.add_space(8.0);
         if snap.backups.is_empty() {
-            ui.label(fr::BK_NONE);
+            ui.label(tr!(BK_NONE));
             return;
         }
         TableBuilder::new(ui)
@@ -1105,11 +1141,11 @@ impl App {
             .column(Column::auto().at_least(70.0))
             .column(Column::remainder())
             .header(22.0, |mut h| {
-                h.col(|ui| { ui.strong(fr::BK_DATE); });
-                h.col(|ui| { ui.strong(fr::BK_LABEL); });
-                h.col(|ui| { ui.strong(fr::BK_CHARS); });
-                h.col(|ui| { ui.strong(fr::BK_ACCOUNTS); });
-                h.col(|ui| { ui.strong(fr::BK_SIZE); });
+                h.col(|ui| { ui.strong(tr!(BK_DATE)); });
+                h.col(|ui| { ui.strong(tr!(BK_LABEL)); });
+                h.col(|ui| { ui.strong(tr!(BK_CHARS)); });
+                h.col(|ui| { ui.strong(tr!(BK_ACCOUNTS)); });
+                h.col(|ui| { ui.strong(tr!(BK_SIZE)); });
             })
             .body(|body| {
                 body.rows(20.0, snap.backups.len(), |mut row| {
@@ -1127,24 +1163,24 @@ impl App {
 
     fn addons_section(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
         ui.separator();
-        ui.strong(fr::ADDON_TITLE);
-        ui.small(fr::ADDON_INTRO);
+        ui.strong(tr!(ADDON_TITLE));
+        ui.small(tr!(ADDON_INTRO));
         let playing = snap.state == State::Playing;
         if playing {
-            ui.colored_label(ERR, fr::ADDON_PLAYING);
+            ui.colored_label(ERR, tr!(ADDON_PLAYING));
         }
         ui.horizontal(|ui| {
-            if ui.add_enabled(playing == false, egui::Button::new(fr::ADDON_ADD)).clicked() {
-                if let Some(f) = rfd::FileDialog::new().set_title(fr::ADDON_ADD).add_filter("Archive zip", &["zip"]).pick_file() {
+            if ui.add_enabled(playing == false, egui::Button::new(tr!(ADDON_ADD))).clicked() {
+                if let Some(f) = rfd::FileDialog::new().set_title(tr!(ADDON_ADD)).add_filter(t("Archive zip", "Zip archive"), &["zip"]).pick_file() {
                     self.send(Command::AddonAdd(f));
                 }
             }
-            if ui.button(fr::ADDON_OPEN_DIR).clicked() {
+            if ui.button(tr!(ADDON_OPEN_DIR)).clicked() {
                 let dir = crate::addons::addons_dir(&snap.client.dir);
                 let _ = std::fs::create_dir_all(&dir);
                 let _ = std::process::Command::new("explorer.exe").arg(dir).spawn();
             }
-            if ui.button(fr::ACC_REFRESH).clicked() {
+            if ui.button(tr!(ACC_REFRESH)).clicked() {
                 self.send(Command::RefreshAddons);
             }
             if let Some(n) = &snap.notice {
@@ -1152,16 +1188,16 @@ impl App {
             }
         });
         if snap.addons.is_empty() {
-            ui.label(fr::ADDON_NONE);
+            ui.label(tr!(ADDON_NONE));
             return;
         }
         let mut action: Option<Command> = None;
         egui::Grid::new("addons").num_columns(6).striped(true).spacing([12.0, 4.0]).show(ui, |ui| {
-            ui.strong(fr::ADDON_NAME);
-            ui.strong(fr::ADDON_TITLE_COL);
-            ui.strong(fr::ADDON_VERSION);
-            ui.strong(fr::ADDON_INTERFACE);
-            ui.strong(fr::ADDON_STATE);
+            ui.strong(tr!(ADDON_NAME));
+            ui.strong(tr!(ADDON_TITLE_COL));
+            ui.strong(tr!(ADDON_VERSION));
+            ui.strong(tr!(ADDON_INTERFACE));
+            ui.strong(tr!(ADDON_STATE));
             ui.label("");
             ui.end_row();
             for a in &snap.addons {
@@ -1170,20 +1206,20 @@ impl App {
                 ui.label(&a.version);
                 let r = ui.label(&a.interface);
                 if !a.interface.is_empty() && a.interface != "11200" {
-                    r.on_hover_text(fr::ADDON_OLD_INTERFACE);
+                    r.on_hover_text(tr!(ADDON_OLD_INTERFACE));
                 }
                 if !a.has_toc {
-                    ui.colored_label(WARN, fr::ADDON_NO_TOC);
+                    ui.colored_label(WARN, tr!(ADDON_NO_TOC));
                 } else if a.active {
-                    ui.colored_label(status_color(true, false), fr::ADDON_ACTIVE);
+                    ui.colored_label(status_color(true, false), tr!(ADDON_ACTIVE));
                 } else {
-                    ui.colored_label(ERR, fr::ADDON_INACTIVE);
+                    ui.colored_label(ERR, tr!(ADDON_INACTIVE));
                 }
                 ui.horizontal(|ui| {
-                    if ui.add_enabled(!playing, egui::Button::new(if a.active { fr::PATCH_DISABLE } else { fr::PATCH_ENABLE })).clicked() {
+                    if ui.add_enabled(!playing, egui::Button::new(if a.active { tr!(PATCH_DISABLE) } else { tr!(PATCH_ENABLE) })).clicked() {
                         action = Some(Command::AddonSetActive(a.name.clone(), !a.active));
                     }
-                    if ui.add_enabled(!playing, egui::Button::new(fr::ADDON_REMOVE)).clicked() {
+                    if ui.add_enabled(!playing, egui::Button::new(tr!(ADDON_REMOVE))).clicked() {
                         self.pending = Some(Pending::RemoveAddon(a.name.clone()));
                     }
                 });
@@ -1196,17 +1232,33 @@ impl App {
     }
 
     fn settings_tab(&mut self, ui: &mut egui::Ui) {
-        ui.heading(fr::TAB_SETTINGS);
-        ui.label(fr::SET_CLIENT_DIR);
+        ui.heading(tr!(TAB_SETTINGS));
+        // Langue de l'interface : appliquée tout de suite et enregistrée (settings.json, clé language).
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Langue / Language").strong());
+            let before = self.settings.language.clone();
+            ui.selectable_value(&mut self.settings.language, "fr".to_string(), "Français");
+            ui.selectable_value(&mut self.settings.language, "en".to_string(), "English");
+            if self.settings.language != before {
+                crate::i18n::set_english(self.settings.language == "en");
+                self.save_settings();
+            }
+        });
+        ui.small(t(
+            "Les journaux techniques (serveur, launcher) et le jeu lui-même gardent leur propre langue : le client frFR reste en français.",
+            "Technical logs (server, launcher) and the game itself keep their own language: the frFR client stays in French.",
+        ));
+        ui.add_space(6.0);
+        ui.label(tr!(SET_CLIENT_DIR));
         ui.horizontal(|ui| {
             ui.add(egui::TextEdit::singleline(&mut self.settings.client_dir).desired_width(480.0));
-            if ui.button(fr::SET_BROWSE).clicked() {
-                if let Some(dir) = rfd::FileDialog::new().set_title(fr::SET_CLIENT_DIR).pick_folder() {
+            if ui.button(tr!(SET_BROWSE)).clicked() {
+                if let Some(dir) = rfd::FileDialog::new().set_title(tr!(SET_CLIENT_DIR)).pick_folder() {
                     self.settings.client_dir = dir.to_string_lossy().into_owned();
                 }
             }
         });
-        ui.small(fr::SET_CLIENT_HINT);
+        ui.small(tr!(SET_CLIENT_HINT));
         // Type du client dans le dossier saisi : d'origine (WoW.exe) ou Benilla (64 bits).
         let typed = self.settings.client_dir.trim().to_string();
         if self.client_probe.as_ref().map(|(p, _)| p != &typed).unwrap_or(true) {
@@ -1215,18 +1267,18 @@ impl App {
         }
         let probe = self.client_probe.as_ref().map(|(_, i)| i.clone()).unwrap_or_default();
         ui.horizontal_wrapped(|ui| {
-            ui.label(fr::SET_CLIENT_DETECTED);
+            ui.label(tr!(SET_CLIENT_DETECTED));
             let txt = if probe.kind == crate::client::ClientKind::None { probe.kind_label().to_string() } else { format!("{} — {}", probe.kind_label(), probe.version_string()) };
             ui.label(RichText::new(txt).color(status_color(probe.is_ok(), false)).strong());
             if probe.kind != crate::client::ClientKind::None && !probe.missing_mpq.is_empty() {
-                ui.colored_label(WARN, format!("{} {}", fr::SET_CLIENT_MISSING_MPQ, probe.missing_mpq.join(", ")));
+                ui.colored_label(WARN, format!("{} {}", tr!(SET_CLIENT_MISSING_MPQ), probe.missing_mpq.join(", ")));
             }
         });
         if probe.is_benilla() {
-            ui.small(fr::SET_CLIENT_BENILLA_HINT);
+            ui.small(tr!(SET_CLIENT_BENILLA_HINT));
         }
         ui.horizontal_wrapped(|ui| {
-            if ui.button(fr::SET_CLIENT_SCAN).on_hover_text(fr::SET_CLIENT_SCAN_HINT).clicked() || self.discovered.is_none() {
+            if ui.button(tr!(SET_CLIENT_SCAN)).on_hover_text(tr!(SET_CLIENT_SCAN_HINT)).clicked() || self.discovered.is_none() {
                 self.discovered = Some(crate::client::discover(&self.layout.root));
             }
         });
@@ -1235,7 +1287,7 @@ impl App {
                 let path = c.dir.to_string_lossy().into_owned();
                 let current = probe.dir == c.dir;
                 ui.horizontal(|ui| {
-                    if ui.add_enabled(!current, egui::Button::new(if current { fr::SET_CLIENT_IN_USE } else { fr::SET_CLIENT_USE })).clicked() {
+                    if ui.add_enabled(!current, egui::Button::new(if current { tr!(SET_CLIENT_IN_USE) } else { tr!(SET_CLIENT_USE) })).clicked() {
                         self.settings.client_dir = if c.dir == self.layout.default_client_dir() { String::new() } else { path.clone() };
                     }
                     ui.label(format!("{} — {}", c.kind_label(), c.version_string()));
@@ -1244,26 +1296,26 @@ impl App {
             }
         }
         ui.add_space(6.0);
-        ui.checkbox(&mut self.settings.windowed, fr::SET_WINDOWED);
-        ui.small(fr::SET_WINDOWED_HINT);
+        ui.checkbox(&mut self.settings.windowed, tr!(SET_WINDOWED));
+        ui.small(tr!(SET_WINDOWED_HINT));
         let vf_present = self.layout.vanillafixes_dir().join("VanillaFixes.exe").is_file() && !probe.is_benilla();
-        let vf_off_hint = if probe.is_benilla() { fr::SET_VF_BENILLA } else { fr::SET_VF_MISSING };
-        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.vanillafixes, fr::SET_VF)).on_hover_text(fr::SET_VF_HINT).on_disabled_hover_text(vf_off_hint);
-        ui.small(fr::SET_VF_HINT);
-        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.dxvk, fr::SET_DXVK)).on_hover_text(fr::SET_DXVK_HINT).on_disabled_hover_text(vf_off_hint);
-        ui.small(fr::SET_DXVK_HINT);
+        let vf_off_hint = if probe.is_benilla() { tr!(SET_VF_BENILLA) } else { tr!(SET_VF_MISSING) };
+        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.vanillafixes, tr!(SET_VF))).on_hover_text(tr!(SET_VF_HINT)).on_disabled_hover_text(vf_off_hint);
+        ui.small(tr!(SET_VF_HINT));
+        ui.add_enabled(vf_present, egui::Checkbox::new(&mut self.settings.dxvk, tr!(SET_DXVK))).on_hover_text(tr!(SET_DXVK_HINT)).on_disabled_hover_text(vf_off_hint);
+        ui.small(tr!(SET_DXVK_HINT));
         ui.add_space(4.0);
-        ui.checkbox(&mut self.settings.ahbot_enabled, fr::SET_AHBOT);
-        ui.small(fr::SET_AHBOT_HINT);
+        ui.checkbox(&mut self.settings.ahbot_enabled, tr!(SET_AHBOT));
+        ui.small(tr!(SET_AHBOT_HINT));
         ui.add_space(4.0);
-        ui.checkbox(&mut self.settings.auto_backup, fr::SET_AUTO_BACKUP);
+        ui.checkbox(&mut self.settings.auto_backup, tr!(SET_AUTO_BACKUP));
         ui.horizontal(|ui| {
-            ui.label(fr::SET_AUTO_BACKUP_KEEP);
+            ui.label(tr!(SET_AUTO_BACKUP_KEEP));
             ui.add(egui::DragValue::new(&mut self.settings.auto_backup_keep).range(1..=100));
         });
-        ui.small(fr::SET_AUTO_BACKUP_HINT);
+        ui.small(tr!(SET_AUTO_BACKUP_HINT));
         ui.add_space(8.0);
-        if ui.button(fr::SET_SAVE).clicked() {
+        if ui.button(tr!(SET_SAVE)).clicked() {
             self.save_settings();
         }
         if let Some(n) = &self.settings_notice {
@@ -1275,14 +1327,14 @@ impl App {
         let idle = matches!(snap.state, State::Installed | State::Error | State::Ready | State::NotInstalled);
         ui.horizontal_wrapped(|ui| {
             let running = matches!(snap.mmaps, MmapsStatus::Running { .. });
-            if ui.add_enabled(!running && !snap.state.is_busy(), egui::Button::new(fr::BTN_MMAPS)).on_hover_text(fr::BTN_MMAPS_HINT).clicked() {
+            if ui.add_enabled(!running && !snap.state.is_busy(), egui::Button::new(tr!(BTN_MMAPS))).on_hover_text(tr!(BTN_MMAPS_HINT)).clicked() {
                 self.send(Command::GenerateMmaps);
             }
-            if ui.add_enabled(idle, egui::Button::new(fr::BTN_WORLD_REIMPORT)).on_hover_text(fr::WORLD_REIMPORT_HINT).clicked() {
+            if ui.add_enabled(idle, egui::Button::new(tr!(BTN_WORLD_REIMPORT))).on_hover_text(tr!(WORLD_REIMPORT_HINT)).clicked() {
                 self.pending = Some(Pending::ReimportWorld);
             }
         });
-        ui.small(fr::WORLD_REIMPORT_HINT);
+        ui.small(tr!(WORLD_REIMPORT_HINT));
         if let Some(n) = &snap.notice {
             ui.colored_label(WARN, n);
         }
@@ -1293,12 +1345,12 @@ impl App {
     }
 
     fn logs(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
-        ui.heading(fr::LOG_TITLE);
+        ui.heading(tr!(LOG_TITLE));
         ui.horizontal(|ui| {
-            ui.label(fr::LOG_CONSOLE);
+            ui.label(tr!(LOG_CONSOLE));
             let r = ui.add(egui::TextEdit::singleline(&mut self.console_cmd).desired_width(400.0));
             let submit = r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-            if (ui.add_enabled(snap.world_up, egui::Button::new(fr::LOG_SEND)).clicked() || submit) && !self.console_cmd.trim().is_empty() {
+            if (ui.add_enabled(snap.world_up, egui::Button::new(tr!(LOG_SEND))).clicked() || submit) && !self.console_cmd.trim().is_empty() {
                 self.send(Command::Console(self.console_cmd.trim().to_string()));
                 self.console_cmd.clear();
             }
@@ -1313,14 +1365,15 @@ impl App {
     fn confirm_window(&mut self, ctx: &egui::Context) {
         let Some(p) = self.pending.as_ref() else { return };
         let (title, text, detail) = match p {
-            Pending::Restore(_, d) => (fr::BK_RESTORE_CONFIRM_TITLE, fr::BK_RESTORE_CONFIRM, d.clone()),
-            Pending::Delete(_, d) => (fr::BK_DELETE_CONFIRM_TITLE, fr::BK_DELETE_CONFIRM, d.clone()),
-            Pending::DeleteBots => (fr::BOT_DELETE_CONFIRM_TITLE, fr::BOT_DELETE_CONFIRM, String::new()),
-            Pending::RemovePatch(n) => (fr::PATCH_REMOVE_CONFIRM_TITLE, fr::PATCH_REMOVE_CONFIRM, n.clone()),
-            Pending::RemoveAddon(n) => (fr::ADDON_REMOVE_CONFIRM_TITLE, fr::ADDON_REMOVE_CONFIRM, n.clone()),
-            Pending::DeleteAccount(_, d) => (fr::ACC_DELETE_CONFIRM_TITLE, fr::ACC_DELETE_CONFIRM, d.clone()),
+            Pending::Restore(_, d) => (tr!(BK_RESTORE_CONFIRM_TITLE), tr!(BK_RESTORE_CONFIRM), d.clone()),
+            Pending::Delete(_, d) => (tr!(BK_DELETE_CONFIRM_TITLE), tr!(BK_DELETE_CONFIRM), d.clone()),
+            Pending::DeleteBots => (tr!(BOT_DELETE_CONFIRM_TITLE), tr!(BOT_DELETE_CONFIRM), String::new()),
+            Pending::RemovePatch(n) => (tr!(PATCH_REMOVE_CONFIRM_TITLE), tr!(PATCH_REMOVE_CONFIRM), n.clone()),
+            Pending::RemoveAddon(n) => (tr!(ADDON_REMOVE_CONFIRM_TITLE), tr!(ADDON_REMOVE_CONFIRM), n.clone()),
+            Pending::DeleteAccount(_, d) => (tr!(ACC_DELETE_CONFIRM_TITLE), tr!(ACC_DELETE_CONFIRM), d.clone()),
             Pending::ExecSql(_, sql, t, x) => (*t, *x, sql.chars().take(300).collect()),
-            Pending::ReimportWorld => (fr::WORLD_REIMPORT_CONFIRM_TITLE, fr::WORLD_REIMPORT_CONFIRM, String::new()),
+            Pending::ReimportWorld => (tr!(WORLD_REIMPORT_CONFIRM_TITLE), tr!(WORLD_REIMPORT_CONFIRM), String::new()),
+            Pending::DeleteProfile(_, n) => (crate::i18n::t("Supprimer le profil", "Delete the profile"), crate::i18n::t("Supprimer ce profil ? Le compte et ses personnages ne sont pas touchés.", "Delete this profile? The account and its characters are not affected."), n.clone()),
         };
         let mut decision: Option<bool> = None;
         egui::Window::new(title).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
@@ -1328,10 +1381,10 @@ impl App {
             ui.label(RichText::new(detail).strong());
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.button(RichText::new(fr::CONFIRM).strong()).clicked() {
+                if ui.button(RichText::new(tr!(CONFIRM)).strong()).clicked() {
                     decision = Some(true);
                 }
-                if ui.button(fr::CANCEL).clicked() {
+                if ui.button(tr!(CANCEL)).clicked() {
                     decision = Some(false);
                 }
             });
@@ -1354,6 +1407,10 @@ impl App {
                         }
                         Pending::ExecSql(db, sql, _, _) => self.send(Command::Exec { db, sql }),
                         Pending::ReimportWorld => self.send(Command::ReimportWorld),
+                        Pending::DeleteProfile(id, _) => {
+                            self.profiles.remove(&id);
+                            self.save_profiles();
+                        }
                     }
                 }
             }
@@ -1366,40 +1423,40 @@ impl App {
         }
         let Some(r) = snap.report.as_ref() else { return };
         let mut open = true;
-        egui::Window::new(fr::RPT_TITLE).open(&mut open).collapsible(false).default_width(560.0).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+        egui::Window::new(tr!(RPT_TITLE)).open(&mut open).collapsible(false).default_width(560.0).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
             egui::ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
                 if !r.manifest_present {
-                    ui.colored_label(WARN, fr::RPT_MANIFEST_MISSING);
+                    ui.colored_label(WARN, tr!(RPT_MANIFEST_MISSING));
                 } else if r.files_ok() {
-                    ui.colored_label(status_color(true, false), format!("{} ({})", fr::RPT_FILES_OK, r.checked));
+                    ui.colored_label(status_color(true, false), format!("{} ({})", tr!(RPT_FILES_OK), r.checked));
                 } else {
                     if !r.missing.is_empty() {
-                        ui.colored_label(ERR, format!("{} ({})", fr::RPT_MISSING, r.missing.len()));
+                        ui.colored_label(ERR, format!("{} ({})", tr!(RPT_MISSING), r.missing.len()));
                         for m in r.missing.iter().take(50) {
                             ui.monospace(m);
                         }
                     }
                     if !r.altered.is_empty() {
-                        ui.colored_label(ERR, format!("{} ({})", fr::RPT_ALTERED, r.altered.len()));
+                        ui.colored_label(ERR, format!("{} ({})", tr!(RPT_ALTERED), r.altered.len()));
                         for m in r.altered.iter().take(50) {
                             ui.monospace(m);
                         }
                     }
                 }
                 ui.add_space(6.0);
-                ui.strong(fr::RPT_DATA);
+                ui.strong(tr!(RPT_DATA));
                 for (n, ok) in &r.data {
                     ui.horizontal(|ui| {
                         ui.label(n);
-                        ui.label(RichText::new(if *ok { "OK" } else if n == "mmaps" { "absentes (optionnel : pathfinding dégradé)" } else { "MANQUANTES" }).color(status_color(*ok, n == "mmaps")));
+                        ui.label(RichText::new(if *ok { "OK" } else if n == "mmaps" { t("absentes (optionnel : pathfinding dégradé)", "missing (optional: degraded pathfinding)") } else { t("MANQUANTES", "MISSING") }).color(status_color(*ok, n == "mmaps")));
                     });
                 }
                 ui.add_space(6.0);
-                ui.strong(fr::RPT_DB);
+                ui.strong(tr!(RPT_DB));
                 ui.label(match r.db_ok {
-                    Some(true) => fr::RPT_DB_OK.to_string(),
-                    Some(false) => "bases ou schéma incomplets : utilisez RÉPARER".to_string(),
-                    None => fr::RPT_DB_UNKNOWN.to_string(),
+                    Some(true) => tr!(RPT_DB_OK).to_string(),
+                    Some(false) => t("bases ou schéma incomplets : utilisez RÉPARER", "databases or schema incomplete: use REPAIR").to_string(),
+                    None => tr!(RPT_DB_UNKNOWN).to_string(),
                 });
                 for n in &r.notes {
                     ui.add_space(4.0);
@@ -1407,7 +1464,7 @@ impl App {
                 }
             });
             ui.add_space(6.0);
-            ui.label(fr::RPT_REPAIR_HINT);
+            ui.label(tr!(RPT_REPAIR_HINT));
         });
         if !open {
             self.show_report = false;

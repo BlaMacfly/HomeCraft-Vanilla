@@ -602,7 +602,7 @@ mod progress_tests {
         // Plus de tuiles que prévu : jamais 100 % ni temps négatif tant que le générateur tourne.
         let p = mmaps_progress(2100, 0, 3600);
         assert!(p.fraction < 1.0 && p.remaining_secs.is_some());
-        assert_eq!(crate::i18n::fr::mmaps_running(12, Some(5400)), "génération en cours depuis 12 min, environ 1 h 30 restantes (le jeu reste jouable)");
-        assert_eq!(crate::i18n::fr::mmaps_running(3, Some(600)), "génération en cours depuis 3 min, environ 10 min restantes (le jeu reste jouable)");
+        assert_eq!(crate::tr!(mmaps_running)(12, Some(5400)), "génération en cours depuis 12 min, environ 1 h 30 restantes (le jeu reste jouable)");
+        assert_eq!(crate::tr!(mmaps_running)(3, Some(600)), "génération en cours depuis 3 min, environ 10 min restantes (le jeu reste jouable)");
     }
 }

@@ -1,0 +1,16 @@
+[12:11:47] 1. compte PROFJHTK et personnage Profdxfoz (client d'origine)
+EVENT 1793531537 realm_auth_ok account=PROFJHTK
+EVENT 1793531537 realm name="HomeCraft" address=127.0.0.1:8085
+EVENT 1793531538 world_auth_ok
+EVENT 1793531539 char_created name=Profdxfoz
+EVENT 1793531540 in_world name=Profdxfoz guid=244
+EVENT 1793531543 stayed seconds=3
+EVENT 1793531563 logout_complete
+[12:12:43]    OK 1. compte et personnage prêts
+[12:12:51] 2. lancement du client par le profil (mot de passe enregistré, chiffré DPAPI)
+[12:13:39]    OK 2. client lancé par le profil, compte authentifié sans saisie (client d'origine)
+[12:13:39]    OK 2b. accountName écrit dans Config.wtf
+[12:13:39]    OK 2c. journal : mot de passe saisi dans la fenêtre, jamais écrit
+[12:13:46] 3. recherche du mot de passe en clair
+[12:13:46]    OK 3. mot de passe introuvable en clair dans 66 fichiers
+Profils (client d'origine) : tout est conforme

@@ -85,7 +85,7 @@ pub mod fr {
     pub const ACC_DELETE: &str = "Supprimer";
     pub const ACC_DELETE_CONFIRM_TITLE: &str = "Supprimer définitivement ce compte ?";
     pub const ACC_DELETE_CONFIRM: &str = "Le compte et TOUS ses personnages (objets, courrier, progression) seront supprimés définitivement. Cette action est irréversible : faites d'abord une sauvegarde (onglet Sauvegardes) si vous avez un doute.";
-    pub const ACC_DELETE_PLAYING: &str = "Impossible de supprimer un compte pendant que le jeu est lancé.";
+    pub fn acc_delete_online(user: &str) -> String { format!("Le compte {} a un personnage en jeu : déconnectez-le (retour à la sélection des personnages ou fermeture du jeu), puis recommencez.", user.to_ascii_uppercase()) }
     pub const ACC_DELETED: &str = "Compte supprimé :";
     pub const ACC_DELETE_FAIL: &str = "Suppression impossible";
     pub const ACC_DELETE_SELF_WARN: &str = "Attention : ce compte est celui qui s'est connecté le plus récemment.";
@@ -377,5 +377,63 @@ pub mod fr {
 
     pub fn acc_created(user: &str, gm: u8) -> String {
         format!("Compte {} créé (niveau GM {gm}).", user.to_ascii_uppercase())
+    }
+
+    pub fn profile_already_running(name: &str) -> String {
+        format!("Le profil « {name} » a déjà un client ouvert.")
+    }
+    pub const NET_NOT_GUEST: &str = "Rejoignez d'abord une partie (onglet Multijoueur).";
+    pub const NET_GUEST_NO_SERVER: &str = "Vous avez rejoint la partie d'un hôte : votre serveur local ne peut pas démarrer tant que vous n'avez pas quitté cette partie (onglet Multijoueur).";
+}
+
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static ENGLISH: AtomicBool = AtomicBool::new(false);
+
+pub fn set_english(on: bool) {
+    ENGLISH.store(on, Ordering::Relaxed);
+}
+
+pub fn is_en() -> bool {
+    ENGLISH.load(Ordering::Relaxed)
+}
+
+/// Texte bilingue écrit sur place : français, anglais (langue choisie dans Paramètres).
+pub fn t(fr: &'static str, en: &'static str) -> &'static str {
+    if is_en() { en } else { fr }
+}
+
+#[path = "i18n_en.rs"]
+pub mod en;
+
+/// Texte du catalogue dans la langue choisie : `tr!(NOM)` pour une constante, `tr!(nom)(arguments)` pour une fonction.
+#[macro_export]
+macro_rules! tr {
+    ($n:ident) => {
+        if $crate::i18n::is_en() { $crate::i18n::en::$n } else { $crate::i18n::fr::$n }
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    fn names(src: &str) -> std::collections::BTreeSet<String> {
+        src.lines()
+            .filter_map(|l| {
+                let l = l.trim_start();
+                let rest = l.strip_prefix("pub const ").or_else(|| l.strip_prefix("pub fn "))?;
+                Some(rest.split(|c: char| c == ':' || c == '(').next()?.trim().to_string())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn memes_entrees() {
+        let src = include_str!("i18n.rs");
+        let fr_part = &src[src.find("pub mod fr {").unwrap()..src.find("use std::sync::atomic").unwrap()];
+        let fr = names(fr_part);
+        let en = names(include_str!("i18n_en.rs"));
+        let missing: Vec<_> = fr.difference(&en).collect();
+        let extra: Vec<_> = en.difference(&fr).collect();
+        assert!(missing.is_empty() && extra.is_empty(), "sans traduction : {missing:?} ; en trop : {extra:?}");
     }
 }

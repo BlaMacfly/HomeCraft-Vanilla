@@ -2,18 +2,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod addons;
+mod ai_bridge;
 mod backup;
 mod botgen;
 mod client;
 mod conf_catalog;
+mod conf_catalog_en;
 mod credentials;
 mod db;
 mod i18n;
 mod mpqbuild;
+mod nat;
+mod network;
 mod orchestrator;
 mod patches;
 mod paths;
+mod profiles;
 mod repair;
+mod secret;
 mod server;
 mod settings;
 mod ui;
@@ -30,7 +36,7 @@ fn main() -> eframe::Result {
             Ok(f) => Some(f),
             // ERROR_SHARING_VIOLATION : un autre launcher de cette installation est ouvert.
             Err(e) if e.raw_os_error() == Some(32) => {
-                rfd::MessageDialog::new().set_title(i18n::fr::WINDOW_TITLE).set_description(i18n::fr::ALREADY_RUNNING).set_level(rfd::MessageLevel::Warning).show();
+                rfd::MessageDialog::new().set_title(crate::tr!(WINDOW_TITLE)).set_description(crate::tr!(ALREADY_RUNNING)).set_level(rfd::MessageLevel::Warning).show();
                 return Ok(());
             }
             // Support en lecture seule : pas de verrou possible (le launcher propose alors la copie sur le disque).
@@ -38,6 +44,9 @@ fn main() -> eframe::Result {
         }
     };
     let settings = settings::Settings::load(&layout.settings_file());
+    i18n::set_english(settings.language == "en");
+    let net = network::spawn(layout.clone());
+    let net_exit = net.clone();
     let (shared, tx, orchestrator_thread) = orchestrator::spawn(layout.clone(), settings.clone());
 
     // Options de test (Tests/) : --start démarre les services immédiatement, --quit-after N ferme après N secondes.
@@ -73,10 +82,32 @@ fn main() -> eframe::Result {
             (Some("mmaps"), _) => Some(orchestrator::Command::GenerateMmaps),
             // Tests : commande envoyée à la console du serveur (après --start), par ex. « rndbot stats ».
             (Some("console"), Some(c)) => Some(orchestrator::Command::Console(c.clone())),
+            // Tests : lance le client avec un profil de UserDataprofiles.json (nom ou identifiant), comme son bouton.
+            (Some("playprofile"), Some(n)) => profiles::Profiles::load(&layout.user_data()).list.into_iter().find(|p| &p.name == n || &p.id == n).map(orchestrator::Command::PlayProfile),
             _ => None,
         };
         if let Some(c) = cmd {
             let _ = tx.send(c);
+        }
+    }
+    // Tests du multijoueur : --net host | join <fichier contenant le code> | leave, puis --invite <libellé>
+    // (répétable). HOMECRAFT_NET_CODE_DIR=<dossier> reçoit le code de chaque invitation créée (<libellé>.txt).
+    if let Some(i) = args.iter().position(|a| a == "--net") {
+        let c = match (args.get(i + 1).map(String::as_str), args.get(i + 2)) {
+            (Some("host"), _) => Some(network::NetCmd::Host),
+            (Some("join"), Some(f)) => std::fs::read_to_string(f).ok().map(network::NetCmd::Join),
+            (Some("leave"), _) => Some(network::NetCmd::Leave),
+            _ => None,
+        };
+        if let Some(c) = c {
+            net.send(c);
+        }
+    }
+    for (i, a) in args.iter().enumerate() {
+        if a == "--invite" {
+            if let Some(l) = args.get(i + 1) {
+                net.send(network::NetCmd::Invite(l.clone()));
+            }
         }
     }
     // --install-to <dossier> : copie depuis un support en lecture seule sans passer par le sélecteur (tests).
@@ -85,7 +116,7 @@ fn main() -> eframe::Result {
             let _ = tx.send(orchestrator::Command::InstallTo(std::path::PathBuf::from(p)));
         }
     }
-    let mut viewport = eframe::egui::ViewportBuilder::default().with_inner_size([980.0, 700.0]).with_min_inner_size([760.0, 520.0]).with_title(i18n::fr::WINDOW_TITLE);
+    let mut viewport = eframe::egui::ViewportBuilder::default().with_inner_size([980.0, 700.0]).with_min_inner_size([760.0, 520.0]).with_title(crate::tr!(WINDOW_TITLE));
     if let Ok(img) = image::load_from_memory(include_bytes!("../assets/logo-256.png")) {
         let rgba = img.to_rgba8();
         let (width, height) = rgba.dimensions();
@@ -94,12 +125,13 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions { viewport, ..Default::default() };
     let tx_exit = tx.clone();
     let result = eframe::run_native(
-        i18n::fr::WINDOW_TITLE,
+        crate::tr!(WINDOW_TITLE),
         options,
-        Box::new(move |cc| Ok(Box::new(ui::App::new(cc, layout, settings, shared, tx, quit_after, start_tab)))),
+        Box::new(move |cc| Ok(Box::new(ui::App::new(cc, layout, settings, shared, tx, quit_after, start_tab, net)))),
     );
     // Fermeture : l'orchestrateur arrête les services qu'il a démarrés (MariaDB comprise, arrêt SQL propre) ; le
     // processus attend qu'il ait fini, sans quoi la fin de main interromprait l'arrêt en cours.
+    net_exit.shutdown_and_wait();
     let _ = tx_exit.send(orchestrator::Command::Shutdown);
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
     while !orchestrator_thread.is_finished() && std::time::Instant::now() < deadline {

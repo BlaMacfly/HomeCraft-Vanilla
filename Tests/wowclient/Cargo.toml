@@ -1,0 +1,12 @@
+[package]
+name = "hc-wowclient"
+version = "0.1.0"
+edition = "2021"
+description = "Client WoW 1.12 minimal sans interface, pour les tests d'intégration de HomeCraft (jamais livré)"
+publish = false
+
+[dependencies]
+sha1 = "0.10"
+num-bigint = "0.4"
+rand = "0.8"
+flate2 = "1"

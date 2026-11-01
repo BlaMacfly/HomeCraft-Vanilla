@@ -1,89 +1,83 @@
 # Commandes MJ et administrateur — HomeCraft Edition Vanilla
 
-Liste des commandes du serveur VMaNGOS livré avec HomeCraft (commit `53d24d5`), extraite de son code source (`src/game/Chat/Chat.cpp`) : **756 commandes**. La première partie décrit en français celles qui servent vraiment en solo ; l'annexe donne la liste complète avec le niveau requis.
+Liste des commandes du serveur **CMaNGOS Classic** livré avec HomeCraft (commit `ff53dfc`, module playerbots `39d4700`), extraite de son code source (`src/game/Chat/Chat.cpp`, script `Build/doc-tools/cmdtree.pl`) : **517 commandes**. La première partie décrit en français celles qui servent vraiment ; l'annexe donne la liste complète avec le niveau requis.
 
 ## Comment les utiliser
 
-- **Dans le jeu** : tapez la commande dans la fenêtre de discussion, précédée d'un point, par exemple `.gm on`. Il faut être connecté avec un compte dont le niveau MJ est suffisant (onglet **Comptes** du launcher).
+- **Dans le jeu** : tapez la commande dans la fenêtre de discussion, précédée d'un point, par exemple `.gm on`. Il faut un compte dont le niveau MJ est suffisant (onglet **Comptes** du launcher).
 - **Dans la console du serveur** : onglet **Journaux** du launcher, champ « Commande console mangosd », **sans** le point (`account onlinelist`). Seules les commandes marquées « Console : oui » y fonctionnent ; la console a tous les droits.
-- `.commands` affiche les commandes accessibles à votre compte. `.help <commande>` existe, mais l'aide intégrée de ce serveur est presque vide : ce document la remplace.
-- Les paramètres entre `< >` sont obligatoires, entre `[ ]` facultatifs. Une commande qui vise un personnage s'applique à la **cible sélectionnée** (ou à vous si rien n'est sélectionné), sauf mention d'un nom.
+- `.commands` liste les commandes permises à votre compte ; `.help <commande>` affiche son aide (en anglais).
 
 ## Niveaux d'accès
 
-| Niveau | Nom dans VMaNGOS | Commandes réservées à ce niveau ou moins |
+| Niveau | Nom dans CMaNGOS | Nombre de commandes de ce niveau |
 |---|---|---|
-| 0 | Joueur | 15 (`.save`, `.dismount`, `.unstuck`, `.start`, `.server info`, `.commands`…) |
-| 1 | Modérateur | 42 |
-| 2 | Maître du jeu des tickets | 136 |
-| 3 | Maître de jeu | 170 |
-| 4 | Administrateur de base | 70 |
-| 5 | Développeur | 196 |
-| 6 | Administrateur | 113 (dont toutes les commandes `.partybot`) |
-| 7 | Console | 14 (création et gestion des comptes, `server exit`) : console du serveur uniquement |
+| 0 | Joueur | 13 (`.save`, `.dismount`, `.start`, `.server info`, `.commands`, `.bot`…) |
+| 1 | Modérateur | 61 (téléportations, `.modify` de base, annonces) |
+| 2 | Maître de jeu | 120 (créatures, événements, apparences, réputation, `.rndbot`, `.ahbot`) |
+| 3 | Administrateur | 309 (objets, sorts, quêtes, niveaux, mode MJ, réinitialisations) |
+| 4 | Console | 14 (création et gestion des comptes, `server exit`) : console du serveur uniquement |
 
-Un compte de **niveau 6**, celui que recommande le launcher pour les compagnons, a accès à toutes les commandes du jeu. Seules celles du niveau 7 restent réservées à la console (onglet Journaux), et le launcher les utilise lui-même pour l'onglet Comptes.
+Un compte de **niveau 3** (celui que le launcher propose pour jouer seul) a accès à toutes les commandes du jeu. Seules celles du niveau 4 restent réservées à la console, et le launcher les utilise lui-même pour l'onglet Comptes. En multijoueur, donnez le niveau **0** à vos amis.
 
-> **Attention** : ces commandes modifient votre partie, parfois définitivement (objets, niveaux, quêtes, monde). Faites une sauvegarde (onglet Sauvegardes) avant de vous en servir sérieusement. Les commandes `.npc spawn`, `.gobject add/delete` et `.tele add` écrivent dans la base monde : « Réimporter la base monde » (Paramètres) les annule.
+> **Attention** : ces commandes modifient votre partie, parfois définitivement (objets, niveaux, quêtes, monde). Faites une sauvegarde (onglet Sauvegardes) avant de vous en servir sérieusement. Les commandes `.npc add`, `.npc delete`, `.gobject add/delete` et `.tele add` écrivent dans la base monde : « Réimporter la base monde » (Paramètres) les annule.
 
 ---
 
-## Les plus utiles en solo
+## Les plus utiles
 
 ### Mode maître de jeu
 
 | Commande | Niveau | Effet |
 |---|---|---|
-| `.gm on` / `.gm off` | 2 | Active ou désactive le mode MJ (invulnérable, ignoré par les monstres, balise <MJ>). Le réglage « Mode MJ à la connexion » de l'onglet Monde décide de l'état à la connexion. |
-| `.gm visible on` / `off` | 2 | Rend le MJ visible ou invisible des autres. |
-| `.gm fly on` / `off` | 3 | Vol libre (comme `.cheat fly`). |
-| `.gm ingame` | 0 | Liste les MJ connectés. |
-| `.gm chat on` / `off` | 1 | Balise <MJ> dans la discussion. |
+| `.gm on` / `.gm off` | 3 | Active ou désactive le mode MJ (invulnérable, ignoré par les monstres, balise <MJ>). Le réglage « Mode MJ à la connexion » de l'onglet Monde décide de l'état à la connexion. |
+| `.gm visible on` / `off` | 3 | Rend le MJ visible ou invisible des autres. |
+| `.gm fly on` / `off` | 3 | Vol libre. |
+| `.gm chat on` / `off` | 3 | Balise <MJ> dans la discussion. |
+| `.gm ingame` | 3 | Liste les MJ connectés. |
 
 ### Se déplacer
 
 | Commande | Niveau | Effet |
 |---|---|---|
-| `.tele <lieu>` | 2 | Téléportation vers un lieu nommé de la table `game_tele` (noms en anglais : `.tele Stormwind`, `.tele Orgrimmar`, `.tele Ironforge`). |
-| `.lookup tele <texte>` | 2 | Cherche les lieux dont le nom contient ce texte. |
-| `.tele name <joueur> <lieu>` | 2 | Téléporte un autre personnage. |
-| `.tele group <lieu>` | 2 | Téléporte tout votre groupe, compagnons compris. |
-| `.tele add <nom>` | 5 | Enregistre votre position comme lieu de téléportation (écrit dans la base monde). |
-| `.go xyz <x> <y> [z] [carte]` | 2 | Téléportation à des coordonnées. |
-| `.go creature <guid>` / `.go object <guid>` | 2 | Va jusqu'à une créature ou un objet du monde. |
-| `.goname <joueur>` | 2 | Vous rend auprès d'un personnage. |
-| `.namego <joueur>` | 2 | Fait venir un personnage auprès de vous. |
-| `.groupgo <joueur>` | 2 | Fait venir le groupe d'un personnage. |
+| `.tele <lieu>` | 1 | Téléportation vers un lieu nommé (noms en anglais : `.tele Stormwind`, `.tele Orgrimmar`, `.tele Ironforge`). |
+| `.lookup tele <texte>` | 1 | Cherche les lieux dont le nom contient ce texte. |
+| `.tele name <joueur> <lieu>` | 1 | Téléporte un autre personnage. |
+| `.tele group <lieu>` | 1 | Téléporte tout votre groupe, bots compris. |
+| `.tele add <nom>` | 3 | Enregistre votre position comme lieu de téléportation (écrit dans la base monde). |
+| `.go xyz <x> <y> [z] [carte]` | 1 | Téléportation à des coordonnées. |
+| `.go creature <guid>` / `.go object <guid>` | 1 | Va jusqu'à une créature ou un objet du monde. |
+| `.appear <joueur>` | 1 | Vous rend auprès d'un personnage (bot compris). |
+| `.summon <joueur>` | 1 | Fait venir un personnage auprès de vous. |
+| `.groupgo <joueur>` | 1 | Fait venir le groupe d'un personnage. |
 | `.recall` | 1 | Revient à l'endroit d'avant la dernière téléportation. |
 | `.gps` | 1 | Affiche votre position (carte, zone, coordonnées). |
 | `.start` | 0 | Retour au point de départ de votre race. |
-| `.unstuck` | 0 | Débloque un personnage coincé. |
-| `.taxicheat on` / `off` | 2 | Tous les trajets aériens connus. |
-| `.explorecheat 1` / `0` | 2 | Révèle (1) ou masque (0) toute la carte du monde. |
+| `.neargrave` | 3 | Va au cimetière le plus proche. |
+| `.taxicheat on` / `off` | 1 | Tous les trajets aériens connus. |
+| `.explorecheat 1` / `0` | 3 | Révèle (1) ou masque (0) toute la carte du monde. |
 
 ### Personnage
 
 | Commande | Niveau | Effet |
 |---|---|---|
 | `.levelup [n]` | 3 | Gagne `n` niveaux (1 par défaut ; négatif pour descendre). |
-| `.modify money <cuivre>` | 4 | Ajoute de l'argent en pièces de cuivre : `10000` = 1 or. Négatif pour retirer. |
-| `.modify speed <valeur>` | 2 | Vitesse de déplacement (1 = normale). `.modify aspeed` : toutes les vitesses. |
-| `.modify hp <n>` / `.modify mana <n>` | 3 | Points de vie / de mana actuels. |
-| `.modify scale <valeur>` | 3 | Taille du personnage (1 = normale). |
-| `.modify morph <id d'apparence>` / `.demorph` | 3 | Change d'apparence / reprend la sienne. |
-| `.modify rep <faction> <valeur>` | 4 | Réputation auprès d'une faction (identifiant de faction). |
-| `.modify gender` | 3 | Change le sexe du personnage. |
+| `.modify money <cuivre>` | 1 | Ajoute de l'argent en pièces de cuivre : `10000` = 1 or. Négatif pour retirer. |
+| `.modify speed <valeur>` / `.modify aspeed <valeur>` | 1 | Vitesse de course / toutes les vitesses (1 = normale). |
+| `.modify hp <n>` / `.modify mana <n>` | 1 | Points de vie / de mana actuels. |
+| `.modify scale <valeur>` | 1 | Taille du personnage (1 = normale). |
+| `.modify morph <apparence>` / `.demorph` | 2 | Change d'apparence / reprend la sienne. |
+| `.modify rep <faction> <valeur>` | 2 | Réputation auprès d'une faction. |
+| `.modify gender` | 2 | Change le sexe du personnage. |
 | `.revive` | 3 | Ressuscite (la cible ou vous). |
 | `.die` | 3 | Tue la cible. |
-| `.unaura <id\|all>` | 3 | Retire une aura ou toutes. |
-| `.aura <id de sort>` | 4 | Applique l'aura d'un sort. |
-| `.cast <id de sort>` | 5 | Lance un sort sur la cible. |
+| `.unaura <id\|all>` / `.aura <id>` | 3 | Retire / applique une aura. |
+| `.cast <id de sort>` | 3 | Lance un sort sur la cible. |
 | `.cooldown clear` | 3 | Réinitialise les temps de recharge. |
-| `.repairitems` | 3 | Répare tout l'équipement. |
-| `.bank` / `.stable` | 2 | Ouvre la banque / l'écurie de familiers à distance. |
-| `.dismount` / `.mount <apparence>` | 0 / 3 | Descend de monture / monture d'apparence donnée. |
-| `.reset talents` / `spells` / `stats` / `level` | 3 / 5 | Réinitialise talents, sorts, caractéristiques ou niveau. |
-| `.honor add <points>` | 4 | Ajoute des points d'honneur. |
+| `.repairitems` | 2 | Répare tout l'équipement. |
+| `.dismount` | 0 | Descend de monture. |
+| `.reset talents` / `spells` / `stats` / `level` | 3 | Réinitialise talents, sorts, caractéristiques ou niveau. |
+| `.honor add <points>` | 2 | Ajoute des points d'honneur. |
 | `.pinfo [nom]` | 2 | Informations sur un personnage (compte, niveau, argent, temps de jeu). |
 | `.save` | 0 | Enregistre votre personnage maintenant. |
 
@@ -91,64 +85,56 @@ Un compte de **niveau 6**, celui que recommande le launcher pour les compagnons,
 
 | Commande | Niveau | Effet |
 |---|---|---|
-| `.lookup item <texte>` | 2 | Cherche un objet par nom et donne son identifiant (cliquable). |
-| `.additem <id ou lien> [nombre]` | 3 | Donne un objet (glissez un lien d'objet dans la commande ou tapez son identifiant). |
+| `.lookup item <texte>` | 3 | Cherche un objet par nom et donne son identifiant (cliquable). |
+| `.additem <id ou lien> [nombre]` | 3 | Donne un objet. |
 | `.additemset <id d'ensemble>` | 3 | Donne toutes les pièces d'un ensemble. |
-| `.lookup spell <texte>` | 2 | Cherche un sort et donne son identifiant. |
-| `.learn <id de sort>` | 5 | Apprend un sort. `.unlearn <id>` (3) l'oublie. |
-| `.learn all_myclass` | 5 | Tous les sorts de votre classe. Variantes : `all_myspells`, `all_mytalents`. |
-| `.learn all_recipes <métier>` | 3 | Toutes les recettes d'un métier. |
+| `.lookup spell <texte>` | 3 | Cherche un sort et donne son identifiant. |
+| `.learn <id de sort>` / `.unlearn <id>` | 3 | Apprend / oublie un sort. |
+| `.learn all_myclass` | 3 | Tous les sorts de votre classe. |
+| `.learn all_recipes <métier>` | 2 | Toutes les recettes d'un métier. |
 | `.maxskill` | 3 | Toutes vos compétences au maximum pour votre niveau. |
 | `.setskill <id> <niveau> [max]` | 3 | Fixe une compétence (métier, arme). |
-| `.lookup quest <texte>` | 2 | Cherche une quête et donne son identifiant. |
-| `.quest add <id>` / `.quest complete <id>` / `.quest remove <id>` | 4 / 4 / 3 | Ajoute, termine ou retire une quête du journal. |
-| `.lookup creature <texte>` / `.lookup object <texte>` / `.lookup area <texte>` | 2 | Cherche une créature, un objet du monde, une zone. |
+| `.lookup quest <texte>` | 3 | Cherche une quête et donne son identifiant. |
+| `.quest add <id>` / `complete <id>` / `remove <id>` | 3 | Ajoute, termine ou retire une quête du journal. |
+| `.lookup creature` / `object` / `area <texte>` | 3 / 3 / 1 | Cherche une créature, un objet du monde, une zone. |
 
 ### Créatures et monde
 
 | Commande | Niveau | Effet |
 |---|---|---|
-| `.npc info` | 1 | Informations sur la créature ciblée (identifiant, guid, faction…). |
-| `.npc summon <id>` | 3 | Fait apparaître une créature temporaire. |
-| `.npc spawn add <id>` / `.npc spawn delete` | 5 | Ajoute / supprime une créature **permanente** (base monde). |
-| `.npc say` / `yell` / `whisper <texte>` | 2 | Fait parler la créature ciblée. |
-| `.npc follow` / `unfollow` | 3 | La créature ciblée vous suit. |
-| `.npc tame` | 3 | Apprivoise la bête ciblée (chasseur). |
-| `.respawn` | 4 | Fait réapparaître les créatures et objets proches. |
-| `.combatstop` | 3 | Sort du combat. |
+| `.npc info` | 3 | Informations sur la créature ciblée (identifiant, guid, faction…). |
+| `.npc add <id>` / `.npc delete` | 2 | Ajoute / supprime une créature **permanente** (base monde). |
+| `.npc say` / `yell` / `whisper <texte>` | 1 | Fait parler la créature ciblée. |
+| `.npc follow` / `unfollow` | 2 | La créature ciblée vous suit. |
+| `.npc tame` | 2 | Apprivoise la bête ciblée (chasseur). |
+| `.respawn` | 3 | Fait réapparaître les créatures et objets proches. |
 | `.damage <n>` | 3 | Inflige des dégâts à la cible. |
 | `.instance listbinds` / `.instance unbind <carte\|all>` | 3 | Liste / supprime vos sauvegardes d'instances (donjons et raids). |
-| `.event list` / `.event start <id>` / `.event stop <id>` | 3 / 4 / 4 | Événements du monde (fêtes, invasions…). |
-| `.showarea <id>` | 2 | Révèle une zone de la carte. |
+| `.event list` / `start <id>` / `stop <id>` | 2 | Événements du monde (fêtes, invasions…). |
+| `.showarea <id>` | 3 | Révèle une zone de la carte. |
+| `.wchange <type> <intensité>` | 3 | Change la météo. |
 
-### Triches de confort (`.cheat`)
-
-Tous de niveau 3, avec `on` / `off` : `.cheat god` (invulnérable), `.cheat cooldown` (sans recharge), `.cheat casttime` (incantation instantanée), `.cheat powercost` (sorts gratuits), `.cheat fly` (vol), `.cheat waterwalk` (marche sur l'eau), `.cheat wallclimb` (escalade), `.cheat untargetable`, `.cheat immunenpc`, `.cheat beastmaster`. `.cheat status` affiche ceux qui sont actifs.
-
-### Compagnons et bots
+### Bots et hôtel des ventes
 
 | Commande | Niveau | Effet |
 |---|---|---|
-| `.partybot add tank` / `healer` / `dps` (ou une classe) | 6 | Invoque un compagnon. Liste complète des 19 commandes `.partybot` : manuel, §9, et onglet PlayerBots du launcher. |
-| `.battlebot add warsong` / `arathi` / `alterac` | 6 | Ajoute un bot dans la file du champ de bataille. `.battlebot remove` / `removeall` les retire. |
-| `.bot info` | 6 | État des bots de peuplement (en ligne, en attente). Console aussi : `bot info`. |
-| `.bot start` / `.bot stop` | 6 | Démarre / arrête la connexion automatique des bots de peuplement. |
-| `.bot add` / `.bot ranadd` / `.bot delete` / `.bot reload` | 6 | Connecte un bot donné / un bot au hasard, retire un bot, recharge la table `playerbot`. |
-| `.ahbot update` / `.ahbot reload` | 6 | Réapprovisionne l'hôtel des ventes / recharge sa table. |
+| `.bot add` / `remove` / `list` / `group` / `prepare` | 0 | Compagnons bots (manuel, §10). |
+| `.rndbot stats` (console : `rndbot stats`) | 2 | État des bots aléatoires du monde. |
+| `.rndbot reload` | 2 | Relit la configuration des bots (le launcher le fait quand vous enregistrez les réglages). |
+| `.ahbot status` / `rebuild` / `reload` | 3 | État, regarnissage, rechargement de l'hôtel des ventes automatique. |
 
 ### Serveur (jeu ou console)
 
 | Commande | Niveau | Effet |
 |---|---|---|
 | `.server info` | 0 | Version, joueurs connectés, temps de fonctionnement. |
-| `.saveall` | 6 | Enregistre tous les personnages connectés. |
-| `.announce <texte>` / `.notify <texte>` | 4 | Message à tous (discussion / fenêtre). |
+| `.saveall` | 1 | Enregistre tous les personnages connectés. |
+| `.announce <texte>` / `.notify <texte>` | 1 | Message à tous (discussion / fenêtre). |
 | `.kick <nom>` | 2 | Déconnecte un personnage. |
-| `.mute <nom> <minutes>` / `.unmute <nom>` | 1 / 2 | Rend muet / rend la parole. |
-| `.freeze` / `.unfreeze` | 2 | Fige / libère la cible. |
-| `.server shutdown <secondes>` / `.server restart <secondes>` | 6 | Arrêt / redémarrage différé. Préférez le bouton ARRÊTER LE SERVEUR du launcher. |
+| `.mute <nom> <minutes>` / `.unmute <nom>` | 1 | Rend muet / rend la parole. |
+| `.server shutdown <secondes>` / `.server restart <secondes>` | 3 | Arrêt / redémarrage différé. Préférez le bouton ARRÊTER LE SERVEUR du launcher. |
 
-### Console du serveur uniquement (niveau 7, onglet Journaux, sans point)
+### Console du serveur uniquement (niveau 4, onglet Journaux, sans point)
 
 | Commande | Effet |
 |---|---|
@@ -161,9 +147,9 @@ Tous de niveau 3, avec `on` / `off` : `.cheat god` (invulnérable), `.cheat cool
 
 ---
 
-## Annexe : les 756 commandes du serveur
+## Annexe : les 517 commandes du serveur
 
-Générée depuis `src/game/Chat/Chat.cpp` de VMaNGOS au commit `53d24d5` (`Build/doc-tools/`). « Niveau » = niveau MJ minimal ; « Console : oui » = utilisable aussi depuis la console du serveur. Les commandes non décrites plus haut sont surtout destinées au développement du serveur (`.debug`, `.reload`, `.wp`, `.mmap`…).
+Niveau requis et disponibilité dans la console, par famille. Générée depuis le code source ; l'aide de chaque commande est donnée en jeu par `.help <commande>`.
 
 ### Commandes simples
 
@@ -171,255 +157,162 @@ Générée depuis `src/game/Chat/Chat.cpp` de VMaNGOS au commit `53d24d5` (`Buil
 |---|---|---|
 | `.additem` | 3 |  |
 | `.additemset` | 3 |  |
-| `.angle` | 1 |  |
-| `.announce` | 4 | oui |
-| `.anticheat` | 2 |  |
-| `.aoedamage` | 3 |  |
-| `.aura` | 4 |  |
-| `.bank` | 2 |  |
-| `.charge` | 3 |  |
-| `.combatstop` | 3 |  |
-| `.cometome` | 3 |  |
+| `.announce` | 1 | oui |
+| `.appear` | 1 |  |
+| `.aura` | 3 |  |
+| `.bank` | 3 |  |
+| `.bot` | 0 |  |
 | `.commands` | 0 | oui |
 | `.damage` | 3 |  |
-| `.deleteitem` | 3 |  |
-| `.demorph` | 3 |  |
-| `.deplenish` | 3 |  |
+| `.demorph` | 2 |  |
 | `.die` | 3 |  |
 | `.dismount` | 0 |  |
-| `.distance` | 1 |  |
-| `.explorecheat` | 2 |  |
-| `.fear` | 3 |  |
-| `.freeze` | 2 |  |
-| `.gocorpse` | 2 |  |
-| `.goname` | 2 |  |
+| `.distance` | 3 |  |
+| `.explorecheat` | 3 |  |
+| `.goname` | 1 |  |
 | `.gps` | 1 |  |
-| `.groupgo` | 2 |  |
-| `.groupinfo` | 2 | oui |
-| `.guid` | 1 |  |
+| `.groupgo` | 1 |  |
+| `.guid` | 2 |  |
 | `.help` | 0 | oui |
-| `.hidearea` | 2 |  |
-| `.hover` | 2 |  |
-| `.itemmove` | 3 |  |
+| `.hidearea` | 3 |  |
+| `.itemmove` | 2 |  |
 | `.kick` | 2 | oui |
-| `.knockback` | 3 |  |
 | `.levelup` | 3 |  |
-| `.linkgrave` | 5 |  |
-| `.log` | 3 | oui |
+| `.linkgrave` | 3 |  |
+| `.loadscripts` | 3 | oui |
+| `.los` | 3 |  |
 | `.maxskill` | 3 |  |
-| `.mount` | 3 |  |
-| `.movegens` | 2 |  |
 | `.mute` | 1 | oui |
-| `.nameaura` | 4 |  |
-| `.namedie` | 3 |  |
-| `.namego` | 2 |  |
-| `.neargrave` | 2 |  |
-| `.notify` | 4 | oui |
-| `.pinfo` | 2 |  |
-| `.possess` | 3 |  |
-| `.pvp` | 3 |  |
-| `.quit` | 7 | oui |
+| `.namego` | 1 |  |
+| `.neargrave` | 3 |  |
+| `.notify` | 1 | oui |
+| `.pinfo` | 2 | oui |
+| `.quit` | 4 | oui |
 | `.recall` | 1 |  |
-| `.removeriding` | 3 |  |
-| `.repairitems` | 3 | oui |
-| `.replenish` | 3 |  |
-| `.respawn` | 4 |  |
+| `.repairitems` | 2 | oui |
+| `.respawn` | 3 |  |
 | `.revive` | 3 | oui |
+| `.rndbot` | 2 | oui |
 | `.save` | 0 |  |
-| `.saveall` | 6 | oui |
+| `.saveall` | 1 | oui |
 | `.setskill` | 3 |  |
-| `.showarea` | 2 |  |
-| `.sniff` | 6 |  |
-| `.stable` | 2 |  |
+| `.showarea` | 3 |  |
+| `.stable` | 3 |  |
 | `.start` | 0 |  |
-| `.taxicheat` | 2 |  |
+| `.summon` | 1 |  |
+| `.taxicheat` | 1 |  |
 | `.unaura` | 3 |  |
-| `.unfreeze` | 2 |  |
-| `.unmute` | 2 | oui |
-| `.unstuck` | 0 |  |
-| `.variable` | 5 | oui |
-| `.wchange` | 4 |  |
+| `.unlearn` | 3 |  |
+| `.unmute` | 1 | oui |
+| `.waterwalk` | 2 |  |
+| `.wchange` | 3 |  |
 | `.whispers` | 1 |  |
 | `.wr` | 0 |  |
 
-### .account (12)
+### .account (10)
 
 | Commande | Niveau | Console |
 |---|---|---|
 | `.account` | 0 | oui |
 | `.account characters` | 3 | oui |
-| `.account cleardata` | 0 |  |
-| `.account create` | 7 | oui |
-| `.account delete` | 7 | oui |
+| `.account create` | 4 | oui |
+| `.account delete` | 4 | oui |
 | `.account lock` | 0 | oui |
-| `.account onlinelist` | 7 | oui |
+| `.account onlinelist` | 4 | oui |
 | `.account password` | 0 | oui |
-| `.account set addon` | 7 | oui |
-| `.account set gmlevel` | 7 | oui |
-| `.account set locked` | 6 | oui |
-| `.account set password` | 7 | oui |
+| `.account set addon` | 3 | oui |
+| `.account set gmlevel` | 4 | oui |
+| `.account set password` | 4 | oui |
 
-### .ahbot (2)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.ahbot reload` | 6 | oui |
-| `.ahbot update` | 6 | oui |
-
-### .antispam (4)
+### .ahbot (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.antispam add` | 2 | oui |
-| `.antispam remove` | 4 | oui |
-| `.antispam removereplace` | 4 | oui |
-| `.antispam replace` | 2 | oui |
+| `.ahbot` | 2 | oui |
+| `.ahbot item` | 3 | oui |
+| `.ahbot rebuild` | 3 | oui |
+| `.ahbot reload` | 3 | oui |
+| `.ahbot status` | 3 | oui |
 
-### .auction (4)
+### .auction (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.auction` | 2 |  |
-| `.auction alliance` | 2 |  |
-| `.auction goblin` | 2 |  |
-| `.auction horde` | 2 |  |
+| `.auction` | 3 |  |
+| `.auction alliance` | 3 |  |
+| `.auction goblin` | 3 |  |
+| `.auction horde` | 3 |  |
+| `.auction item` | 3 | oui |
 
-### .ban (6)
+### .ban (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
 | `.ban account` | 3 | oui |
-| `.ban allip` | 6 | oui |
 | `.ban character` | 3 | oui |
-| `.ban ip` | 6 | oui |
-| `.ban note` | 2 | oui |
-| `.ban warn` | 2 | oui |
+| `.ban ip` | 3 | oui |
+| `.ban note` | 3 | oui |
+| `.ban warn` | 3 | oui |
 
 ### .baninfo (3)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.baninfo account` | 2 | oui |
-| `.baninfo character` | 2 | oui |
+| `.baninfo account` | 3 | oui |
+| `.baninfo character` | 3 | oui |
 | `.baninfo ip` | 3 | oui |
 
 ### .banlist (3)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.banlist account` | 2 | oui |
-| `.banlist character` | 2 | oui |
+| `.banlist account` | 3 | oui |
+| `.banlist character` | 3 | oui |
 | `.banlist ip` | 3 | oui |
 
-### .battlebot (7)
+### .bg (2)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.battlebot add alterac` | 6 | oui |
-| `.battlebot add arathi` | 6 | oui |
-| `.battlebot add warsong` | 6 | oui |
-| `.battlebot remove` | 6 |  |
-| `.battlebot removeall` | 6 | oui |
-| `.battlebot showallpaths` | 6 |  |
-| `.battlebot showpath` | 6 |  |
-
-### .bg (4)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.bg` | 3 |  |
-| `.bg start` | 3 |  |
-| `.bg status` | 3 |  |
-| `.bg stop` | 3 |  |
-
-### .bot (8)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.bot add` | 6 | oui |
-| `.bot add_all` | 6 | oui |
-| `.bot delete` | 6 | oui |
-| `.bot info` | 6 | oui |
-| `.bot ranadd` | 6 | oui |
-| `.bot reload` | 6 | oui |
-| `.bot start` | 6 | oui |
-| `.bot stop` | 6 | oui |
+| `.bg start` | 2 |  |
+| `.bg stop` | 2 |  |
 
 ### .cast (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.cast` | 5 |  |
-| `.cast back` | 5 |  |
-| `.cast dist` | 5 |  |
-| `.cast self` | 5 |  |
-| `.cast target` | 5 |  |
+| `.cast` | 3 |  |
+| `.cast back` | 3 |  |
+| `.cast dist` | 3 |  |
+| `.cast self` | 3 |  |
+| `.cast target` | 3 |  |
 
 ### .channel (2)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.channel join` | 1 |  |
-| `.channel leave` | 1 |  |
+| `.channel list` | 1 |  |
+| `.channel static` | 1 |  |
 
-### .character (21)
+### .character (8)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.character aiinfo` | 1 | oui |
-| `.character citytitle` | 6 |  |
-| `.character clean items` | 6 | oui |
-| `.character clean todelete` | 6 | oui |
-| `.character deleted delete` | 7 | oui |
-| `.character deleted list account` | 3 | oui |
-| `.character deleted list name` | 3 | oui |
-| `.character deleted old` | 7 | oui |
-| `.character deleted restore` | 4 | oui |
-| `.character erase` | 7 | oui |
-| `.character fillflys` | 3 | oui |
-| `.character hasitem` | 2 | oui |
-| `.character level` | 5 | oui |
-| `.character premade gear` | 4 |  |
-| `.character premade savegear` | 5 |  |
-| `.character premade savespec` | 5 |  |
-| `.character premade spec` | 4 |  |
-| `.character race` | 4 | oui |
-| `.character rename` | 3 | oui |
+| `.character deleted delete` | 4 | oui |
+| `.character deleted list` | 4 | oui |
+| `.character deleted old` | 4 | oui |
+| `.character deleted restore` | 3 | oui |
+| `.character erase` | 4 | oui |
+| `.character level` | 3 | oui |
+| `.character rename` | 2 | oui |
 | `.character reputation` | 2 | oui |
-| `.character skin` | 4 | oui |
 
-### .cheat (20)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.cheat beastmaster` | 3 |  |
-| `.cheat castchecks` | 3 |  |
-| `.cheat casttime` | 3 |  |
-| `.cheat cooldown` | 3 |  |
-| `.cheat criticals` | 3 |  |
-| `.cheat debuffs` | 3 |  |
-| `.cheat debugtargetinfo` | 3 |  |
-| `.cheat fixedz` | 3 |  |
-| `.cheat fly` | 3 |  |
-| `.cheat god` | 3 |  |
-| `.cheat ignoretriggers` | 3 |  |
-| `.cheat immunenpc` | 3 |  |
-| `.cheat immunepc` | 3 |  |
-| `.cheat powercost` | 3 |  |
-| `.cheat procs` | 3 |  |
-| `.cheat status` | 3 |  |
-| `.cheat triggerpass` | 3 |  |
-| `.cheat untargetable` | 3 |  |
-| `.cheat wallclimb` | 3 |  |
-| `.cheat waterwalk` | 3 |  |
-
-### .cinematic (3)
+### .combat (2)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.cinematic addwp` | 5 |  |
-| `.cinematic gotime` | 5 |  |
-| `.cinematic listwp` | 5 |  |
+| `.combat list` | 0 |  |
+| `.combat stop` | 2 |  |
 
 ### .cooldown (3)
 
@@ -429,699 +322,542 @@ Générée depuis `src/game/Chat/Chat.cpp` de VMaNGOS au commit `53d24d5` (`Buil
 | `.cooldown clearclientside` | 3 |  |
 | `.cooldown list` | 3 |  |
 
-### .debug (62)
+### .debug (59)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.debug anim` | 3 |  |
-| `.debug assert` | 6 | oui |
-| `.debug bg` | 6 | oui |
-| `.debug bytes1` | 5 | oui |
-| `.debug bytes2` | 5 | oui |
-| `.debug chatfreeze` | 6 | oui |
-| `.debug condition` | 2 |  |
-| `.debug control` | 3 |  |
-| `.debug faceme` | 3 |  |
-| `.debug factionchange_items` | 6 | oui |
-| `.debug forceupdate` | 5 |  |
-| `.debug getitemstate` | 5 |  |
-| `.debug getitemvalue` | 5 |  |
-| `.debug getprevplaytime` | 5 |  |
-| `.debug getvaluebyindex` | 5 |  |
-| `.debug getvaluebyname` | 5 |  |
-| `.debug loottable` | 5 | oui |
-| `.debug los` | 5 |  |
-| `.debug los allow` | 5 |  |
-| `.debug los check` | 5 |  |
-| `.debug lrecipient` | 3 |  |
-| `.debug moditemvalue` | 5 |  |
-| `.debug modvalue` | 5 |  |
-| `.debug monster` | 3 |  |
-| `.debug movedistance` | 5 |  |
-| `.debug moveflags` | 3 |  |
-| `.debug movemotion` | 5 |  |
-| `.debug movespline` | 3 |  |
-| `.debug moveto` | 3 |  |
-| `.debug play cinematic` | 2 |  |
-| `.debug play music` | 2 |  |
-| `.debug play sound` | 2 |  |
-| `.debug play text` | 2 |  |
-| `.debug pvpcredit` | 5 |  |
-| `.debug send buyerror` | 5 |  |
-| `.debug send channelnotify` | 5 |  |
-| `.debug send chanvisual` | 5 | oui |
-| `.debug send chanvisualnext` | 5 | oui |
-| `.debug send chatmmessage` | 5 |  |
-| `.debug send equiperror` | 5 |  |
-| `.debug send impact` | 5 | oui |
-| `.debug send mailerror` | 5 |  |
-| `.debug send opcode` | 5 |  |
-| `.debug send openbag` | 3 |  |
-| `.debug send poi` | 5 |  |
-| `.debug send qinvalidmsg` | 5 |  |
-| `.debug send qpartymsg` | 5 |  |
-| `.debug send sellerror` | 5 |  |
-| `.debug send spellfail` | 5 |  |
-| `.debug send visual` | 5 | oui |
-| `.debug send worldstate` | 5 |  |
-| `.debug setaurastate` | 5 |  |
-| `.debug setitemvalue` | 5 |  |
-| `.debug setprevplaytime` | 5 |  |
-| `.debug setvaluebyindex` | 5 |  |
-| `.debug setvaluebyname` | 5 |  |
-| `.debug spellcheck` | 7 | oui |
-| `.debug spellcoefs` | 5 | oui |
-| `.debug spellmods` | 5 |  |
-| `.debug time` | 6 | oui |
-| `.debug unitstate` | 3 |  |
-| `.debug utf8overflow` | 6 | oui |
+| `.debug anim` | 2 |  |
+| `.debug areatriggers` | 1 |  |
+| `.debug bg` | 3 |  |
+| `.debug byte` | 3 |  |
+| `.debug chatfreeze` | 3 | oui |
+| `.debug dbscript` | 3 | oui |
+| `.debug dbscriptguided` | 3 | oui |
+| `.debug dbscriptsourced` | 3 | oui |
+| `.debug dbscripttargeted` | 3 | oui |
+| `.debug debugflags` | 3 | oui |
+| `.debug getitemstate` | 3 |  |
+| `.debug getitemvalue` | 3 |  |
+| `.debug getvaluebyindex` | 3 |  |
+| `.debug getvaluebyname` | 3 |  |
+| `.debug listupdatefields` | 3 |  |
+| `.debug lootrecipient` | 2 |  |
+| `.debug moditemvalue` | 3 |  |
+| `.debug modvalue` | 3 |  |
+| `.debug moveflag` | 3 |  |
+| `.debug opcodeinchistory` | 3 | oui |
+| `.debug opcodeouthistory` | 3 | oui |
+| `.debug packetlog` | 3 | oui |
+| `.debug perf gridsloaded` | 3 |  |
+| `.debug perf tempspawn` | 3 |  |
+| `.debug play cinematic` | 1 |  |
+| `.debug play music` | 1 |  |
+| `.debug play petdismiss` | 1 |  |
+| `.debug play sound` | 1 |  |
+| `.debug script command` | 2 |  |
+| `.debug script help` | 2 |  |
+| `.debug send buyerror` | 3 |  |
+| `.debug send channelnotify` | 3 |  |
+| `.debug send chatmmessage` | 3 |  |
+| `.debug send equiperror` | 3 |  |
+| `.debug send opcode` | 3 |  |
+| `.debug send poi` | 3 |  |
+| `.debug send qfailedresult` | 3 |  |
+| `.debug send qinvalidmsg` | 3 |  |
+| `.debug send qpartymsg` | 3 |  |
+| `.debug send sellerror` | 3 |  |
+| `.debug send spellVisual` | 3 |  |
+| `.debug send spellfail` | 3 |  |
+| `.debug send worldstate` | 3 |  |
+| `.debug setaurastate` | 3 |  |
+| `.debug setitemvalue` | 3 |  |
+| `.debug setvaluebyindex` | 3 |  |
+| `.debug setvaluebyname` | 3 |  |
+| `.debug spawn list` | 2 |  |
+| `.debug spawn respawn` | 2 |  |
+| `.debug spellcheck` | 4 | oui |
+| `.debug spellcoefs` | 3 | oui |
+| `.debug spellmods` | 3 |  |
+| `.debug taxi` | 3 |  |
+| `.debug transports` | 3 | oui |
+| `.debug utf8overflow` | 3 | oui |
+| `.debug uws` | 3 |  |
+| `.debug visibility atclient` | 1 |  |
+| `.debug visibility isvisible` | 1 |  |
+| `.debug waypoint` | 3 |  |
 
-### .escort (6)
+### .event (4)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.escort addwp` | 5 |  |
-| `.escort clearwp` | 5 |  |
-| `.escort create` | 5 |  |
-| `.escort hidewp` | 2 |  |
-| `.escort modwp` | 5 |  |
-| `.escort showwp` | 2 |  |
+| `.event` | 2 | oui |
+| `.event list` | 2 | oui |
+| `.event start` | 2 | oui |
+| `.event stop` | 2 | oui |
 
-### .event (6)
+### .gm (9)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.event` | 3 | oui |
-| `.event disable` | 5 | oui |
-| `.event enable` | 5 | oui |
-| `.event list` | 3 | oui |
-| `.event start` | 4 | oui |
-| `.event stop` | 4 | oui |
-
-### .gm (7)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.gm` | 2 |  |
-| `.gm chat` | 1 |  |
+| `.gm` | 3 |  |
+| `.gm chat` | 3 |  |
 | `.gm fly` | 3 |  |
-| `.gm ingame` | 0 | oui |
-| `.gm list` | 6 | oui |
-| `.gm setview` | 2 |  |
-| `.gm visible` | 2 |  |
+| `.gm ingame` | 3 | oui |
+| `.gm list` | 3 | oui |
+| `.gm mountup` | 3 |  |
+| `.gm setview` | 3 |  |
+| `.gm unkillable` | 3 |  |
+| `.gm visible` | 3 |  |
 
-### .go (18)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.go` | 2 |  |
-| `.go alterac` | 2 |  |
-| `.go arathi` | 2 |  |
-| `.go creature` | 2 |  |
-| `.go forward` | 2 |  |
-| `.go graveyard` | 2 |  |
-| `.go grid` | 2 |  |
-| `.go object` | 2 |  |
-| `.go relative` | 2 |  |
-| `.go target` | 2 |  |
-| `.go taxinode` | 2 |  |
-| `.go trigger` | 2 |  |
-| `.go up` | 2 |  |
-| `.go warsong` | 2 |  |
-| `.go xy` | 2 |  |
-| `.go xyz` | 2 |  |
-| `.go xyzo` | 2 |  |
-| `.go zonexy` | 2 |  |
-
-### .gobject (20)
+### .go (12)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.gobject add` | 5 |  |
-| `.gobject customanim` | 3 |  |
-| `.gobject delete` | 5 |  |
-| `.gobject despawn` | 3 |  |
-| `.gobject despawnanim` | 3 |  |
-| `.gobject info` | 2 |  |
-| `.gobject move` | 3 |  |
+| `.go` | 1 |  |
+| `.go creature` | 1 |  |
+| `.go graveyard` | 1 |  |
+| `.go grid` | 1 |  |
+| `.go next` | 3 |  |
+| `.go object` | 1 |  |
+| `.go taxinode` | 1 |  |
+| `.go trigger` | 1 |  |
+| `.go warp` | 1 |  |
+| `.go xy` | 1 |  |
+| `.go xyz` | 1 |  |
+| `.go zonexy` | 1 |  |
+
+### .gobject (10)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.gobject activate` | 2 |  |
+| `.gobject add` | 2 |  |
+| `.gobject delete` | 2 |  |
+| `.gobject despawn` | 2 |  |
+| `.gobject move` | 2 |  |
 | `.gobject near` | 2 |  |
-| `.gobject reset` | 3 |  |
-| `.gobject respawn` | 3 |  |
-| `.gobject select` | 2 |  |
-| `.gobject setgostate` | 3 |  |
-| `.gobject setlootstate` | 3 |  |
-| `.gobject spawnanim` | 3 |  |
-| `.gobject target` | 3 |  |
-| `.gobject tmpadd` | 3 |  |
-| `.gobject toggle` | 3 |  |
-| `.gobject turn` | 3 |  |
-| `.gobject ufinfo` | 5 |  |
-| `.gobject use` | 3 |  |
+| `.gobject nearspawned` | 2 |  |
+| `.gobject respawn` | 2 |  |
+| `.gobject target` | 2 |  |
+| `.gobject turn` | 2 |  |
 
-### .gold (1)
+### .guild (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.gold remove` | 4 |  |
+| `.guild create` | 2 | oui |
+| `.guild delete` | 2 | oui |
+| `.guild invite` | 2 | oui |
+| `.guild rank` | 2 | oui |
+| `.guild uninvite` | 2 | oui |
 
-### .group (4)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.group additem` | 3 |  |
-| `.group replenish` | 3 |  |
-| `.group revive` | 3 |  |
-| `.group summon` | 3 |  |
-
-### .groupspell (2)
+### .honor (4)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.groupspell add` | 6 | oui |
-| `.groupspell rule` | 6 | oui |
-
-### .guild (7)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.guild create` | 3 | oui |
-| `.guild delete` | 4 | oui |
-| `.guild invite` | 3 | oui |
-| `.guild rank` | 3 | oui |
-| `.guild rename` | 4 | oui |
-| `.guild showlog` | 3 | oui |
-| `.guild uninvite` | 3 | oui |
-
-### .honor (5)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.honor add` | 4 |  |
-| `.honor addkill` | 4 |  |
-| `.honor reset` | 4 |  |
-| `.honor setrp` | 4 |  |
+| `.honor add` | 2 |  |
+| `.honor addkill` | 2 |  |
 | `.honor show` | 2 |  |
+| `.honor update` | 2 |  |
 
-### .instance (11)
+### .instance (4)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.instance continents` | 4 | oui |
-| `.instance getdata` | 3 |  |
-| `.instance groupunbind` | 4 |  |
 | `.instance listbinds` | 3 |  |
-| `.instance perfinfos` | 4 |  |
-| `.instance savedata` | 4 |  |
-| `.instance setdata` | 3 |  |
-| `.instance smartrebind` | 2 |  |
-| `.instance stats` | 4 | oui |
-| `.instance switch` | 4 |  |
+| `.instance savedata` | 3 |  |
+| `.instance stats` | 3 | oui |
 | `.instance unbind` | 3 |  |
 
-### .learn (13)
+### .learn (10)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.learn` | 5 |  |
-| `.learn all` | 6 |  |
-| `.learn all_crafts` | 3 |  |
-| `.learn all_default` | 2 |  |
-| `.learn all_gm` | 3 |  |
-| `.learn all_items` | 3 |  |
+| `.learn` | 3 |  |
+| `.learn all` | 3 |  |
+| `.learn all_crafts` | 2 |  |
+| `.learn all_default` | 1 |  |
+| `.learn all_gm` | 2 |  |
 | `.learn all_lang` | 1 |  |
-| `.learn all_myclass` | 5 |  |
-| `.learn all_myspells` | 5 |  |
-| `.learn all_mytalents` | 5 |  |
-| `.learn all_mytaxis` | 2 |  |
-| `.learn all_recipes` | 3 |  |
-| `.learn all_trainer` | 3 |  |
+| `.learn all_myclass` | 3 |  |
+| `.learn all_myspells` | 3 |  |
+| `.learn all_mytalents` | 3 |  |
+| `.learn all_recipes` | 2 |  |
 
-### .list (12)
+### .link (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.list auras` | 2 |  |
-| `.list clicktomove` | 2 | oui |
-| `.list creature` | 2 | oui |
-| `.list exploredareas` | 2 |  |
-| `.list hostilerefs` | 2 |  |
-| `.list item` | 2 | oui |
-| `.list maps` | 2 | oui |
-| `.list movegens` | 2 |  |
-| `.list object` | 2 | oui |
-| `.list talents` | 2 |  |
-| `.list threat` | 2 |  |
-| `.list visibleguids` | 2 |  |
+| `.link add` | 3 |  |
+| `.link check` | 3 |  |
+| `.link edit` | 3 |  |
+| `.link remove` | 3 |  |
+| `.link toggle` | 3 |  |
 
-### .lookup (25)
+### .list (6)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.lookup account email` | 4 |  |
-| `.lookup account ip` | 4 |  |
-| `.lookup account iponline` | 4 |  |
-| `.lookup account name` | 3 |  |
-| `.lookup area` | 2 | oui |
-| `.lookup creature` | 2 | oui |
-| `.lookup creaturemodel` | 2 | oui |
+| `.list areatriggers` | 3 |  |
+| `.list auras` | 3 |  |
+| `.list creature` | 3 | oui |
+| `.list item` | 3 | oui |
+| `.list object` | 3 | oui |
+| `.list talents` | 3 |  |
+
+### .lookup (20)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.lookup account all` | 2 | oui |
+| `.lookup account email` | 2 | oui |
+| `.lookup account ip` | 2 | oui |
+| `.lookup account name` | 2 | oui |
+| `.lookup area` | 1 | oui |
+| `.lookup creature` | 3 | oui |
 | `.lookup event` | 2 | oui |
-| `.lookup faction` | 2 | oui |
-| `.lookup guild` | 1 | oui |
-| `.lookup item` | 2 | oui |
-| `.lookup itemset` | 2 | oui |
-| `.lookup object` | 2 | oui |
-| `.lookup player account` | 3 |  |
-| `.lookup player character` | 2 |  |
-| `.lookup player email` | 4 |  |
-| `.lookup player ip` | 4 |  |
-| `.lookup player name` | 1 |  |
+| `.lookup faction` | 3 | oui |
+| `.lookup item` | 3 | oui |
+| `.lookup itemset` | 3 | oui |
+| `.lookup object` | 3 | oui |
+| `.lookup player account` | 2 | oui |
+| `.lookup player email` | 2 | oui |
+| `.lookup player ip` | 2 | oui |
 | `.lookup pool` | 2 | oui |
-| `.lookup quest` | 2 | oui |
-| `.lookup skill` | 2 | oui |
-| `.lookup sound` | 2 | oui |
-| `.lookup spell` | 2 | oui |
-| `.lookup taxinode` | 2 | oui |
-| `.lookup tele` | 2 | oui |
+| `.lookup quest` | 3 | oui |
+| `.lookup skill` | 3 | oui |
+| `.lookup spell` | 3 | oui |
+| `.lookup taxinode` | 3 | oui |
+| `.lookup tele` | 1 | oui |
 
-### .mmap (9)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.mmap` | 6 |  |
-| `.mmap connect` | 6 |  |
-| `.mmap loadedtiles` | 3 |  |
-| `.mmap loc` | 3 |  |
-| `.mmap path` | 3 |  |
-| `.mmap reload` | 6 |  |
-| `.mmap stats` | 3 |  |
-| `.mmap testarea` | 3 |  |
-| `.mmap unload` | 6 |  |
-
-### .modify (53)
+### .loot (2)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.modify accessories` | 4 |  |
-| `.modify agility` | 4 |  |
-| `.modify ap` | 4 |  |
-| `.modify arcane` | 4 |  |
-| `.modify armor` | 4 |  |
-| `.modify aspeed` | 2 |  |
-| `.modify block` | 4 |  |
-| `.modify boundrad` | 4 |  |
-| `.modify bwalk` | 2 |  |
-| `.modify castspeed` | 4 |  |
-| `.modify combreach` | 4 |  |
-| `.modify crit` | 4 |  |
-| `.modify dodge` | 4 |  |
-| `.modify drunk` | 2 |  |
-| `.modify emotestate` | 3 |  |
-| `.modify energy` | 3 |  |
-| `.modify exhaustion` | 3 |  |
-| `.modify faction` | 3 |  |
-| `.modify fire` | 4 |  |
-| `.modify fly` | 2 |  |
-| `.modify frost` | 4 |  |
-| `.modify gender` | 3 |  |
-| `.modify haircolor` | 4 |  |
-| `.modify hairstyle` | 4 |  |
-| `.modify holy` | 4 |  |
-| `.modify honor` | 4 |  |
-| `.modify hp` | 3 |  |
-| `.modify intellect` | 4 |  |
-| `.modify mainspeed` | 4 |  |
-| `.modify mana` | 3 |  |
-| `.modify money` | 4 |  |
-| `.modify morph` | 3 |  |
-| `.modify mount` | 3 |  |
-| `.modify nature` | 4 |  |
-| `.modify offspeed` | 4 |  |
-| `.modify parry` | 4 |  |
-| `.modify rage` | 3 |  |
-| `.modify rangeap` | 4 |  |
-| `.modify rangecrit` | 4 |  |
-| `.modify rangespeed` | 4 |  |
-| `.modify rep` | 4 |  |
-| `.modify scale` | 3 |  |
-| `.modify shadow` | 4 |  |
-| `.modify skincolor` | 4 |  |
-| `.modify speed` | 2 |  |
-| `.modify spellcrit` | 4 |  |
-| `.modify spellpower` | 4 |  |
-| `.modify spirit` | 4 |  |
-| `.modify stamina` | 4 |  |
-| `.modify strength` | 4 |  |
-| `.modify swim` | 2 |  |
-| `.modify tp` | 4 |  |
-| `.modify xprate` | 0 |  |
+| `.loot fullstats` | 2 | oui |
+| `.loot stats` | 2 | oui |
 
-### .npc (49)
+### .mmap (7)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.npc additem` | 5 |  |
+| `.mmap` | 3 |  |
+| `.mmap loadedtiles` | 2 |  |
+| `.mmap loc` | 2 |  |
+| `.mmap path` | 2 |  |
+| `.mmap stats` | 2 |  |
+| `.mmap testarea` | 2 |  |
+| `.mmap testheight` | 2 |  |
+
+### .modify (42)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.modify agility` | 3 |  |
+| `.modify ap` | 3 |  |
+| `.modify arcaneresist` | 3 |  |
+| `.modify armor` | 3 |  |
+| `.modify aspeed` | 1 |  |
+| `.modify block` | 3 |  |
+| `.modify bwalk` | 1 |  |
+| `.modify crit` | 3 |  |
+| `.modify dodge` | 3 |  |
+| `.modify drunk` | 1 |  |
+| `.modify energy` | 1 |  |
+| `.modify faction` | 1 |  |
+| `.modify fireresist` | 3 |  |
+| `.modify frostresist` | 3 |  |
+| `.modify gender` | 2 |  |
+| `.modify holyresist` | 3 |  |
+| `.modify honor` | 1 |  |
+| `.modify hp` | 1 |  |
+| `.modify intellect` | 3 |  |
+| `.modify mana` | 1 |  |
+| `.modify meleehaste` | 3 |  |
+| `.modify money` | 1 |  |
+| `.modify morph` | 2 |  |
+| `.modify mount` | 1 |  |
+| `.modify natureresist` | 3 |  |
+| `.modify parry` | 3 |  |
+| `.modify rage` | 1 |  |
+| `.modify rangeap` | 3 |  |
+| `.modify rangehaste` | 3 |  |
+| `.modify rep` | 2 |  |
+| `.modify scale` | 1 |  |
+| `.modify shadowresist` | 3 |  |
+| `.modify speed` | 1 |  |
+| `.modify spellcrit` | 3 |  |
+| `.modify spellhaste` | 3 |  |
+| `.modify spellpower` | 3 |  |
+| `.modify spirit` | 3 |  |
+| `.modify stamina` | 3 |  |
+| `.modify standstate` | 2 |  |
+| `.modify strength` | 3 |  |
+| `.modify swim` | 1 |  |
+| `.modify tp` | 1 |  |
+
+### .movement (5)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.movement cometome` | 3 |  |
+| `.movement debug` | 3 |  |
+| `.movement movegens` | 2 |  |
+| `.movement movespeed` | 2 |  |
+| `.movement print` | 3 |  |
+
+### .npc (37)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.npc add` | 2 |  |
+| `.npc additem` | 2 |  |
 | `.npc addweapon` | 3 |  |
-| `.npc aiinfo` | 1 |  |
-| `.npc allowattack` | 3 |  |
+| `.npc aiinfo` | 2 |  |
 | `.npc allowmove` | 3 |  |
-| `.npc delitem` | 5 |  |
-| `.npc despawn` | 3 |  |
-| `.npc evade` | 3 |  |
-| `.npc follow` | 3 |  |
-| `.npc group add` | 5 |  |
-| `.npc group addrel` | 5 |  |
-| `.npc group del` | 5 |  |
-| `.npc group link` | 5 |  |
-| `.npc info` | 1 |  |
-| `.npc move` | 3 |  |
-| `.npc playemote` | 2 |  |
-| `.npc say` | 2 |  |
-| `.npc set displayid` | 3 |  |
-| `.npc set entry` | 3 |  |
-| `.npc set faction` | 3 |  |
-| `.npc set flag` | 3 |  |
-| `.npc set level` | 3 |  |
-| `.npc set movetype` | 3 |  |
-| `.npc set reactstate` | 3 |  |
-| `.npc set respawntime` | 3 |  |
-| `.npc set wanderdistance` | 3 |  |
-| `.npc spawn add` | 5 |  |
-| `.npc spawn addentry` | 5 |  |
-| `.npc spawn delete` | 5 |  |
-| `.npc spawn info` | 1 |  |
-| `.npc spawn load` | 3 |  |
-| `.npc spawn move` | 5 |  |
-| `.npc spawn set auras` | 5 |  |
-| `.npc spawn set deathstate` | 5 |  |
-| `.npc spawn set displayid` | 5 |  |
-| `.npc spawn set emotestate` | 5 |  |
-| `.npc spawn set entry` | 5 |  |
-| `.npc spawn set movetype` | 5 |  |
-| `.npc spawn set respawntime` | 5 |  |
-| `.npc spawn set sheathstate` | 5 |  |
-| `.npc spawn set standstate` | 5 |  |
-| `.npc spawn set wanderdistance` | 5 |  |
-| `.npc spawn unload` | 3 |  |
-| `.npc summon` | 3 |  |
-| `.npc tame` | 3 |  |
-| `.npc textemote` | 2 |  |
-| `.npc unfollow` | 3 |  |
-| `.npc whisper` | 2 |  |
-| `.npc yell` | 2 |  |
-
-### .partybot (19)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.partybot add` | 6 |  |
-| `.partybot aoe` | 6 |  |
-| `.partybot attackstart` | 6 |  |
-| `.partybot attackstop` | 6 |  |
-| `.partybot caststart` | 6 |  |
-| `.partybot caststop` | 6 |  |
-| `.partybot ccmark` | 6 |  |
-| `.partybot clearmarks` | 6 |  |
-| `.partybot clone` | 6 |  |
-| `.partybot cometome` | 6 |  |
-| `.partybot focusmark` | 6 |  |
-| `.partybot load` | 6 |  |
-| `.partybot pause` | 6 |  |
-| `.partybot pull` | 6 |  |
-| `.partybot remove` | 6 |  |
-| `.partybot setrole` | 6 |  |
-| `.partybot unequip` | 6 |  |
-| `.partybot unpause` | 6 |  |
-| `.partybot usegobject` | 6 |  |
-
-### .pbcast (3)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.pbcast` | 6 | oui |
-| `.pbcast setthreads` | 6 | oui |
-| `.pbcast stats` | 6 | oui |
+| `.npc changeentry` | 3 |  |
+| `.npc changelevel` | 2 |  |
+| `.npc delete` | 2 |  |
+| `.npc delitem` | 2 |  |
+| `.npc despawn` | 2 |  |
+| `.npc evade` | 2 |  |
+| `.npc factionid` | 2 |  |
+| `.npc flag` | 2 |  |
+| `.npc follow` | 2 |  |
+| `.npc formation info` | 2 |  |
+| `.npc formation reset` | 2 |  |
+| `.npc formation switch` | 2 |  |
+| `.npc group info` | 2 |  |
+| `.npc info` | 3 |  |
+| `.npc move` | 2 |  |
+| `.npc name` | 2 |  |
+| `.npc playemote` | 3 |  |
+| `.npc say` | 1 |  |
+| `.npc setmodel` | 2 |  |
+| `.npc setmovetype` | 2 |  |
+| `.npc showloot` | 2 |  |
+| `.npc spawndist` | 2 |  |
+| `.npc spawntime` | 2 |  |
+| `.npc spelllist` | 2 |  |
+| `.npc subname` | 2 |  |
+| `.npc tame` | 2 |  |
+| `.npc tempspawn` | 2 |  |
+| `.npc textemote` | 1 |  |
+| `.npc threat` | 3 |  |
+| `.npc unfollow` | 2 |  |
+| `.npc whisper` | 1 |  |
+| `.npc yell` | 1 |  |
 
 ### .pdump (2)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.pdump load` | 6 | oui |
-| `.pdump write` | 6 | oui |
+| `.pdump load` | 3 | oui |
+| `.pdump write` | 3 | oui |
 
-### .pet (7)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.pet delete` | 3 | oui |
-| `.pet info` | 1 |  |
-| `.pet learnspell` | 5 |  |
-| `.pet list` | 3 | oui |
-| `.pet loyalty` | 3 |  |
-| `.pet rename` | 3 | oui |
-| `.pet unlearnspell` | 5 |  |
-
-### .pool (4)
+### .pet (1)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.pool` | 3 | oui |
-| `.pool list` | 3 |  |
-| `.pool spawns` | 3 |  |
-| `.pool update` | 6 |  |
+| `.pet levelloyalty` | 2 | oui |
 
-### .quest (4)
+### .pool (3)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.quest add` | 4 |  |
-| `.quest complete` | 4 |  |
+| `.pool` | 2 | oui |
+| `.pool list` | 2 |  |
+| `.pool spawns` | 2 |  |
+
+### .quest (3)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.quest add` | 3 |  |
+| `.quest complete` | 3 |  |
 | `.quest remove` | 3 |  |
-| `.quest status` | 3 |  |
 
-### .reload (112)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.reload account_banned` | 6 | oui |
-| `.reload all` | 6 | oui |
-| `.reload all_area` | 6 | oui |
-| `.reload all_gossips` | 6 | oui |
-| `.reload all_item` | 6 | oui |
-| `.reload all_locales` | 6 | oui |
-| `.reload all_loot` | 6 | oui |
-| `.reload all_npc` | 6 | oui |
-| `.reload all_quest` | 6 | oui |
-| `.reload all_scripts` | 6 | oui |
-| `.reload all_spell` | 6 | oui |
-| `.reload anticheat` | 6 | oui |
-| `.reload areatrigger_involvedrelation` | 5 | oui |
-| `.reload areatrigger_tavern` | 5 | oui |
-| `.reload areatrigger_teleport` | 5 | oui |
-| `.reload autobroadcast` | 6 | oui |
-| `.reload character_pet` | 6 | oui |
-| `.reload cinematic_waypoints` | 5 | oui |
-| `.reload command` | 6 | oui |
-| `.reload conditions` | 5 | oui |
-| `.reload config` | 6 | oui |
-| `.reload creature` | 5 | oui |
-| `.reload creature_ai_events` | 5 | oui |
-| `.reload creature_battleground` | 5 | oui |
-| `.reload creature_display_info_addon` | 5 | oui |
-| `.reload creature_groups` | 5 | oui |
-| `.reload creature_involvedrelation` | 5 | oui |
-| `.reload creature_loot_template` | 5 | oui |
-| `.reload creature_onkill_reputation` | 5 | oui |
-| `.reload creature_questrelation` | 5 | oui |
-| `.reload creature_spells` | 5 | oui |
-| `.reload creature_spells_scripts` | 5 | oui |
-| `.reload creature_template` | 5 | oui |
-| `.reload disenchant_loot_template` | 5 | oui |
-| `.reload event_scripts` | 5 | oui |
-| `.reload exploration_basexp` | 5 | oui |
-| `.reload fishing_loot_template` | 5 | oui |
-| `.reload game_graveyard_zone` | 5 | oui |
-| `.reload game_tele` | 5 | oui |
-| `.reload game_weather` | 5 | oui |
-| `.reload gameobject` | 5 | oui |
-| `.reload gameobject_battleground` | 5 | oui |
-| `.reload gameobject_involvedrelation` | 5 | oui |
-| `.reload gameobject_loot_template` | 5 | oui |
-| `.reload gameobject_questrelation` | 5 | oui |
-| `.reload gameobject_requirement` | 5 | oui |
-| `.reload gameobject_scripts` | 5 | oui |
-| `.reload gameobject_template` | 5 | oui |
-| `.reload generic_scripts` | 5 | oui |
-| `.reload gossip_menu` | 5 | oui |
-| `.reload gossip_menu_option` | 5 | oui |
-| `.reload gossip_scripts` | 5 | oui |
-| `.reload instance_buff_removal` | 5 | oui |
-| `.reload ip_banned` | 6 | oui |
-| `.reload item_enchantment_template` | 5 | oui |
-| `.reload item_loot_template` | 5 | oui |
-| `.reload item_required_target` | 5 | oui |
-| `.reload item_template` | 5 | oui |
-| `.reload locales_creature` | 5 | oui |
-| `.reload locales_gameobject` | 5 | oui |
-| `.reload locales_gossip_menu_option` | 5 | oui |
-| `.reload locales_item` | 5 | oui |
-| `.reload locales_page_text` | 5 | oui |
-| `.reload locales_points_of_interest` | 5 | oui |
-| `.reload locales_quest` | 5 | oui |
-| `.reload mail_loot_template` | 5 | oui |
-| `.reload mangos_string` | 5 | oui |
-| `.reload map_loot_disabled` | 5 | oui |
-| `.reload map_template` | 5 | oui |
-| `.reload npc_gossip` | 5 | oui |
-| `.reload npc_text` | 5 | oui |
-| `.reload npc_trainer` | 5 | oui |
-| `.reload npc_vendor` | 5 | oui |
-| `.reload page_text` | 5 | oui |
-| `.reload pet_name_generation` | 5 | oui |
-| `.reload petitions` | 6 | oui |
-| `.reload pickpocketing_loot_template` | 5 | oui |
-| `.reload player_factionchange_items` | 5 | oui |
-| `.reload player_factionchange_mounts` | 5 | oui |
-| `.reload player_factionchange_quests` | 5 | oui |
-| `.reload player_factionchange_reputations` | 5 | oui |
-| `.reload player_factionchange_spells` | 5 | oui |
-| `.reload points_of_interest` | 5 | oui |
-| `.reload quest_end_scripts` | 5 | oui |
-| `.reload quest_greeting` | 5 | oui |
-| `.reload quest_start_scripts` | 5 | oui |
-| `.reload quest_template` | 5 | oui |
-| `.reload reference_loot_template` | 5 | oui |
-| `.reload reputation_reward_rate` | 5 | oui |
-| `.reload reputation_spillover_template` | 5 | oui |
-| `.reload reserved_name` | 6 | oui |
-| `.reload skill_fishing_base_level` | 5 | oui |
-| `.reload skinning_loot_template` | 5 | oui |
-| `.reload spell_area` | 5 | oui |
-| `.reload spell_chain` | 5 | oui |
-| `.reload spell_disabled` | 5 | oui |
-| `.reload spell_elixir` | 5 | oui |
-| `.reload spell_group` | 5 | oui |
-| `.reload spell_group_stack_rules` | 5 | oui |
-| `.reload spell_learn_spell` | 5 | oui |
-| `.reload spell_mod` | 5 | oui |
-| `.reload spell_pet_auras` | 5 | oui |
-| `.reload spell_proc_event` | 5 | oui |
-| `.reload spell_proc_item_enchant` | 5 | oui |
-| `.reload spell_script_target` | 5 | oui |
-| `.reload spell_scripts` | 5 | oui |
-| `.reload spell_target_position` | 5 | oui |
-| `.reload spell_template` | 5 | oui |
-| `.reload spell_threats` | 5 | oui |
-| `.reload taxi_path_transitions` | 5 | oui |
-| `.reload trainer_greeting` | 5 | oui |
-| `.reload variables` | 5 | oui |
-
-### .reset (7)
+### .reload (91)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.reset all` | 6 | oui |
-| `.reset honor` | 5 | oui |
-| `.reset items` | 6 | oui |
-| `.reset level` | 5 | oui |
-| `.reset spells` | 5 | oui |
-| `.reset stats` | 5 | oui |
+| `.reload all` | 3 | oui |
+| `.reload all_area` | 3 | oui |
+| `.reload all_eventai` | 3 | oui |
+| `.reload all_gossips` | 3 | oui |
+| `.reload all_item` | 3 | oui |
+| `.reload all_locales` | 3 | oui |
+| `.reload all_loot` | 3 | oui |
+| `.reload all_npc` | 3 | oui |
+| `.reload all_quest` | 3 | oui |
+| `.reload all_scripts` | 3 | oui |
+| `.reload all_spell` | 3 | oui |
+| `.reload areatrigger_involvedrelation` | 3 | oui |
+| `.reload areatrigger_tavern` | 3 | oui |
+| `.reload areatrigger_teleport` | 3 | oui |
+| `.reload command` | 3 | oui |
+| `.reload conditions` | 3 | oui |
+| `.reload config` | 3 | oui |
+| `.reload creature_ai_scripts` | 3 | oui |
+| `.reload creature_ai_summons` | 3 | oui |
+| `.reload creature_battleground` | 3 | oui |
+| `.reload creature_cooldowns` | 3 | oui |
+| `.reload creature_involvedrelation` | 3 | oui |
+| `.reload creature_loot_template` | 3 | oui |
+| `.reload creature_questrelation` | 3 | oui |
+| `.reload creature_spell_list` | 3 | oui |
+| `.reload creature_template_classlevelstats` | 3 | oui |
+| `.reload dbscripts_on_creature_death` | 3 | oui |
+| `.reload dbscripts_on_event` | 3 | oui |
+| `.reload dbscripts_on_go_use` | 3 | oui |
+| `.reload dbscripts_on_gossip` | 3 | oui |
+| `.reload dbscripts_on_quest_end` | 3 | oui |
+| `.reload dbscripts_on_quest_start` | 3 | oui |
+| `.reload dbscripts_on_relay` | 3 | oui |
+| `.reload dbscripts_on_spell` | 3 | oui |
+| `.reload disenchant_loot_template` | 3 | oui |
+| `.reload fishing_loot_template` | 3 | oui |
+| `.reload game_graveyard_zone` | 3 | oui |
+| `.reload game_tele` | 3 | oui |
+| `.reload gameobject_battleground` | 3 | oui |
+| `.reload gameobject_involvedrelation` | 3 | oui |
+| `.reload gameobject_loot_template` | 3 | oui |
+| `.reload gameobject_questrelation` | 3 | oui |
+| `.reload gossip_menu` | 3 | oui |
+| `.reload gossip_menu_option` | 3 | oui |
+| `.reload item_enchantment_template` | 3 | oui |
+| `.reload item_loot_template` | 3 | oui |
+| `.reload item_required_target` | 3 | oui |
+| `.reload locales_areatrigger_teleport` | 3 | oui |
+| `.reload locales_creature` | 3 | oui |
+| `.reload locales_gameobject` | 3 | oui |
+| `.reload locales_gossip_menu_option` | 3 | oui |
+| `.reload locales_item` | 3 | oui |
+| `.reload locales_npc_text` | 3 | oui |
+| `.reload locales_page_text` | 3 | oui |
+| `.reload locales_points_of_interest` | 3 | oui |
+| `.reload locales_quest` | 3 | oui |
+| `.reload locales_questgiver_greeting` | 3 | oui |
+| `.reload locales_trainer_greeting` | 3 | oui |
+| `.reload mail_loot_template` | 3 | oui |
+| `.reload mangos_string` | 3 | oui |
+| `.reload npc_gossip` | 3 | oui |
+| `.reload npc_text` | 3 | oui |
+| `.reload npc_trainer` | 3 | oui |
+| `.reload npc_vendor` | 3 | oui |
+| `.reload page_text` | 3 | oui |
+| `.reload pickpocketing_loot_template` | 3 | oui |
+| `.reload points_of_interest` | 3 | oui |
+| `.reload quest_template` | 3 | oui |
+| `.reload questgiver_greeting` | 3 | oui |
+| `.reload reference_loot_template` | 3 | oui |
+| `.reload reputation_reward_rate` | 3 | oui |
+| `.reload reputation_spillover_template` | 3 | oui |
+| `.reload reserved_name` | 3 | oui |
+| `.reload skill_fishing_base_level` | 3 | oui |
+| `.reload skinning_loot_template` | 3 | oui |
+| `.reload spam_records` | 3 | oui |
+| `.reload spawn_group` | 3 | oui |
+| `.reload spell_affect` | 3 | oui |
+| `.reload spell_area` | 3 | oui |
+| `.reload spell_chain` | 3 | oui |
+| `.reload spell_elixir` | 3 | oui |
+| `.reload spell_learn_spell` | 3 | oui |
+| `.reload spell_pet_auras` | 3 | oui |
+| `.reload spell_proc_event` | 3 | oui |
+| `.reload spell_proc_item_enchant` | 3 | oui |
+| `.reload spell_script_target` | 3 | oui |
+| `.reload spell_target_position` | 3 | oui |
+| `.reload spell_threats` | 3 | oui |
+| `.reload string_id` | 3 | oui |
+| `.reload taxi_shortcuts` | 3 | oui |
+| `.reload trainer_greeting` | 3 | oui |
+
+### .reset (8)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.reset all` | 3 | oui |
+| `.reset honor` | 3 | oui |
+| `.reset level` | 3 | oui |
+| `.reset mods` | 3 | oui |
+| `.reset spells` | 3 | oui |
+| `.reset stats` | 3 | oui |
 | `.reset talents` | 3 | oui |
+| `.reset taxinodes` | 3 | oui |
 
 ### .send (7)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.send items` | 6 | oui |
+| `.send items` | 3 | oui |
 | `.send mail` | 1 | oui |
-| `.send mass items` | 6 | oui |
-| `.send mass mail` | 6 | oui |
-| `.send mass money` | 6 | oui |
-| `.send message` | 6 | oui |
-| `.send money` | 6 | oui |
+| `.send mass items` | 3 | oui |
+| `.send mass mail` | 3 | oui |
+| `.send mass money` | 3 | oui |
+| `.send message` | 3 | oui |
+| `.send money` | 3 | oui |
 
 ### .server (17)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.server corpses` | 6 | oui |
-| `.server exit` | 7 | oui |
-| `.server idlerestart` | 6 | oui |
-| `.server idlerestart cancel` | 6 | oui |
-| `.server idleshutdown` | 6 | oui |
-| `.server idleshutdown cancel` | 6 | oui |
+| `.server corpses` | 2 | oui |
+| `.server exit` | 4 | oui |
+| `.server idlerestart` | 3 | oui |
+| `.server idlerestart cancel` | 3 | oui |
+| `.server idleshutdown` | 3 | oui |
+| `.server idleshutdown cancel` | 3 | oui |
 | `.server info` | 0 | oui |
-| `.server log filter` | 7 | oui |
-| `.server log level` | 7 | oui |
+| `.server log filter` | 4 | oui |
+| `.server log level` | 4 | oui |
 | `.server motd` | 0 | oui |
-| `.server plimit` | 6 | oui |
-| `.server resetallraids` | 6 | oui |
-| `.server restart` | 6 | oui |
-| `.server restart cancel` | 6 | oui |
-| `.server set motd` | 6 | oui |
-| `.server shutdown` | 6 | oui |
-| `.server shutdown cancel` | 6 | oui |
-
-### .service (1)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.service del_characters` | 6 | oui |
-
-### .spamer (3)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.spamer list` | 2 | oui |
-| `.spamer mute` | 1 | oui |
-| `.spamer unmute` | 2 | oui |
-
-### .spell (4)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.spell effects` | 3 | oui |
-| `.spell iconfix` | 5 | oui |
-| `.spell info` | 3 | oui |
-| `.spell search` | 3 | oui |
+| `.server plimit` | 3 | oui |
+| `.server resetallraid` | 3 | oui |
+| `.server restart` | 3 | oui |
+| `.server restart cancel` | 3 | oui |
+| `.server set motd` | 3 | oui |
+| `.server shutdown` | 3 | oui |
+| `.server shutdown cancel` | 3 | oui |
 
 ### .tele (5)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.tele` | 2 |  |
-| `.tele add` | 5 |  |
-| `.tele del` | 5 | oui |
-| `.tele group` | 2 |  |
-| `.tele name` | 2 | oui |
+| `.tele` | 1 |  |
+| `.tele add` | 3 |  |
+| `.tele del` | 3 | oui |
+| `.tele group` | 1 |  |
+| `.tele name` | 1 | oui |
 
-### .ticket (24)
+### .testing (1)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.ticket` | 2 | oui |
-| `.ticket assign` | 2 | oui |
-| `.ticket close` | 2 | oui |
-| `.ticket closedlist` | 2 | oui |
-| `.ticket comment` | 2 | oui |
-| `.ticket complete` | 2 | oui |
-| `.ticket counter` | 2 |  |
-| `.ticket delete` | 3 | oui |
+| `.testing bags` | 2 |  |
+
+### .ticket (10)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.ticket` | 2 |  |
+| `.ticket discard` | 2 |  |
 | `.ticket escalate` | 2 |  |
-| `.ticket escalatedlist` | 3 | oui |
-| `.ticket list` | 2 | oui |
-| `.ticket next` | 2 |  |
-| `.ticket notify` | 2 |  |
-| `.ticket onlinelist` | 2 | oui |
-| `.ticket previous` | 2 |  |
-| `.ticket reload` | 2 | oui |
-| `.ticket reset` | 6 | oui |
-| `.ticket response append` | 2 | oui |
-| `.ticket response appendln` | 2 | oui |
-| `.ticket response reset` | 3 | oui |
-| `.ticket togglesystem` | 6 | oui |
-| `.ticket unassign` | 2 | oui |
-| `.ticket viewid` | 2 | oui |
-| `.ticket viewname` | 2 | oui |
+| `.ticket go` | 2 |  |
+| `.ticket goname` | 2 |  |
+| `.ticket note` | 2 |  |
+| `.ticket read` | 2 |  |
+| `.ticket resolve` | 2 |  |
+| `.ticket sort` | 2 |  |
+| `.ticket whisper` | 2 |  |
+
+### .tickets (3)
+
+| Commande | Niveau | Console |
+|---|---|---|
+| `.tickets` | 2 |  |
+| `.tickets list` | 2 |  |
+| `.tickets queue` | 3 |  |
 
 ### .trigger (3)
 
@@ -1135,79 +871,30 @@ Générée depuis `src/game/Chat/Chat.cpp` de VMaNGOS au commit `53d24d5` (`Buil
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.unban account` | 6 | oui |
-| `.unban character` | 6 | oui |
-| `.unban ip` | 6 | oui |
+| `.unban account` | 3 | oui |
+| `.unban character` | 3 | oui |
+| `.unban ip` | 3 | oui |
 
-### .unit (23)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.unit aiinfo` | 1 |  |
-| `.unit factioninfo` | 1 |  |
-| `.unit info` | 1 |  |
-| `.unit moveinfo` | 1 |  |
-| `.unit show class` | 1 |  |
-| `.unit show combattimer` | 1 |  |
-| `.unit show createspell` | 1 |  |
-| `.unit show emotestate` | 1 |  |
-| `.unit show form` | 1 |  |
-| `.unit show gender` | 1 |  |
-| `.unit show miscflags` | 1 |  |
-| `.unit show moveflags` | 1 |  |
-| `.unit show npcflags` | 1 |  |
-| `.unit show powertype` | 1 |  |
-| `.unit show race` | 1 |  |
-| `.unit show sheathstate` | 1 |  |
-| `.unit show standstate` | 1 |  |
-| `.unit show unitflags` | 1 |  |
-| `.unit show unitstate` | 1 |  |
-| `.unit show visflags` | 1 |  |
-| `.unit speedinfo` | 1 |  |
-| `.unit statinfo` | 1 |  |
-| `.unit ufinfo` | 5 |  |
-
-### .unlearn (4)
+### .worldstate (9)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.unlearn` | 3 |  |
-| `.unlearn all_crafts` | 3 |  |
-| `.unlearn all_gm` | 3 |  |
-| `.unlearn all_recipes` | 3 |  |
-
-### .video (3)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.video` | 3 |  |
-| `.video expendables` | 3 |  |
-| `.video turn` | 3 |  |
-
-### .wareffort (5)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.wareffort getresource` | 5 | oui |
-| `.wareffort info` | 5 | oui |
-| `.wareffort setgongtime` | 5 | oui |
-| `.wareffort setresource` | 5 | oui |
-| `.wareffort setstage` | 5 | oui |
-
-### .world (3)
-
-| Commande | Niveau | Console |
-|---|---|---|
-| `.world cansee` | 6 |  |
-| `.world detail` | 6 |  |
-| `.world update` | 6 |  |
+| `.worldstate scourgeinvasion battleswon` | 3 |  |
+| `.worldstate scourgeinvasion show` | 3 |  |
+| `.worldstate scourgeinvasion startzone` | 3 |  |
+| `.worldstate scourgeinvasion state` | 3 |  |
+| `.worldstate set` | 3 |  |
+| `.worldstate variables` | 3 |  |
+| `.worldstate wareffort counter` | 3 |  |
+| `.worldstate wareffort phase` | 3 |  |
+| `.worldstate wareffort show` | 3 |  |
 
 ### .wp (4)
 
 | Commande | Niveau | Console |
 |---|---|---|
-| `.wp add` | 5 |  |
-| `.wp export` | 6 |  |
-| `.wp modify` | 5 |  |
+| `.wp add` | 2 |  |
+| `.wp export` | 3 |  |
+| `.wp modify` | 2 |  |
 | `.wp show` | 2 |  |
 

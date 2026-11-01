@@ -1,0 +1,17 @@
+[12:09:39] 1. compte PROFMBJU et personnage Profhbzjl (Benilla)
+EVENT 1793531407 realm_auth_ok account=PROFMBJU
+EVENT 1793531407 realm name="HomeCraft" address=127.0.0.1:8085
+EVENT 1793531407 world_auth_ok
+EVENT 1793531408 char_created name=Profhbzjl
+EVENT 1793531411 in_world name=Profhbzjl guid=243
+EVENT 1793531414 stayed seconds=3
+EVENT 1793531434 logout_complete
+[12:10:34]    OK 1. compte et personnage prêts
+[12:10:41] 2. lancement du client par le profil (mot de passe enregistré, chiffré DPAPI)
+[12:11:24]    OK 2. client lancé par le profil, compte authentifié sans saisie (Benilla)
+[12:11:24]    OK 2b. personnage préféré entré en jeu (WOW_CHAR)
+[12:11:24]    OK 2c. compte mémorisé dans benilla-config\account
+[12:11:24]    OK 2d. journal : connexion automatique et personnage, sans mot de passe
+[12:11:31] 3. recherche du mot de passe en clair
+[12:11:31]    OK 3. mot de passe introuvable en clair dans 66 fichiers
+Profils (Benilla) : tout est conforme

@@ -46,3 +46,4 @@ Build/deps/
 Build/cmangos-db/
 /Server/cmangos/
 /Server/Database/cmangos-sql/
+/Tests/wowclient/target/

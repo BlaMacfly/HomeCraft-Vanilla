@@ -98,7 +98,12 @@ pub fn generate_configs(layout: &Layout, db: &MariaDb, settings: &Settings) -> R
     // clés du catalogue sont surchargeables ; les clés gérées ci-dessus ne le sont jamais.
     for opt in crate::conf_catalog::WORLD_OPTIONS {
         let v = crate::conf_catalog::value(&settings.conf, opt);
-        set_conf_value(&mut m, opt.key, &crate::conf_catalog::conf_value(opt, v))?;
+        // Options ajoutées par homecraft.patch (absentes du modèle CMaNGOS) : ajoutées en fin de fichier.
+        if opt.key.starts_with("HomeCraft.") {
+            set_or_append(&mut m, opt.key, &crate::conf_catalog::conf_value(opt, v));
+        } else {
+            set_conf_value(&mut m, opt.key, &crate::conf_catalog::conf_value(opt, v))?;
+        }
     }
     std::fs::write(cfg.join("mangosd.conf"), m.join("\n") + "\n").map_err(|e| e.to_string())?;
 
@@ -117,8 +122,11 @@ pub fn generate_configs(layout: &Layout, db: &MariaDb, settings: &Settings) -> R
     set_or_append(&mut p, "AiPlayerbot.RandomBotRandomPassword", "1");
     // Cartes du jeu Vanilla seulement (le modèle cite aussi l'Outreterre et le Norfendre).
     set_or_append(&mut p, "AiPlayerbot.RandomBotMaps", "0,1");
-    // Serveur hors ligne : aucune discussion par modèle de langage (activée par défaut, vers un service local).
-    set_or_append(&mut p, "AiPlayerbot.LLMEnabled", "0");
+    // Discussion par modèle de langage : désactivée, ou par le pont IA local du launcher (onglet PlayerBots, réglages
+    // de l'IA) ; le module ne connaît jamais l'adresse ni la clé du fournisseur.
+    for (k, v) in crate::ai_bridge::conf_values(layout) {
+        set_or_append(&mut p, k, &v);
+    }
     std::fs::write(cfg.join("aiplayerbot.conf"), p.join("\n") + "\n").map_err(|e| e.to_string())?;
 
     // ahbot.conf : AHBot du cœur (achète et vend aux trois hôtels des ventes). L'AHBot du module playerbots ne lit que

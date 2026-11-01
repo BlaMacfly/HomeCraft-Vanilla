@@ -423,7 +423,7 @@ innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\
     /// Requête de lecture (explorateur intégré). Les écritures passent par `exec`.
     pub fn query(&self, db: Option<&str>, sql: &str, max_rows: usize) -> Result<QueryResult, String> {
         if !is_read_statement(sql) {
-            return Err(crate::i18n::fr::DB_READONLY_ONLY.to_string());
+            return Err(crate::tr!(DB_READONLY_ONLY).to_string());
         }
         let mut c = self.root_conn_db(db)?;
         let mut result = c.query_iter(sql).map_err(|e| e.to_string())?;

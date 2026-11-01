@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+  <title>Premier démarrage pas à pas</title>
+  <defs><marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <rect width="960" height="470" fill="#fff"/>
+  <text x="480" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">Premier clic sur JOUER : ce que fait le launcher, une seule fois</text>
+
+  <g>
+    <rect x="30" y="64" width="200" height="104" rx="12" fill="#fff4d6" stroke="#c9a227" stroke-width="2"/>
+    <text x="130" y="90" text-anchor="middle" font-weight="bold">1. Vérification</text>
+    <text x="130" y="112" text-anchor="middle" font-size="12">composants présents,</text>
+    <text x="130" y="128" text-anchor="middle" font-size="12">client reconnu dans Client\</text>
+    <text x="130" y="150" text-anchor="middle" font-size="12" fill="#777">quelques secondes</text>
+  </g>
+  <line x1="232" y1="116" x2="262" y2="116" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <g>
+    <rect x="264" y="64" width="200" height="104" rx="12" fill="#e3eefc" stroke="#3b6fb6" stroke-width="2"/>
+    <text x="364" y="90" text-anchor="middle" font-weight="bold">2. Base de données</text>
+    <text x="364" y="112" text-anchor="middle" font-size="12">création de MariaDB,</text>
+    <text x="364" y="128" text-anchor="middle" font-size="12">import du monde en français</text>
+    <text x="364" y="150" text-anchor="middle" font-size="12" fill="#777">2 à 5 minutes</text>
+  </g>
+  <line x1="466" y1="116" x2="496" y2="116" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <g>
+    <rect x="498" y="64" width="200" height="104" rx="12" fill="#e4f5e4" stroke="#3e8e41" stroke-width="2"/>
+    <text x="598" y="90" text-anchor="middle" font-weight="bold">3. Extraction</text>
+    <text x="598" y="112" text-anchor="middle" font-size="12">cartes, collisions et tables</text>
+    <text x="598" y="128" text-anchor="middle" font-size="12">lues dans VOTRE client</text>
+    <text x="598" y="150" text-anchor="middle" font-size="12" fill="#777">5 à 15 minutes</text>
+  </g>
+  <line x1="700" y1="116" x2="730" y2="116" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <g>
+    <rect x="732" y="64" width="200" height="104" rx="12" fill="#f1e6fa" stroke="#8a4fbf" stroke-width="2"/>
+    <text x="832" y="90" text-anchor="middle" font-weight="bold">4. Cartes de déplacement</text>
+    <text x="832" y="112" text-anchor="middle" font-size="12">mmaps : chemins des bots</text>
+    <text x="832" y="128" text-anchor="middle" font-size="12">et des créatures</text>
+    <text x="832" y="150" text-anchor="middle" font-size="12" fill="#777">10 à 30 minutes</text>
+  </g>
+  <path d="M832,170 L832,206 L130,206 L130,232" fill="none" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+
+  <g>
+    <rect x="30" y="234" width="200" height="104" rx="12" fill="#e3eefc" stroke="#3b6fb6" stroke-width="2"/>
+    <text x="130" y="260" text-anchor="middle" font-weight="bold">5. Démarrage</text>
+    <text x="130" y="282" text-anchor="middle" font-size="12">MariaDB, puis realmd,</text>
+    <text x="130" y="298" text-anchor="middle" font-size="12">puis mangosd (le monde)</text>
+    <text x="130" y="320" text-anchor="middle" font-size="12" fill="#777">environ 1 minute</text>
+  </g>
+  <line x1="232" y1="286" x2="262" y2="286" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <g>
+    <rect x="264" y="234" width="200" height="104" rx="12" fill="#fdeaea" stroke="#c0504d" stroke-width="2"/>
+    <text x="364" y="260" text-anchor="middle" font-weight="bold">6. Bots du monde</text>
+    <text x="364" y="282" text-anchor="middle" font-size="12">comptes RNDBOT et leurs</text>
+    <text x="364" y="298" text-anchor="middle" font-size="12">personnages créés</text>
+    <text x="364" y="320" text-anchor="middle" font-size="12" fill="#777">quelques minutes</text>
+  </g>
+  <line x1="466" y1="286" x2="496" y2="286" stroke="#555" stroke-width="2" marker-end="url(#f)"/>
+  <g>
+    <rect x="498" y="234" width="200" height="104" rx="12" fill="#e4f5e4" stroke="#3e8e41" stroke-width="3"/>
+    <text x="598" y="266" text-anchor="middle" font-weight="bold" font-size="16" fill="#225c25">7. PRÊT</text>
+    <text x="598" y="290" text-anchor="middle" font-size="12">le client s'ouvre :</text>
+    <text x="598" y="306" text-anchor="middle" font-size="12">créez votre personnage</text>
+  </g>
+
+  <rect x="30" y="368" width="900" height="82" rx="10" fill="#f7f7f7" stroke="#bbb"/>
+  <text x="50" y="394" font-weight="bold" fill="#333">Les fois suivantes :</text>
+  <text x="50" y="416" font-size="13" fill="#333">seules les étapes 1 et 5 ont lieu (environ une minute). Les étapes 2, 3 et 4 ne sont refaites que par RÉPARER</text>
+  <text x="50" y="436" font-size="13" fill="#333">ou si leurs fichiers manquent. Fermer le launcher pendant les étapes 3 ou 4 est sans danger : elles reprennent au démarrage suivant.</text>
+</svg>

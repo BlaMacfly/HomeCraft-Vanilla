@@ -23,6 +23,8 @@ pub struct Settings {
     pub auto_backup: bool,
     /// Nombre de sauvegardes automatiques conservées (les plus anciennes sont supprimées)
     pub auto_backup_keep: u32,
+    /// Langue de l'interface : "fr" ou "en"
+    pub language: String,
 }
 
 impl Default for Settings {
@@ -37,6 +39,7 @@ impl Default for Settings {
             dxvk: false,
             auto_backup: true,
             auto_backup_keep: 10,
+            language: "fr".into(),
         }
     }
 }
