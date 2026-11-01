@@ -1,0 +1,2 @@
+[12:23:47] 89 fichiers vérifiés dans C:\Users\Marty\Desktop\HomeCraft\Build\package\HomeCraft-Edition-Vanilla-v1.0.0
+[12:23:48] TEST RÉUSSI : aucune dépendance à un runtime Visual C++ installé
