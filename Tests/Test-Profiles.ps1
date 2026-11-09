@@ -49,7 +49,9 @@ function Stop-Launcher {
 # Client lancé par ce test : reconnu par son dossier, ou, pour WoW.exe (32 bits, chemin illisible), par son heure de lancement.
 $testStart = Get-Date
 function Stop-TestClient {
-    Get-Process -ErrorAction SilentlyContinue | Where-Object { ($_.Path -and $_.Path.StartsWith($Client, [StringComparison]::OrdinalIgnoreCase)) -or ($_.Name -in 'WoW', 'VanillaFixes' -and -not $_.Path -and $_.StartTime -ge $testStart) } | Stop-Process -Force
+    Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($Client, [StringComparison]::OrdinalIgnoreCase) } | Stop-Process -Force
+    # WoW.exe 32 bits : ni chemin ni heure de lancement lisibles par Get-Process ; date de création par CIM.
+    Get-CimInstance Win32_Process -Filter "Name='WoW.exe' OR Name='VanillaFixes.exe'" | Where-Object { $_.CreationDate -ge $testStart } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
 function Protect { param([string]$Plain)
     $e = [Text.Encoding]::UTF8.GetBytes('HomeCraft Edition Vanilla / secret local v1')
