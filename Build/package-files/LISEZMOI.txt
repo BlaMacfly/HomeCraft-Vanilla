@@ -11,7 +11,7 @@ CE QUE CONTIENT CE SUPPORT
 - Server\ : serveur CMaNGOS Classic avec le module playerbots (realmd, mangosd, extracteurs),
   MariaDB portable, données du monde.
 - Tools\HeidiSQL\ : explorateur de base de données externe (bouton dans le launcher).
-- Documentation\ : manuel d'utilisation complet avec schémas, commandes MJ, documentation technique.
+- Documentation\ : manuel d'utilisation complet avec schémas, commandes MJ, licence PlayerBots.
 - LICENCES\ : licences de chaque composant et sources (GPL).
 - SHA256SUMS.txt et Build\files-manifest.json : empreintes de tous les fichiers (vérification de la copie).
 
@@ -38,7 +38,7 @@ INSTALLATION
    (niveau GM 2 ou 3 pour disposer des commandes de maître de jeu), puis connectez-vous dans le jeu.
 
 Windows peut afficher « Éditeur inconnu » au premier lancement : le launcher est signé avec
-un certificat auto-signé (voir Documentation\04-Launcher-Exigences.md).
+un certificat auto-signé (Build\HomeCraft-CodeSigning.cer).
 
 JOUER EN SOLO
 -------------

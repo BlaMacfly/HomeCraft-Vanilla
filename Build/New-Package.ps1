@@ -55,8 +55,13 @@ CopyTree (Join-Path $root 'Tools\HeidiSQL') (Join-Path $out 'Tools\HeidiSQL')
 if (Test-Path (Join-Path $root 'Tools\VanillaFixes')) { CopyTree (Join-Path $root 'Tools\VanillaFixes') (Join-Path $out 'Tools\VanillaFixes') }
 New-Item -ItemType Directory -Force (Join-Path $out 'Tools\Scripts') | Out-Null
 Get-ChildItem (Join-Path $root 'Tools') -Filter '*.ps1' | ForEach-Object { Copy-Item $_.FullName (Join-Path $out "Tools\Scripts\$($_.Name)") }
-CopyTree (Join-Path $root 'Documentation') (Join-Path $out 'Documentation')
-Copy-Item (Join-Path $root 'README.md') (Join-Path $out 'Documentation\00-README-projet.md')
+# Documentation des joueurs seulement : les notes de développement restent dans le dépôt.
+# Le manifeste de fichiers (plus bas) est calculé sur ce contenu : VÉRIFIER n'attend donc rien d'autre.
+New-Item -ItemType Directory -Force (Join-Path $out 'Documentation') | Out-Null
+foreach ($doc in 'Manuel-Utilisateur.md', 'Commandes-GM.md', '11-Licence-PlayerBots.md') {
+    Copy-Item (Join-Path $root "Documentation\$doc") (Join-Path $out "Documentation\$doc")
+}
+CopyTree (Join-Path $root 'Documentation\images\manuel') (Join-Path $out 'Documentation\images\manuel')
 Copy-Item (Join-Path $PSScriptRoot 'package-files\LISEZMOI.txt') (Join-Path $out 'LISEZMOI.txt')
 New-Item -ItemType Directory -Force (Join-Path $out 'Build') | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'manifest.json') (Join-Path $out 'Build\manifest.json')
