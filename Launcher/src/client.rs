@@ -512,7 +512,9 @@ pub fn launch_with(info: &ClientInfo, via_vanillafixes: bool, prefill: Option<&P
     let child = cmd.spawn().map_err(|e| crate::util::spawn_error(&exe, &e))?;
     if let Some(pw) = type_password {
         let pid = child.id();
-        std::thread::spawn(move || type_into_login(pid, &pw));
+        let logs = info.dir.join("Logs");
+        let launched = std::time::SystemTime::now();
+        std::thread::spawn(move || type_into_login(pid, &logs, launched, &pw));
     }
     Ok((child, mode))
 }
@@ -567,9 +569,9 @@ fn main_window_of(pid: u32) -> Option<windows_sys::Win32::Foundation::HWND> {
 }
 
 /// Saisie du mot de passe dans l'écran de connexion du client d'origine lancé par le launcher : attend sa fenêtre
-/// (90 s au plus), laisse l'écran de connexion se charger, puis envoie les caractères et Entrée à cette fenêtre
-/// (le champ mot de passe a le focus quand le nom de compte est mémorisé). Abandon silencieux si le client se ferme.
-fn type_into_login(pid: u32, password: &str) {
+/// (90 s au plus), puis que l'écran de connexion soit prêt, et envoie les caractères et Entrée à cette fenêtre (le
+/// champ mot de passe a le focus quand le nom de compte est mémorisé). Abandon silencieux si le client se ferme.
+fn type_into_login(pid: u32, logs: &Path, launched: std::time::SystemTime, password: &str) {
     use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CHAR, WM_KEYDOWN, WM_KEYUP};
     let start = std::time::Instant::now();
     let hwnd = loop {
@@ -581,7 +583,10 @@ fn type_into_login(pid: u32, password: &str) {
         }
         std::thread::sleep(std::time::Duration::from_millis(500));
     };
-    std::thread::sleep(std::time::Duration::from_secs(LOGIN_SCREEN_DELAY_SECS));
+    wait_login_screen(logs, launched);
+    if main_window_of(pid).is_none() {
+        return;
+    }
     for u in password.encode_utf16() {
         unsafe { PostMessageW(hwnd, WM_CHAR, u as usize, 1) };
         std::thread::sleep(std::time::Duration::from_millis(15));
@@ -594,8 +599,26 @@ fn type_into_login(pid: u32, password: &str) {
     }
 }
 
-/// Délai entre l'apparition de la fenêtre du client d'origine et l'écran de connexion prêt à recevoir la saisie.
-pub const LOGIN_SCREEN_DELAY_SECS: u64 = 8;
+/// Écran de connexion prêt : le client d'origine écrit « Sound::Initialize() complete » dans LogsSound.log juste avant
+/// d'afficher l'écran de connexion. Un délai fixe après l'apparition de la fenêtre ne suffit pas : au premier lancement
+/// (fichiers pas encore en cache), l'écran arrive plus de 13 s après la fenêtre et le mot de passe était tapé dans le
+/// vide. Sans ce signal (son désactivé), délai de secours. Puis une marge pour l'affichage de l'écran.
+fn wait_login_screen(logs: &Path, launched: std::time::SystemTime) {
+    let sound = logs.join("Sound.log");
+    let start = std::time::Instant::now();
+    while start.elapsed() < std::time::Duration::from_secs(LOGIN_SCREEN_FALLBACK_SECS) {
+        let fresh = std::fs::metadata(&sound).and_then(|m| m.modified()).map(|t| t >= launched).unwrap_or(false);
+        if fresh && std::fs::read_to_string(&sound).map(|t| t.contains("Initialize() complete")).unwrap_or(false) {
+            std::thread::sleep(std::time::Duration::from_secs(LOGIN_SCREEN_MARGIN_SECS));
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
+    }
+}
+
+/// Délai de secours si le client n'écrit pas Sound.log ; marge après le signal « écran prêt ».
+pub const LOGIN_SCREEN_FALLBACK_SECS: u64 = 30;
+pub const LOGIN_SCREEN_MARGIN_SECS: u64 = 3;
 
 #[cfg(test)]
 mod tests {
