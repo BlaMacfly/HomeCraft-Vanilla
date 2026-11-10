@@ -25,6 +25,8 @@ pub struct Settings {
     pub auto_backup_keep: u32,
     /// Langue de l'interface : "fr" ou "en"
     pub language: String,
+    /// Mode « Low Computer » : serveur allégé pour les PC modestes, PlayerBots coupés (server::LOW_COMPUTER_WORLD)
+    pub low_computer: bool,
 }
 
 impl Default for Settings {
@@ -40,11 +42,17 @@ impl Default for Settings {
             auto_backup: true,
             auto_backup_keep: 10,
             language: "fr".into(),
+            low_computer: false,
         }
     }
 }
 
 impl Settings {
+    /// PlayerBots réellement actifs : jamais en mode Low Computer.
+    pub fn bots_active(&self) -> bool {
+        self.partybots_enabled && !self.low_computer
+    }
+
     pub fn load(path: &Path) -> Settings {
         let mut s: Settings = std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(t.trim_start_matches('\u{feff}')).ok()).unwrap_or_default();
         // Réglages d'une version VMaNGOS (clés PartyBot.*, RandomBot.*, WowPatch…) : sans objet ici.

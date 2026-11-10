@@ -163,7 +163,9 @@ impl MariaDb {
         let ini = format!(
             "[mysqld]\nbasedir={base}\ndatadir={data}\nport={port}\nbind-address=127.0.0.1\nskip-name-resolve\n\
 max_allowed_packet=128M\ncharacter-set-server=utf8mb3\ncollation-server=utf8mb3_general_ci\n\
-innodb_buffer_pool_size=256M\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\npid-file={pid}\n\n[client]\nport={port}\ndefault-character-set=utf8mb3\n",
+innodb_buffer_pool_size={pool}\ninnodb_flush_log_at_trx_commit=2\nlog_error={log}\npid-file={pid}\n\n[client]\nport={port}\ndefault-character-set=utf8mb3\n",
+            // Mode Low Computer : mémoire de la base réduite de moitié.
+            pool = if crate::settings::Settings::load(&l.settings_file()).low_computer { "128M" } else { "256M" },
             base = l.mariadb_dir().display(),
             data = l.db_data().display(),
             port = MARIADB_PORT,

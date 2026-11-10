@@ -96,3 +96,12 @@ compilé, aucun test n'a pu l'exercer) · ÉCHEC · BLOQUÉ (test impossible pou
 - Codes d'invitation : clé propre au joueur, temporaire, révocable ; secret de session jamais persistant.
 - Dépôt : contrôle avant commit (aucune clé, aucun mot de passe, aucun certificat privé ; adresse IP publique masquée dans les
   preuves et remplacée par une adresse de documentation dans les tests).
+
+## Après la 1.0.0
+
+| # | Fonction | Commande | Statut | Preuve |
+|---|---|---|---|---|
+| H1 | Mode Low Computer : mangosd.conf allégé, PlayerBots coupés, base réduite ; serveur démarré sans bot | script de vérification (installation de test, serveur réel) | VALIDÉ : MapUpdateInterval 200, GridCleanUpDelay 60000, visibilité 60/100, AiPlayerbot.Enabled 0, innodb 128M ; mangosd 498 Mo et MariaDB 173 Mo après 2 min, 0 session de bot, démarrage en 36 s | `docs/preuves/low-computer-serveur.txt` |
+| H2 | Low Computer : bouton à bascule sur l'accueil, onglet PlayerBots grisé avec infobulle, retour à l'accueil si l'onglet était ouvert | capture avec la souris sur l'onglet | VALIDÉ | `docs/preuves/low-computer-interface.png` |
+| H3 | Low Computer sur un vrai PC de 4 Go (Celeron N4120) | — | NON TESTÉ : le PC concerné n'est pas disponible ici | — |
+| H4 | Client d'origine : mot de passe saisi quand l'écran de connexion est prêt ; entrée en jeu et 61 s en jeu sans fermeture | `Tests/Test-Profiles.ps1` et reproduction d'entrée en jeu | VALIDÉ (le crash rapporté par un joueur n'a pas été reproduit ici : ses journaux montrent un manque de mémoire, voir H1) | — |

@@ -1,5 +1,11 @@
 # Journal des versions
 
+## 1.0.1 — en préparation (édition CMaNGOS)
+
+- **Bouton « Low Computer »** (accueil, à bascule) pour les PC modestes : serveur allégé (mise à jour des cartes toutes les 200 ms au lieu de 100, zones vides déchargées au bout d'une minute, distance de visibilité 60 / 100 m, mémoire de la base 128 Mo) et **PlayerBots désactivés** ; l'onglet PlayerBots est grisé avec une infobulle, l'IA des bots ne démarre pas. Mesuré : le serveur occupe environ 500 Mo (contre plus de 3 Go avec 100 à 200 bots) et démarre en une quarantaine de secondes. Réponse à un retour de joueur : sur un portable de 4 Go (Celeron N4120), le serveur saturé faisait échouer la connexion au monde, puis le client manquait de mémoire graphique au chargement.
+- Profils, client d'origine : le mot de passe est saisi quand l'écran de connexion est réellement prêt (au premier lancement, il était tapé avant son affichage).
+- VÉRIFIER LES FICHIERS ne signale plus 34 fichiers « manquants » : le package ne contient plus que la documentation des joueurs, et son manifeste en tient compte.
+
 ## 1.0.0 — 1er novembre 2026 (édition CMaNGOS)
 
 - **HomeCraft Multijoueur** (nouvel onglet) : partie privée entre amis sur le serveur de l'hôte, **intégrée au launcher** (aucun programme à installer, aucun droit administrateur, aucun serveur intermédiaire). Liaison chiffrée et authentifiée (protocole Noise : X25519, ChaCha20-Poly1305, BLAKE2s). Invitations `HC2-…` : une clé aléatoire par joueur, durée limitée, **révocables** (connexions coupées immédiatement) ; rien de persistant. Les invités n'atteignent que l'authentification et le monde de l'hôte : MariaDB, la console et le reste du PC sont injoignables par construction. Pas de redirection de port dans la plupart des cas : ouverture automatique par la box (**UPnP**), sinon **perçage de NAT** (STUN public, QUIC avec certificat épinglé, code de réponse `HCR-…` signé). Les invités se connectent « en local » : aucun réglage de royaume ni de client.

@@ -231,7 +231,7 @@ pub fn spawn(layout: Layout, settings: Settings) -> (Arc<Mutex<Snapshot>>, Sende
         db_up: false,
         realmd_up: false,
         world_up: false,
-        bots_enabled: settings.partybots_enabled,
+        bots_enabled: settings.bots_active(),
         client: ClientInfo::default(),
         online: 0,
         logs: VecDeque::new(),
@@ -514,7 +514,7 @@ impl Orchestrator {
             Command::OpenHeidi => self.open_heidi(),
             Command::SettingsChanged(s) => {
                 self.settings = s;
-                self.shared.lock().unwrap().bots_enabled = self.settings.partybots_enabled;
+                self.shared.lock().unwrap().bots_enabled = self.settings.bots_active();
                 self.verify(false);
                 self.apply_settings_live();
             }
@@ -1468,11 +1468,17 @@ impl Orchestrator {
         }
         self.log(format!("realmd opérationnel sur 127.0.0.1:{REALMD_PORT}"));
 
-        // Pont IA (si activé) avant mangosd : le module playerbots s'y adresse dès les premières discussions.
-        match crate::ai_bridge::restart(&self.layout) {
-            Ok(true) => self.log(format!("pont IA opérationnel sur 127.0.0.1:{}", crate::ai_bridge::BRIDGE_PORT)),
-            Ok(false) => {}
-            Err(e) => self.log(format!("pont IA non démarré : {e} — les bots répondront de façon classique")),
+        // Pont IA (si activé) avant mangosd : le module playerbots s'y adresse dès les premières discussions. Inutile en
+        // mode Low Computer (PlayerBots coupés).
+        if self.settings.low_computer {
+            crate::ai_bridge::stop();
+            self.log("mode Low Computer : serveur allégé, PlayerBots et pont IA désactivés");
+        } else {
+            match crate::ai_bridge::restart(&self.layout) {
+                Ok(true) => self.log(format!("pont IA opérationnel sur 127.0.0.1:{}", crate::ai_bridge::BRIDGE_PORT)),
+                Ok(false) => {}
+                Err(e) => self.log(format!("pont IA non démarré : {e} — les bots répondront de façon classique")),
+            }
         }
         self.set(State::StartingWorld, tr!(MSG_WORLD), 0.7);
         let mut m = match Mangosd::start(&self.layout, self.log_tx.clone()) {

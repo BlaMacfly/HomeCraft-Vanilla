@@ -1,0 +1,11 @@
+[18:54:45] démarrage : monde opérationnel en 36 s
+[18:54:45] journal : 18:54:19 mode Low Computer : serveur allégé, PlayerBots et pont IA désactivés
+[18:54:45] mangosd.conf : MapUpdateInterval = 200
+[18:54:45] mangosd.conf : GridCleanUpDelay = 60000
+[18:54:45] mangosd.conf : Visibility.Distance.Continents = 60
+[18:54:45] mangosd.conf : Visibility.Distance.Instances = 100
+[18:54:45] aiplayerbot.conf : AiPlayerbot.Enabled = 0
+[18:54:45] my.ini : innodb_buffer_pool_size=128M
+[18:56:46] après 2 min : mangosd 498 Mo, mariadbd 173 Mo
+[18:56:46] charge (5 dernières mesures) : 62 ms / 0 sessions ; 62 ms / 0 sessions ; 62 ms / 0 sessions ; 62 ms / 0 sessions ; 62 ms / 0 sessions
+[18:56:50] launcher fermé : True

@@ -31,6 +31,18 @@ fn set_or_append(lines: &mut Vec<String>, key: &str, value: &str) {
     }
 }
 
+/// Mode Low Computer : valeurs de mangosd.conf qui allègent le serveur pour un PC modeste (4 Go, processeur lent).
+/// Les bots (le plus gros de la charge) sont en plus coupés dans aiplayerbot.conf et la base réduit sa mémoire (my.ini).
+pub const LOW_COMPUTER_WORLD: &[(&str, &str)] = &[
+    // Mise à jour des cartes deux fois moins fréquente (100 ms dans le modèle) : moitié moins de calcul, jeu fluide.
+    ("MapUpdateInterval", "200"),
+    // Zones vides déchargées au bout d'une minute au lieu de cinq : moins de mémoire.
+    ("GridCleanUpDelay", "60000"),
+    // Distance de visibilité réduite (100 / 170 m dans le modèle) : moins d'objets suivis et envoyés au client.
+    ("Visibility.Distance.Continents", "60"),
+    ("Visibility.Distance.Instances", "100"),
+];
+
 fn db_info(creds: &crate::credentials::DbCredentials, db: &str) -> String {
     format!("\"127.0.0.1;{MARIADB_PORT};{};{};{db}\"", creds.user, creds.password)
 }
@@ -105,6 +117,12 @@ pub fn generate_configs(layout: &Layout, db: &MariaDb, settings: &Settings) -> R
             set_conf_value(&mut m, opt.key, &crate::conf_catalog::conf_value(opt, v))?;
         }
     }
+    // Mode Low Computer : serveur allégé (prioritaire sur l'onglet Monde ; PlayerBots coupés plus bas).
+    if settings.low_computer {
+        for (k, v) in LOW_COMPUTER_WORLD {
+            set_conf_value(&mut m, k, v)?;
+        }
+    }
     std::fs::write(cfg.join("mangosd.conf"), m.join("\n") + "\n").map_err(|e| e.to_string())?;
 
     // aiplayerbot.conf : réglages de l'onglet PlayerBots, plus les clés gérées.
@@ -114,7 +132,7 @@ pub fn generate_configs(layout: &Layout, db: &MariaDb, settings: &Settings) -> R
         set_or_append(&mut p, opt.key, &crate::conf_catalog::conf_value(opt, v));
     }
     let max_bots: u32 = crate::conf_catalog::value(&settings.conf, crate::conf_catalog::bot_opt("AiPlayerbot.MaxRandomBots")).parse().unwrap_or(0);
-    set_or_append(&mut p, "AiPlayerbot.Enabled", if settings.partybots_enabled { "1" } else { "0" });
+    set_or_append(&mut p, "AiPlayerbot.Enabled", if settings.bots_active() { "1" } else { "0" });
     set_or_append(&mut p, "AiPlayerbot.RandomBotAccountCount", &random_bot_accounts(max_bots).to_string());
     set_or_append(&mut p, "AiPlayerbot.DeleteRandomBotAccounts", "0");
     set_or_append(&mut p, "AiPlayerbot.RandomBotAccountPrefix", crate::botgen::BOT_ACCOUNT_PREFIX);

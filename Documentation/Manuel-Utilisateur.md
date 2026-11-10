@@ -90,7 +90,7 @@ HomeCraft Edition Vanilla vous permet de jouer à World of Warcraft 1.12.1 (« V
 |---|---|
 | Système | Windows 10 ou 11, 64 bits |
 | Processeur | 4 cœurs conseillés (serveur, base, bots et jeu tournent en même temps) |
-| Mémoire | 8 Go ; **16 Go conseillés** (le serveur occupe 2 à 4 Go avec 100 à 200 bots) |
+| Mémoire | 8 Go ; **16 Go conseillés** (le serveur occupe 2 à 4 Go avec 100 à 200 bots) ; **4 Go en mode Low Computer** (sans bots, §7) |
 | Espace disque | environ **6 Go** pour HomeCraft (base, données extraites, cartes de déplacement) **en plus** du client (≈ 5 Go) |
 | Client | World of Warcraft **1.12.1 français** (frFR), build 5875 ou 5880 ; ou **Benilla** utilisant les archives d'un tel client |
 | Droits | un dossier où vous pouvez écrire (pas `C:\Program Files`, pas un dossier OneDrive) ; **aucun droit administrateur** |
@@ -174,6 +174,18 @@ C'est le tableau de bord.
 | **Profils** (ligne sous les boutons) | un bouton par profil : lance le jeu avec ce compte prérempli (§8) ; « Gérer les profils… » |
 
 **Boutons secondaires** : VÉRIFIER LES FICHIERS, RÉPARER (§21), SAUVEGARDER (sauvegarde manuelle immédiate), RESTAURER (onglet Sauvegardes), PARAMÈTRES, JOURNAUX.
+
+**Low Computer** (bouton à bascule, sous les profils) : mode pour PC modeste (4 Go de mémoire, processeur lent ou portable d'entrée de gamme). Enclenché (bouton en bleu), il allège le serveur et **désactive les PlayerBots** : l'onglet PlayerBots est grisé (une infobulle le rappelle) et l'IA des bots ne démarre pas. Un nouveau clic revient au mode normal. Serveur démarré, le changement prend effet au **prochain démarrage du serveur**.
+
+| Réglage | Mode normal | Low Computer |
+|---|---|---|
+| Bots aléatoires et compagnons | actifs | désactivés |
+| Mise à jour des cartes (`MapUpdateInterval`) | 100 ms | 200 ms |
+| Déchargement des zones vides (`GridCleanUpDelay`) | 5 min | 1 min |
+| Distance de visibilité (continents / instances) | 100 / 170 m | 60 / 100 m |
+| Mémoire de la base (`innodb_buffer_pool_size`) | 256 Mo | 128 Mo |
+
+Mesuré sur le même PC : le serveur occupe environ **500 Mo** en Low Computer (MariaDB 170 Mo de plus), contre plus de **3 Go** avec 100 à 200 bots, et démarre en une quarantaine de secondes. Le monde reste le même (quêtes, créatures, hôtel des ventes), mais sans les autres « joueurs » bots.
 
 **Diagnostic** (bas de l'accueil) : dossier d'installation, version du launcher, dossier, type et version du client, archives manquantes, présence de chaque composant, état des **cartes de déplacement** (présentes / génération en cours avec progression / échec), nombre de personnages en ligne (le vôtre et les bots).
 
@@ -545,6 +557,8 @@ Dans le jeu, avec un compte GM 2 ou 3 : `.gm on` / `.gm off`, `.levelup 5`, `.mo
 **« Vous n'avez pas la permission »** : niveau GM insuffisant (2 ou 3) ; corrigez dans Comptes puis reconnectez-vous. Pour `.bot`, vérifiez « Activer les PlayerBots ».
 
 **Un bot refuse mon invitation** : il est occupé, ou son niveau dépasse le vôtre de plus que l'écart autorisé (PlayerBots ; 60 = toujours). Il vous le dit en chuchotant.
+
+**Le jeu se ferme pendant le chargement, ou la connexion au monde échoue (« délai dépassé »)** sur un PC de 4 Go ou un portable d'entrée de gamme : le serveur et ses bots occupent toute la mémoire. Enclenchez **Low Computer** sur l'accueil (§7) puis redémarrez le serveur.
 
 **Aucun bot dans le monde** : « Activer les PlayerBots » et « Connecter les bots aléatoires » cochés, nombre minimal supérieur à 0, réglages **enregistrés**, premier démarrage allé à son terme (« Personnages des bots aléatoires » non nul).
 

@@ -185,6 +185,9 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(std::time::Duration::from_millis(500));
         let snap = self.shared.lock().unwrap().clone();
+        if self.settings.low_computer && self.tab == Tab::Bots {
+            self.tab = Tab::Home;
+        }
         if snap.report_fresh {
             self.shared.lock().unwrap().report_fresh = false;
             self.show_report = true;
@@ -241,7 +244,14 @@ impl eframe::App for App {
             ui.horizontal_wrapped(|ui| {
                 ui.selectable_value(&mut self.tab, Tab::Home, tr!(TAB_HOME));
                 ui.selectable_value(&mut self.tab, Tab::Accounts, tr!(TAB_ACCOUNTS));
-                ui.selectable_value(&mut self.tab, Tab::Bots, tr!(TAB_BOTS));
+                // Mode Low Computer : onglet PlayerBots grisé, avec une infobulle.
+                if ui
+                    .add_enabled(!self.settings.low_computer, egui::SelectableLabel::new(self.tab == Tab::Bots, tr!(TAB_BOTS)))
+                    .on_disabled_hover_text(t("Option non disponible en mode Low Computer", "Not available in Low Computer mode"))
+                    .clicked()
+                {
+                    self.tab = Tab::Bots;
+                }
                 ui.selectable_value(&mut self.tab, Tab::World, tr!(TAB_WORLD));
                 ui.selectable_value(&mut self.tab, Tab::Patches, tr!(TAB_PATCHES));
                 ui.selectable_value(&mut self.tab, Tab::Database, tr!(TAB_DATABASE));
@@ -316,7 +326,8 @@ impl App {
             ui.label(RichText::new(srv).color(status_color(snap.world_up, busy)));
             ui.end_row();
             ui.label(RichText::new(tr!(COMP_BOTS)).strong());
-            ui.label(RichText::new(if snap.bots_enabled { tr!(BOTS_ON) } else { tr!(BOTS_OFF) }).color(status_color(snap.bots_enabled, false)));
+            let bots = if self.settings.low_computer { t("désactivés (Low Computer)", "disabled (Low Computer)") } else if snap.bots_enabled { tr!(BOTS_ON) } else { tr!(BOTS_OFF) };
+            ui.label(RichText::new(bots).color(status_color(snap.bots_enabled && !self.settings.low_computer, false)));
             ui.end_row();
         });
         ui.add_space(12.0);
@@ -341,6 +352,8 @@ impl App {
         });
         ui.add_space(6.0);
         self.home_profiles(ui, snap);
+        ui.add_space(6.0);
+        self.low_computer_toggle(ui, snap);
         ui.add_space(8.0);
         ui.horizontal_wrapped(|ui| {
             if ui.add_enabled(!busy, egui::Button::new(tr!(BTN_VERIFY))).clicked() {
@@ -411,6 +424,32 @@ impl App {
             ui.label(snap.online.to_string());
             ui.end_row();
         });
+    }
+
+    /// Bouton à bascule « Low Computer » : serveur allégé pour les PC modestes (server::LOW_COMPUTER_WORLD, base de données
+    /// réduite), PlayerBots et IA des bots désactivés, onglet PlayerBots grisé. Enregistré dans settings.json.
+    fn low_computer_toggle(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
+        ui.horizontal_wrapped(|ui| {
+            let label = RichText::new("Low Computer").strong();
+            let r = ui.toggle_value(&mut self.settings.low_computer, label).on_hover_text(t(
+                "Mode pour PC modeste (4 Go de mémoire, processeur lent) : serveur allégé (mises à jour du monde moins fréquentes, distance de visibilité réduite, zones vides déchargées plus tôt, base de données réduite) et PlayerBots désactivés. Cliquez de nouveau pour revenir au mode normal.",
+                "Mode for modest PCs (4 GB of memory, slow processor): lighter server (less frequent world updates, shorter view distance, empty zones unloaded sooner, smaller database) and PlayerBots disabled. Click again to go back to normal mode.",
+            ));
+            if r.changed() {
+                self.save_settings();
+            }
+            if self.settings.low_computer {
+                ui.label(RichText::new(t("serveur allégé, PlayerBots désactivés", "lighter server, PlayerBots disabled")).color(WARN));
+            }
+            if r.changed() && (snap.state.services_up() || snap.state.is_busy()) {
+                self.settings_notice = Some(t("Low Computer : pris en compte au prochain démarrage du serveur.", "Low Computer: applied at the next server start.").into());
+            }
+        });
+        if let Some(n) = &self.settings_notice {
+            if n.starts_with("Low Computer") {
+                ui.label(RichText::new(n).color(WARN));
+            }
+        }
     }
 
     fn accounts(&mut self, ui: &mut egui::Ui, snap: &Snapshot) {
