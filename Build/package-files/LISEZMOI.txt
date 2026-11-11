@@ -76,6 +76,13 @@ NOUVEAUTÉS DE LA VERSION 1.0
 - IA des bots (onglet « PlayerBots ») : les bots vous répondent avec un modèle de langage local
   (LM Studio, Ollama) ou en ligne ; désactivée par défaut.
 - Interface du launcher en français ou en anglais (Paramètres).
+
+NOUVEAUTÉ DE LA VERSION 1.0.1 : PC MODESTE (4 Go DE MÉMOIRE)
+-------------------------------------------------------------
+Si le jeu se ferme pendant le chargement du monde, ou si tout est très lent, activez le bouton
+« Low Computer » sur l'accueil du launcher, puis démarrez (ou redémarrez) le serveur : serveur
+allégé et bots désactivés (onglet PlayerBots grisé). Le serveur passe d'environ 3 Go à 500 Mo
+de mémoire. Un second clic sur le bouton revient au mode normal.
 Tout est expliqué dans le manuel (Documentation\Manuel-Utilisateur.md).
 
 EN CAS D'ÉCRAN NOIR OU DE JEU FIGÉ

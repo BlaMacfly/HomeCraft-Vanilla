@@ -60,6 +60,7 @@ pub const MSG_DB: &str = "Starting the database…";
 pub const MSG_DB_IMPORT: &str = "First installation: importing the world data (a few minutes)…";
 pub const MSG_AUTH: &str = "Starting the login server…";
 pub const MSG_WORLD: &str = "Loading the world…";
+pub const MSG_WORLD_FIRST_BOTS: &str = "First start: preparing the bots' equipment (only once, 10 to 30 minutes depending on the PC)…";
 pub const MSG_READY: &str = "Server running. You can play.";
 pub const MSG_PLAYING: &str = "The game is running. The server stays up as long as this window is open.";
 pub const MSG_STOPPING: &str = "Stopping the services cleanly…";

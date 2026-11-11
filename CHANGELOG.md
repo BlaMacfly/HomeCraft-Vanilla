@@ -1,8 +1,9 @@
 # Journal des versions
 
-## 1.0.1 — en préparation (édition CMaNGOS)
+## 1.0.1 — 11 novembre 2026 (édition CMaNGOS)
 
 - **Bouton « Low Computer »** (accueil, à bascule) pour les PC modestes : serveur allégé (mise à jour des cartes toutes les 200 ms au lieu de 100, zones vides déchargées au bout d'une minute, distance de visibilité 60 / 100 m, mémoire de la base 128 Mo) et **PlayerBots désactivés** ; l'onglet PlayerBots est grisé avec une infobulle, l'IA des bots ne démarre pas. Mesuré : le serveur occupe environ 500 Mo (contre plus de 3 Go avec 100 à 200 bots) et démarre en une quarantaine de secondes. Réponse à un retour de joueur : sur un portable de 4 Go (Celeron N4120), le serveur saturé faisait échouer la connexion au monde, puis le client manquait de mémoire graphique au chargement.
+- Premier démarrage sur un PC lent : le module PlayerBots prépare une seule fois l'équipement des bots (10 minutes mesurées ici, davantage sur un petit processeur) sans rien afficher ; le launcher abandonnait au bout de 10 minutes et le premier démarrage échouait à chaque essai. L'attente est maintenant prolongée pendant cette étape (jusqu'à une heure) et l'accueil l'annonce.
 - Profils, client d'origine : le mot de passe est saisi quand l'écran de connexion est réellement prêt (au premier lancement, il était tapé avant son affichage).
 - VÉRIFIER LES FICHIERS ne signale plus 34 fichiers « manquants » : le package ne contient plus que la documentation des joueurs, et son manifeste en tient compte.
 

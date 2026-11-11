@@ -1,0 +1,56 @@
+﻿[16:12:31] copie du package v1.0.1 vers C:\Users\Marty\AppData\Local\Temp\hc-integration
+[16:12:32] liens physiques vers les données CMaNGOS (C:\Users\Marty\HomeCraftTests\cm\Server\Data) et le client du dossier de développement
+[16:12:41] 1. premier démarrage (génération des mmaps, création des bots aléatoires) et création du compte AUDITA
+[16:37:14] 2. suppression hors ligne du compte AUDITA, données d'un autre compte intactes
+[16:37:16] Démarrage de mariadbd
+[16:37:18] MariaDB opérationnel (PID 8672)
+[16:37:23] MariaDB arrêté
+[16:37:32] Démarrage de mariadbd
+[16:37:33] MariaDB opérationnel (PID 25624)
+[16:37:38] MariaDB arrêté
+[16:37:38] 3. bots aléatoires pendant 5 minutes
+[16:43:39] Démarrage de mariadbd
+[16:43:40] MariaDB opérationnel (PID 17692)
+[16:43:40]    expérience totale des bots : 18293 -> 43422 ; bots avec de l'expérience : 106 ; guildes : 20
+[16:43:45] MariaDB arrêté
+[16:43:45] 3b. fermeture forcée du launcher serveur en marche
+[16:44:23] 4. réglages à chaud puis suppression des bots serveur en marche
+[16:45:09] Démarrage de mariadbd
+[16:45:10] MariaDB opérationnel (PID 32636)
+[16:45:15] MariaDB arrêté
+[16:46:42] 1. mmaps générées avant le premier démarrage                           OK
+[16:46:42] 1. monde opérationnel au premier démarrage                             OK
+[16:46:42] 1. mmaps actives                                                       OK
+[16:46:42] 1. serveur resté en service 3 min avec 100 à 200 bots                  OK
+[16:46:42] 1. compte créé avec le niveau 3                                        OK
+[16:46:42] 1. niveau 3 en base                                                    OK
+[16:46:42] 1. build client 5880 dans le royaume (5875 5880 6005 6141)             OK
+[16:46:42] 1. aucun compte de démonstration                                       OK
+[16:46:42] 1. comptes de bots créés par le serveur (24, attendu 24 pour 200 bots) OK
+[16:46:42] 1. bots aléatoires connectés (190)                                     OK
+[16:46:42] 1. aiplayerbot.conf lu (option -p)                                     OK
+[16:46:42] 1. arrêt propre à la fermeture                                         OK
+[16:46:42] 1. aucun processus serveur restant                                     OK
+[16:46:42] 1. mot de passe absent du journal                                      OK
+[16:46:42] 2. compte supprimé (1 personnage)                                      OK
+[16:46:42] 2. personnage et objet de AUDITA supprimés                             OK
+[16:46:42] 2. personnage de AUDITB intact                                         OK
+[16:46:42] 2. objet de AUDITB (numéro 90001) intact                               OK
+[16:46:42] 2. réapparition de créature 90001 intacte                              OK
+[16:46:42] 3. mmaps activées une fois présentes                                   OK
+[16:46:42] 3. serveur resté en service (charge : 0.21 cœur(s), 3198 Mo)           OK
+[16:46:42] 3. arrêt propre                                                        OK
+[16:46:42] 3. aucun processus serveur restant                                     OK
+[16:46:42] 3. les bots gagnent de l'expérience (106 bots)                         OK
+[16:46:42] 3b. serveur resté en marche après la fermeture forcée                  OK
+[16:46:42] 4. restes de la fermeture forcée arrêtés au démarrage                  OK
+[16:46:42] 4. réglages appliqués à chaud (rndbot reload)                          OK
+[16:46:42] 4. 216 personnages bots supprimés                                      OK
+[16:46:42] 4. serveur relancé après la suppression                                OK
+[16:46:42] 4. bots recréés au redémarrage                                         OK
+[16:46:42] 4. aucun personnage joueur touché                                      OK
+[16:46:42] 4. arrêt propre                                                        OK
+[16:46:42] 4. aucun processus serveur restant                                     OK
+[16:46:42] journal sans ERREUR (0)                                                OK
+[16:46:45] dossier de test supprimé
+[16:46:45] TEST RÉUSSI

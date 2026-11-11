@@ -257,7 +257,13 @@ pub struct Mangosd {
     child: Child,
     stdin: Option<ChildStdin>,
     pub world_ready: Arc<AtomicBool>,
+    /// Vrai pendant une étape longue et silencieuse du premier démarrage (cache d'équipement des bots : 10 min ou
+    /// plus selon le processeur, une seule fois, puis lu en base) : l'attente du monde est alors prolongée.
+    pub long_step: Arc<AtomicBool>,
 }
+
+/// Étapes du module playerbots qui n'écrivent rien sur la console pendant plusieurs minutes (première fois seulement).
+const LONG_STEPS: &[&str] = &["Building equipment cache"];
 
 impl Mangosd {
     /// Démarre mangosd avec sa console sur l'entrée standard ; chaque ligne de sortie est envoyée dans `sink`.
@@ -290,6 +296,7 @@ impl Mangosd {
             .spawn()
             .map_err(|e| crate::util::spawn_error("mangosd", &e))?;
         let world_ready = Arc::new(AtomicBool::new(false));
+        let long_step = Arc::new(AtomicBool::new(false));
         let stdin = child.stdin.take();
         let stdout = child.stdout.take().ok_or("sortie standard de mangosd indisponible")?;
         let stderr = child.stderr.take().ok_or("sortie d'erreur de mangosd indisponible")?;
@@ -298,6 +305,7 @@ impl Mangosd {
         for (reader, is_err) in [(Box::new(stdout) as Box<dyn std::io::Read + Send>, false), (Box::new(stderr), true)] {
             let sink = sink.clone();
             let ready = world_ready.clone();
+            let long = long_step.clone();
             let mut file = file.as_ref().and_then(|f| f.try_clone().ok());
             std::thread::spawn(move || {
                 let mut reader = BufReader::new(reader);
@@ -311,6 +319,7 @@ impl Mangosd {
                             if line.is_empty() {
                                 continue;
                             }
+                            long.store(LONG_STEPS.iter().any(|k| line.contains(k)), Ordering::SeqCst);
                             if line.contains("World initialized") {
                                 ready.store(true, Ordering::SeqCst);
                             }
@@ -323,7 +332,7 @@ impl Mangosd {
                 }
             });
         }
-        Ok(Mangosd { child, stdin, world_ready })
+        Ok(Mangosd { child, stdin, world_ready, long_step })
     }
 
     /// Prêt = port du monde ouvert ET « World initialized » lu sur la console.

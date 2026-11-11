@@ -1485,9 +1485,21 @@ impl Orchestrator {
             Ok(m) => m,
             Err(e) => return self.fail_ret("démarrage mangosd", e),
         };
-        let deadline = std::time::Instant::now() + Duration::from_secs(600);
+        // 10 min sans signe de vie de la console ; une étape longue connue (cache d'équipement des bots, premier
+        // démarrage) repousse l'échéance, dans la limite d'une heure au total.
+        let started = std::time::Instant::now();
+        let mut deadline = started + Duration::from_secs(600);
+        let mut long_notice = false;
         loop {
             self.drain_server_logs();
+            if m.long_step.load(std::sync::atomic::Ordering::SeqCst) {
+                deadline = (std::time::Instant::now() + Duration::from_secs(600)).min(started + Duration::from_secs(3600));
+                if !long_notice {
+                    long_notice = true;
+                    self.set(State::StartingWorld, tr!(MSG_WORLD_FIRST_BOTS), 0.75);
+                    self.log("premier démarrage : préparation de l'équipement des bots (une seule fois, souvent plus de 10 minutes)");
+                }
+            }
             match m.wait_ready(Duration::from_millis(500)) {
                 Ok(()) => break,
                 Err(e) if std::time::Instant::now() > deadline || !m.is_running() => {

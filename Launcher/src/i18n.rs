@@ -62,6 +62,7 @@ pub mod fr {
     pub const MSG_DB_IMPORT: &str = "Première installation : import des données du monde (quelques minutes)…";
     pub const MSG_AUTH: &str = "Démarrage du serveur d'authentification…";
     pub const MSG_WORLD: &str = "Chargement du monde…";
+    pub const MSG_WORLD_FIRST_BOTS: &str = "Premier démarrage : préparation de l'équipement des bots (une seule fois, 10 à 30 minutes selon le PC)…";
     pub const MSG_READY: &str = "Serveur opérationnel. Vous pouvez jouer.";
     pub const MSG_PLAYING: &str = "Le jeu est lancé. Le serveur reste actif tant que cette fenêtre est ouverte.";
     pub const MSG_STOPPING: &str = "Arrêt propre des services…";
