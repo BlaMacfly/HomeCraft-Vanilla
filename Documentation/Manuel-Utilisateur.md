@@ -560,6 +560,8 @@ Dans le jeu, avec un compte GM 2 ou 3 : `.gm on` / `.gm off`, `.levelup 5`, `.mo
 
 **Le jeu se ferme pendant le chargement, ou la connexion au monde échoue (« délai dépassé »)** sur un PC de 4 Go ou un portable d'entrée de gamme : le serveur et ses bots occupent toute la mémoire. Enclenchez **Low Computer** sur l'accueil (§7) puis redémarrez le serveur.
 
+**Message « Interface\FrameXML\TargetFrame.lua:303: attempt to index local 'color' (a nil value) » en lançant un sort** (client Benilla, `HomeCraft.exe` dans `Client\`, avec des données françaises) : défaut de Benilla, qui renvoyait à l'interface le nom traduit du type d'effet (« Magie ») au lieu du nom interne (« Magic »). Corrigé dans Benilla (branche fr-fixes, 15 novembre 2026) : remplacez le `HomeCraft.exe` du dossier `Client\` par la version corrigée. Le client d'origine (`WoW.exe`) n'est pas concerné.
+
 **Aucun bot dans le monde** : « Activer les PlayerBots » et « Connecter les bots aléatoires » cochés, nombre minimal supérieur à 0, réglages **enregistrés**, premier démarrage allé à son terme (« Personnages des bots aléatoires » non nul).
 
 **Les bots ne répondent pas avec l'IA** : « Tester » dans la section IA ; vérifiez que le modèle est chargé (LM Studio / Ollama) ou que la clé est valide ; regardez `Logs\ai-bridge.log` (échecs et durées). En cas d'échec, les bots répondent de façon classique pendant une minute : c'est voulu.

@@ -1,8 +1,9 @@
 # Journal des versions
 
-## 1.0.2 — en préparation (édition CMaNGOS)
+## 1.0.2 — 15 novembre 2026 (édition CMaNGOS)
 
 - `.gm fly on` / `off` fonctionne : CMaNGOS Classic avait désactivé la commande (le client 1.12 n'a pas de vol natif) ; même procédé que VMaNGOS, le serveur impose au personnage les drapeaux lévitation et nage, il « nage » dans les airs. Un saut met fin au vol. Vérifié côté serveur (drapeaux 0x01A00400 envoyés au client, remis à zéro par `off`) ; à vérifier en jeu.
+- Client Benilla (fourni à part, jamais dans le package) : l'erreur `TargetFrame.lua:303: attempt to index local 'color'` à chaque sort magique sur une cible, avec des données françaises, venait de Benilla (nom traduit « Magie » renvoyé par `UnitDebuff` au lieu du nom interne « Magic », vérifié dans WoW.exe à 0x5198f0). Corrigé dans Benilla, branche fr-fixes ; manuel, § Dépannage.
 
 ## 1.0.1 — 11 novembre 2026 (édition CMaNGOS)
 
