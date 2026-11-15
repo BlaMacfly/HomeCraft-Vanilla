@@ -32,7 +32,7 @@ Un compte de **niveau 3** (celui que le launcher propose pour jouer seul) a acc�
 |---|---|---|
 | `.gm on` / `.gm off` | 3 | Active ou désactive le mode MJ (invulnérable, ignoré par les monstres, balise <MJ>). Le réglage « Mode MJ à la connexion » de l'onglet Monde décide de l'état à la connexion. |
 | `.gm visible on` / `off` | 3 | Rend le MJ visible ou invisible des autres. |
-| `.gm fly on` / `off` | 3 | Vol libre. |
+| `.gm fly on` / `off` | 3 | **Inopérante dans cette édition** : le client 1.12 ne sait pas voler (le vol est apparu avec Burning Crusade) et CMaNGOS Classic a désactivé la commande, qui répond toujours « utilisez on ou off ». Pour aller vite : `.modify speed 5`, `.tele`, `.go xyz`, `.appear`. |
 | `.gm chat on` / `off` | 3 | Balise <MJ> dans la discussion. |
 | `.gm ingame` | 3 | Liste les MJ connectés. |
 
@@ -401,7 +401,7 @@ Niveau requis et disponibilité dans la console, par famille. Générée depuis 
 |---|---|---|
 | `.gm` | 3 |  |
 | `.gm chat` | 3 |  |
-| `.gm fly` | 3 |  |
+| `.gm fly` | 3 | inopérante (pas de vol en 1.12) |
 | `.gm ingame` | 3 | oui |
 | `.gm list` | 3 | oui |
 | `.gm mountup` | 3 |  |
