@@ -31,6 +31,7 @@ const SMSG_LOGIN_VERIFY_WORLD: u16 = 0x236;
 const CMSG_MESSAGECHAT: u32 = 0x095;
 const SMSG_MESSAGECHAT: u16 = 0x096;
 const CMSG_PING: u32 = 0x1DC;
+const MSG_MOVE_HEARTBEAT: u16 = 0x0EE;
 const CMSG_LOGOUT_REQUEST: u32 = 0x04B;
 const SMSG_LOGOUT_COMPLETE: u16 = 0x04D;
 
@@ -493,11 +494,22 @@ fn main() {
             SMSG_LOGOUT_COMPLETE => fail(5, "déconnecté du monde par le serveur (retour à la sélection des personnages)"),
             SMSG_MESSAGECHAT => {
                 if let Some((t, g, text)) = parse_chat(&p.body) {
-                    if t as u32 == CHAT_MSG_WHISPER || t as u32 == CHAT_MSG_SAY || t == 0x01 {
+                    // 0x0A : CHAT_MSG_SYSTEM (réponses des commandes .xxx)
+                    if t as u32 == CHAT_MSG_WHISPER || t as u32 == CHAT_MSG_SAY || t == 0x01 || t == 0x0A {
                         event(format!("chat type={t} from={g} text={text:?}"));
                         if t as u32 == CHAT_MSG_WHISPER && args.expect_reply_from.is_some() {
                             got_reply = true;
                         }
+                    }
+                }
+            }
+            // Battement de mouvement imposé par le serveur à notre propre personnage (.gm fly, racine…)
+            MSG_MOVE_HEARTBEAT => {
+                if let Some((g, rest)) = packed_guid(&p.body) {
+                    if g == guid && rest.len() >= 24 {
+                        let flags = u32::from_le_bytes(rest[0..4].try_into().unwrap());
+                        let z = f32::from_le_bytes(rest[16..20].try_into().unwrap());
+                        event(format!("own_heartbeat flags=0x{flags:08X} z={z:.2}"));
                     }
                 }
             }
@@ -519,4 +531,18 @@ fn main() {
         }
     }
     event("logout_timeout");
+}
+
+/// GUID compacté (masque d'octets non nuls) ; renvoie le GUID et la suite du paquet.
+fn packed_guid(b: &[u8]) -> Option<(u64, &[u8])> {
+    let mask = *b.first()?;
+    let mut g = 0u64;
+    let mut i = 1;
+    for bit in 0..8 {
+        if mask & (1 << bit) != 0 {
+            g |= (*b.get(i)? as u64) << (8 * bit);
+            i += 1;
+        }
+    }
+    Some((g, &b[i..]))
 }

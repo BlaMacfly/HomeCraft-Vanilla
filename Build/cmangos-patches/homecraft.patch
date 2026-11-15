@@ -1,3 +1,36 @@
+diff --git a/src/game/Chat/Level3.cpp b/src/game/Chat/Level3.cpp
+index 9f87b396c..1a3efec65 100644
+--- a/src/game/Chat/Level3.cpp
++++ b/src/game/Chat/Level3.cpp
+@@ -5449,13 +5449,24 @@ bool ChatHandler::HandleGMFlyCommand(char* args)
+     if (!target)
+         target = m_session->GetPlayer();
+ 
+-    // [-ZERO] Need reimplement in another way
++    // HomeCraft : le client 1.12 n'a pas de vol natif ; même procédé que VMaNGOS (Player::SetFly) : le serveur impose
++    // au client les drapeaux lévitation + nage (+ 0x00800000 et 0x01000000, « moved » et « flying » en 1.12) par un
++    // battement de mouvement envoyé au joueur lui-même, qui nage alors dans les airs (un saut fait retomber).
++    // L'anti-triche ne vérifie pas ces drapeaux pour les comptes MJ.
++    if (value && target->GetTransport())
+     {
+-        SendSysMessage(LANG_USE_BOL);
++        SendSysMessage("Fly mode is not available on a transport.");
++        SetSentErrorMessage(true);
+         return false;
+     }
+-    target->SetCanFly(value);
+-    PSendSysMessage(LANG_COMMAND_FLYMODE_STATUS, GetNameLink(target).c_str(), args);
++    if (value)
++        target->m_movementInfo.SetMovementFlags(MovementFlags(MOVEFLAG_LEVITATING | MOVEFLAG_SWIMMING | MOVEFLAG_CAN_FLY | MOVEFLAG_FLYING_OLD));
++    else
++        target->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
++    target->SendHeartBeat();
++    PSendSysMessage(LANG_COMMAND_FLYMODE_STATUS, GetNameLink(target).c_str(), value ? "on" : "off");
++    if (value)
++        SendSysMessage("Do not jump: a jump ends the fly mode (.gm fly on again to resume).");
+     return true;
+ }
+ 
 diff --git a/src/game/Entities/CharacterHandler.cpp b/src/game/Entities/CharacterHandler.cpp
 index 06567441e..c78d9ff1d 100644
 --- a/src/game/Entities/CharacterHandler.cpp

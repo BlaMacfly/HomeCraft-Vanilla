@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 1.0.2 — en préparation (édition CMaNGOS)
+
+- `.gm fly on` / `off` fonctionne : CMaNGOS Classic avait désactivé la commande (le client 1.12 n'a pas de vol natif) ; même procédé que VMaNGOS, le serveur impose au personnage les drapeaux lévitation et nage, il « nage » dans les airs. Un saut met fin au vol. Vérifié côté serveur (drapeaux 0x01A00400 envoyés au client, remis à zéro par `off`) ; à vérifier en jeu.
+
 ## 1.0.1 — 11 novembre 2026 (édition CMaNGOS)
 
 - **Bouton « Low Computer »** (accueil, à bascule) pour les PC modestes : serveur allégé (mise à jour des cartes toutes les 200 ms au lieu de 100, zones vides déchargées au bout d'une minute, distance de visibilité 60 / 100 m, mémoire de la base 128 Mo) et **PlayerBots désactivés** ; l'onglet PlayerBots est grisé avec une infobulle, l'IA des bots ne démarre pas. Mesuré : le serveur occupe environ 500 Mo (contre plus de 3 Go avec 100 à 200 bots) et démarre en une quarantaine de secondes. Réponse à un retour de joueur : sur un portable de 4 Go (Celeron N4120), le serveur saturé faisait échouer la connexion au monde, puis le client manquait de mémoire graphique au chargement.
